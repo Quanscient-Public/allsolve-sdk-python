@@ -1,0 +1,80 @@
+# Copyright 2026 Quanscient Oy
+# SPDX-License-Identifier: Apache-2.0
+
+# pyright: reportUnusedImport=false
+
+__all__ = [
+    "Physic",
+    "Field",
+    "Fields",
+    "InteractionParameter",
+    "OutputInteraction",
+    "Expression",
+    "ScalarValue",
+    "VectorValue",
+    "MatrixValue",
+    "BooleanValue",
+    "vector_to_str",
+    "matrix_to_str",
+    "boolean_to_str",
+    "vector_from_str",
+    "matrix_from_str",
+    "boolean_from_str",
+    "Physics",
+    "Interaction",
+    "Output",
+    # Enums (from .generated.enums)
+    "AcousticWavesAcousticExtrapolationTargetShape",
+    "AcousticWavesAcousticExtrapolationTimeAggregationDataOperation",
+    "AcousticWavesAcousticExtrapolationTimeAggregationOperation",
+    "AcousticWavesPeriodicityType",
+    "AcousticWavesPmlType",
+    "CurrentFlowLumpActuationMode",
+    "CurrentFlowLumpVICutActuationMode",
+    "CurrentFlowPeriodicityType",
+    "ElasticWavesLumpActuationMode",
+    "ElasticWavesPeriodicityType",
+    "ElasticWavesPmlType",
+    "ElectromagneticWavesEigenmodePortTargetEigenvalueType",
+    "ElectromagneticWavesLumpVIActuationMode",
+    "ElectromagneticWavesPeriodicityType",
+    "ElectromagneticWavesPmlType",
+    "ElectromagneticWavesRectangularPortModeType",
+    "ElectrostaticsLumpActuationMode",
+    "ElectrostaticsPeriodicityType",
+    "FieldOutputFilterType",
+    "FieldStateFilterType",
+    "HeatFluidPeriodicityType",
+    "HeatTransferLumpTPhiActuationMode",
+    "HeatTransferPeriodicityType",
+    "LaminarFlowLumpPMActuationMode",
+    "LaminarFlowLumpVFvActuationMode",
+    "LaminarFlowPressurePeriodicityType",
+    "LaminarFlowVelocityPeriodicityType",
+    "MagnetismAPeriodicityType",
+    "MagnetismHPeriodicityType",
+    "MagnetismPhiLumpIVActuationMode",
+    "MagnetismPhiLumpPhiPhiBActuationMode",
+    "MagnetismPhiPeriodicityType",
+    "MeshDeformationPeriodicityType",
+    "SolidMechanicsLumpActuationMode",
+    "SolidMechanicsPeriodicityType",
+]
+
+from .physic import Physic, Field, Fields
+from .interaction import InteractionParameter, OutputInteraction
+from .conversions import (
+    Expression,
+    ScalarValue,
+    VectorValue,
+    MatrixValue,
+    BooleanValue,
+    vector_to_str,
+    matrix_to_str,
+    boolean_to_str,
+    vector_from_str,
+    matrix_from_str,
+    boolean_from_str,
+)
+from .generated.namespaces import Physics, Interaction, Output
+from .generated.enums import *  # noqa: F401, F403

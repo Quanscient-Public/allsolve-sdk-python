@@ -1,0 +1,9 @@
+build
+black
+pytest
+pyright
+mypy
+types-requests
+types-PyYAML
+pandas>=2.0
+pandas-stubs

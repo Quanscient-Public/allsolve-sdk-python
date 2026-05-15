@@ -1,0 +1,183 @@
+name: Bending beam from YAML
+description: Demo simulation for a bending beam with a sweep over some simulation
+  parameters
+dimension: 3
+variables:
+- name: length
+  expression: 24e-3
+  description: Length of the beam
+- name: width
+  expression: 2e-3
+  description: Width of the beam
+- name: height
+  expression: 3e-3
+  description: Height of the beam
+- name: tolerance
+  expression: 1e-4
+  description: Tolerance for regions
+- name: force
+  expression: '-1000'
+  description: Force for Load interaction
+- name: material_index
+  expression: '0'
+  description: Selects used material for the beam
+geometries:
+- name: beam
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  size:
+    x: length
+    y: width
+    z: height
+regions:
+- name: beam_volume
+  entityType: volume
+  type: geometrySelector
+  maxSize:
+    x: length + tolerance
+    y: width + tolerance
+    z: height + tolerance
+  minSize:
+    x: length - tolerance
+    y: width - tolerance
+    z: height - tolerance
+- name: clamp_surface
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: (-length / 2) - tolerance
+      y: (-width / 2) - tolerance
+      z: (-height / 2) - tolerance
+    max:
+      x: (-length / 2) + tolerance
+      y: (width / 2) + tolerance
+      z: (height / 2) + tolerance
+- name: top_surface
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: (-length / 2) - tolerance
+      y: (-width / 2) - tolerance
+      z: (height / 2) - tolerance
+    max:
+      x: (length / 2) + tolerance
+      y: (width / 2) + tolerance
+      z: (height / 2) + tolerance
+- name: top_surface_clamp_corner
+  entityType: point
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: (-length / 2) - tolerance
+      y: (width / 2) - tolerance
+      z: (height / 2) - tolerance
+    max:
+      x: (-length / 2) + tolerance
+      y: (width / 2) + tolerance
+      z: (height / 2) + tolerance
+- name: top_surface_free_corner
+  entityType: point
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: (length / 2) - tolerance
+      y: (width / 2) - tolerance
+      z: (height / 2) - tolerance
+    max:
+      x: (length / 2) + tolerance
+      y: (width / 2) + tolerance
+      z: (height / 2) + tolerance
+materials:
+- name: Aluminium
+  color: '#aaaaaa'
+  abbreviation: Al
+  enabled: eq(material_index,0)
+  target: beam_volume
+  density: '2700'
+  heatCapacity: '897'
+  speedOfSound: '6320'
+  coefficientOfThermalExpansion: 1e-06
+  electricConductivity: '36900000.0'
+  electricPermittivity: epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '237'
+  elasticityMatrix:
+    youngsModulus: '68000000000.0'
+    poissonsRatio: '0.32'
+- name: Copper
+  color: '#DD6839'
+  abbreviation: Cu
+  enabled: eq(material_index,1)
+  target: beam_volume
+  density: '8960'
+  heatCapacity: '385'
+  coefficientOfThermalExpansion: '1.65e-05'
+  electricConductivity: '60000000.0'
+  electricPermittivity: epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '401'
+  elasticityMatrix:
+    youngsModulus: '130000000000.0'
+    poissonsRatio: '0.34'
+physics:
+- type: solidMechanics
+  interactions:
+  - type: clamp
+    name: Clamp
+    enabled: true
+    target: clamp_surface
+  - type: load
+    name: Load
+    enabled: true
+    target: top_surface
+    force: '[0; 0; force]'
+variableOverrides:
+- name: sweep_1
+  overrides:
+  - variable: height
+    values: '[3e-3, 3.5e-3]'
+  - variable: material_index
+    values: '[0, 1]'
+  - variable: force
+    values: linspace(-1000, -2000, 3)
+  sweepType: cartesian_product
+meshes:
+- name: Mesh 1
+  useMeshRefiner: false
+  scaleFactor: 1.0
+  curvatureEnhancement: 12.0
+  targetWidthToHeightRatio: 4.0
+  maxRunTimeMinutes: 60
+  variableOverride: sweep_1
+simulations:
+- name: Simulation
+  description: Simulation 1
+  maxRunTimeMinutes: 10
+  solverMode: direct
+  analysisType: static
+  harmonics:
+  - 1
+  mesh: Mesh 1
+  variableOverride: sweep_1
+  physics:
+  - solidMechanics
+  eigenmodePortAnalysis: false
+  numericalJacobian: false
+  disabledScriptSections: []
+  outputs:
+  - type: fieldOutput
+    name: Displacement
+    enabled: true
+    filter:
+      type: None
+    expression: u
+  - type: discreteOutput
+    name: z_deflection
+    enabled: true
+    expression: lineinterpolate(reg.beam_volume, compz(u), getcoords(reg.top_surface_clamp_corner),
+      getcoords(reg.top_surface_free_corner), 10)

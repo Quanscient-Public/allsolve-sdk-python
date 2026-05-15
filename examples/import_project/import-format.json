@@ -1,0 +1,231 @@
+{
+  "name": "test something",
+  "description": "",
+  "dimension": 3,
+  "geometry": {
+    "type": "step",
+    "filename": "./cube.step"
+  },
+  "labels": [],
+  "verbose": true,
+  "regions": [
+    {
+      "name": "ball",
+      "type": "regionRule",
+      "entityType": "volume",
+      "attributePath": [
+        {
+          "key": "name",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "drive",
+      "type": "regionRule",
+      "entityType": "volume",
+      "attributePath": [
+        {
+          "key": "name",
+          "value": "2"
+        }
+      ]
+    },
+    {
+      "name": "gnd",
+      "type": "regionRule",
+      "entityType": "volume",
+      "attributePath": [
+        {
+          "key": "name",
+          "value": "3"
+        }
+      ]
+    },
+    {
+      "name": "air1",
+      "type": "regionRule",
+      "entityType": "volume",
+      "attributePath": [
+        {
+          "key": "name",
+          "value": "4"
+        }
+      ]
+    },
+    {
+      "name": "air2",
+      "type": "regionRule",
+      "entityType": "volume",
+      "attributePath": [
+        {
+          "key": "name",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "name": "all_but_cubes",
+      "type": "computed",
+      "entityType": "volume",
+      "operation": "union",
+      "regions": ["ball", "air1", "air2"]
+    },
+    {
+      "name": "cubes",
+      "type": "computed",
+      "entityType": "volume",
+      "operation": "union",
+      "regions": ["drive", "gnd"]
+    }
+  ],
+  "variables": [
+    {
+      "description": "",
+      "expression": 1,
+      "name": "pres"
+    },
+    {
+      "description": "",
+      "expression": "10 * pres",
+      "name": "test2"
+    }
+  ],
+  "functions": [
+    {
+      "name": "testfunc",
+      "type": "interpolated",
+      "args": [
+        {
+          "name": "arg1",
+          "values": [0, 1, 2, 3, 4]
+        }
+      ],
+      "description": "",
+      "values": [1, 2, 3, 5, 7]
+    },
+    {
+      "name": "fromcsv",
+      "type": "interpolated",
+      "description": "",
+      "fromCsv": "example.csv"
+    },
+    {
+      "args": [
+        {
+          "name": "alpha",
+          "values": [0, 1, 2, 3, 4]
+        }
+      ],
+      "expression": "sin(alpha)",
+      "description": "",
+      "name": "testregular",
+      "type": "regular"
+    }
+  ],
+  "materials": [
+    {
+      "abbreviation": "Al",
+      "color": "#888B8D",
+      "target": "cubes",
+      "description": "Aluminium",
+      "name": "Aluminium",
+      "coefficientOfThermalExpansion": [1, 2, 3, 4, 5, 6],
+      "density": 2700,
+      "dynamicViscosity": [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+      ],
+      "elasticityMatrix": [
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0]
+      ],
+      "electricConductivity": 36900000.0,
+      "electricPermittivity": "epsilon0",
+      "magneticPermeability": "mu0",
+      "massDampingCoefficient": 0.00123,
+      "piezoelectricCoupling": [
+        [1, "10*49", 3],
+        ["pres", 5, 6],
+        [7, "v", 9],
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+      ],
+      "speedOfSound": 6320,
+      "stiffnessDampingCoefficient": "1.23e-3 * pres",
+      "thermalConductivity": "237 * testfunc(v)",
+      "heatCapacity": "897 / compx(j)",
+      "pronySeries": {
+        "poissonsRatio": 0,
+        "youngsModulus": [0],
+        "relaxationTime": [0]
+      },
+      "orientation": "[0; 0; 0]",
+      "enabled": "1"
+    },
+    {
+      "color": "#535050",
+      "description": "Air",
+      "name": "Air",
+      "target": "all_but_cubes",
+      "pronySeries": {
+        "poissonsRatio": 0,
+        "youngsModulus": [0],
+        "relaxationTime": [0]
+      },
+      "electricConductivity": 0,
+      "electricPermittivity": "epsilon0",
+      "magneticPermeability": "mu0"
+    }
+  ],
+  "variableOverrides": [
+    {
+      "name": "pres_sweep",
+      "overrides": [
+        {
+          "variable": "pres",
+          "values": "linspace(100000, 400000, 4)"
+        }
+      ]
+    },
+    {
+      "name": "multi_sweep",
+      "overrides": [
+        {
+          "variable": "pres",
+          "values": "linspace(100000, 400000, 4)"
+        },
+        {
+          "variable": "test2",
+          "values": "linspace(1, 10, 3)"
+        }
+      ],
+      "sweepType": "cartesian_product"
+    }
+  ],
+  "meshes": [
+    {
+      "name": "test_mesh",
+      "scaleFactor": 0.7,
+      "refinements": [
+        {
+          "region": "cubes",
+          "maxSize": "1000 / pres"
+        }
+      ],
+      "saveMesh": true,
+      "useMeshRefiner": true,
+      "curvatureEnhancement": 6,
+      "targetWidthToHeightRatio": 4,
+      "curvedMesh": false,
+      "maxRunTimeMinutes": 15,
+      "variableOverride": "pres_sweep"
+    }
+  ]
+}

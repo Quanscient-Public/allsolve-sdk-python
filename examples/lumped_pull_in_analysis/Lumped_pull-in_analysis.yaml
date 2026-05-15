@@ -1,0 +1,442 @@
+name: Lumped pull-in analysis
+description: Lumped pull-in analysis of a parallel plate capacitor
+dimension: 3
+variables:
+- name: L
+  expression: 50e-6
+  description: length of the plate
+- name: B
+  expression: 50e-6
+  description: width of the plate
+- name: H
+  expression: 3e-6
+  description: thickness of the plate
+- name: do
+  expression: 1e-6
+  description: gap between the parallel plates at zero-voltage
+- name: Vdc
+  expression: '10'
+  description: DC voltage
+- name: K
+  expression: 1e4
+  description: Spring stiffness
+- name: Aeff
+  expression: L*B
+  description: Effective overlap area between the parallel plates
+- name: Upullin
+  expression: do/3
+  description: Theoritical pull-in deflection
+- name: Vpullin
+  expression: sqrt(8 * K * pow(do,3) / (epsilon0 * Aeff * 27))
+  description: Theoritical pull-in voltage
+functions:
+- name: U_theoritical
+  type: interpolated
+  args:
+  - name: voltage
+    values:
+    - 5
+    - 15
+    - 25
+    - 35
+    - 45
+    - 55
+    - 65
+    - 75
+    - 85
+    - 95
+    - 105
+    - 115
+    - 125
+    - 135
+    - 145
+    - 155
+    - 165
+    - 175
+    - 185
+    - 195
+    - 205
+    - 215
+    - 225
+    - 235
+    - 245
+    - 255
+    - 265
+    - 275
+    - 285
+    - 295
+    - 305
+    - 315
+    - 325
+    - 335
+    - 345
+    - 355
+    - 365
+  values:
+  - 2.7670868247752846e-05
+  - 0.00024914816638716894
+  - 0.0006926927369616294
+  - 0.0013594914300989124
+  - 0.002251341960344928
+  - 0.0033706743622996496
+  - 0.00472058050642613
+  - 0.006304852511021983
+  - 0.00812803117243557
+  - 0.010195465881991285
+  - 0.01251338792704371
+  - 0.015088999614928138
+  - 0.017930582353008054
+  - 0.0210476277220207
+  - 0.02445099677313013
+  - 0.0281531143755407
+  - 0.03216820760704656
+  - 0.036512600159693105
+  - 0.04120507889574971
+  - 0.04626735460121706
+  - 0.05172464753092499
+  - 0.057606440939755324
+  - 0.06394746477941048
+  - 0.07078900104764246
+  - 0.07818064877511971
+  - 0.08618276273921278
+  - 0.09486990908411595
+  - 0.1043359092666947
+  - 0.11470146747734804
+  - 0.12612621063721263
+  - 0.13882873259438586
+  - 0.15312230677307004
+  - 0.16948449609542546
+  - 0.18871097223895958
+  - 0.21232677899147978
+  - 0.2441301274270858
+  - 0.3072469395895287
+  description: theoritical deflection of plate in um vs voltage applied
+  cubicInterpolation: true
+geometries:
+- name: box
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  size:
+    x: L
+    y: B
+    z: H
+  alignment: center
+- name: translate
+  type: translate
+  translation:
+    x: 0.0
+    y: 0.0
+    z: H/2 + do + H/2
+  cadNames:
+  - box
+  copyObject: true
+  repeat: '1'
+- name: box 2
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: H/2 + do/2
+  size:
+    x: L
+    y: B
+    z: do
+  alignment: center
+regions:
+- name: fixed bottom plate
+  entityType: volume
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: -L
+      y: -B
+      z: -H
+    max:
+      x: L
+      y: B
+      z: H/2 + do/2
+  minSize:
+    x: L/2
+    y: B/2
+    z: H/2
+- name: movable top plate
+  entityType: volume
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: -L
+      y: -B
+      z: H/2 + do/2
+    max:
+      x: L
+      y: B
+      z: 2*H + do
+  minSize:
+    x: L/2
+    y: B/2
+    z: H/2
+- name: Vacuum target
+  entityType: volume
+  type: geometrySelector
+  maxSize:
+    x: 2*L
+    y: 2*B
+    z: (H + do) / 2
+- name: top-surface of fixed-bottom-plate
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: -L
+      y: -B
+      z: H/2
+    max:
+      x: L
+      y: B
+      z: H/2
+  minSize:
+    x: L/2
+    y: B/2
+    z: '0'
+- name: bottom-surface of movable-top-plate
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: -L
+      y: -B
+      z: H/2 + do
+    max:
+      x: L
+      y: B
+      z: H/2 + do
+  minSize:
+    x: L/2
+    y: B/2
+    z: '0'
+- name: Silicon dioxide target
+  entityType: volume
+  type: computed
+  operation: union
+  regions:
+  - fixed bottom plate
+  - movable top plate
+- name: solid domain
+  entityType: volume
+  type: computed
+  operation: union
+  regions:
+  - fixed bottom plate
+  - movable top plate
+- name: electric domain
+  entityType: volume
+  type: computed
+  operation: union
+  regions:
+  - solid domain
+  - Vacuum target
+materials:
+- name: Vacuum
+  description: Perfect vacuum
+  color: '#EDFAFF'
+  target: Vacuum target
+  electricConductivity: '0'
+  electricPermittivity: epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '0'
+- name: Silicon dioxide
+  description: Amorphous SiO2
+  color: '#F1FCFF'
+  abbreviation: SiO₂
+  target: Silicon dioxide target
+  density: '2200'
+  heatCapacity: '733'
+  coefficientOfThermalExpansion: '7.64e-6'
+  electricPermittivity: 3.9*epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '9.50'
+  elasticityMatrix:
+    youngsModulus: 70e9
+    poissonsRatio: '0.17'
+physics:
+- type: solidMechanics
+  target: solid domain
+  interactions:
+  - type: clamp
+    name: Clamp
+    enabled: true
+    target: fixed bottom plate
+  - type: solidMechanicsConstraint
+    name: Constraint
+    enabled: true
+    target: movable top plate
+    solidMechanicsConstraint: '[1, 0; 1, 0; 0, 0]'
+  - type: solidMechanicsLump
+    name: Lump U/F
+    enabled: true
+    namespace: lump
+    target: bottom-surface of movable-top-plate
+    solidMechanicsLumpActuationMode: solidMechanicsLumpActuationModeCircuitCoupling
+    solidMechanicsLumpCircuitCoupling: '[0, 0; 0, 0; 1, lump.Fz - -(K*lump.Uz)]'
+  - type: solidMechanicsElectricForce
+    name: Electric force
+    enabled: true
+  - type: solidMechanicsLargeDisplacement
+    name: Large displacement
+    enabled: true
+  - type: solidMechanicsGeometricNonlinearity
+    name: Geometric nonlinearity
+    enabled: false
+- type: electrostatics
+  target: electric domain
+  interactions:
+  - type: electrostaticsLump
+    name: Lump V/Q
+    enabled: true
+    namespace: lump_2
+    target: top-surface of fixed-bottom-plate
+    electrostaticsLumpVoltage: Vdc
+  - type: electrostaticsLump
+    name: Lump V/Q 2
+    enabled: true
+    namespace: lump_3
+    target: bottom-surface of movable-top-plate
+    electrostaticsLumpVoltage: '0.0'
+  - type: electrostaticsLargeDisplacement
+    name: Large displacement
+    enabled: true
+- type: meshDeformation
+  target: electric domain
+  interactions:
+  - type: meshDeformationConstraint
+    name: Constraint
+    enabled: true
+    target: solid domain
+    meshDeformationConstraint: '[1, compx(u); 1, compy(u); 1, compz(u)]'
+  - type: meshDeformationConstraint
+    name: Constraint 2
+    enabled: true
+    target: Vacuum target
+    meshDeformationConstraint: '[1, 0; 1, 0; 0, 0]'
+variableOverrides:
+- name: Sweep 1
+  overrides:
+  - variable: Vdc
+    values: linspace(15,365,36)
+  sweepType: specific_values
+meshes:
+- name: Mesh 1
+  useMeshRefiner: false
+  scaleFactor: '0.75'
+  maxRunTimeMinutes: 60
+  simpleExtrusion:
+    subLayerCounts:
+    - '2'
+    - '2'
+    - '2'
+    regions:
+    - fixed bottom plate
+    - movable top plate
+    - Vacuum target
+simulations:
+- name: 'Simulation 1: Field state'
+  description: ''
+  maxRunTimeMinutes: 15
+  solverMode: direct
+  analysisType: static
+  harmonics:
+  - 1
+  mesh: Mesh 1
+  variableOverride: Sweep 1
+  physics:
+  - solidMechanics
+  - electrostatics
+  - meshDeformation
+  eigenmodePortAnalysis: false
+  numericalJacobian: false
+  disabledScriptSections: []
+  outputs:
+  - type: fieldState
+    name: u
+    enabled: true
+    filter:
+      type: FinalOnly
+    expression: u
+  - type: fieldState
+    name: v
+    enabled: true
+    filter:
+      type: FinalOnly
+    expression: v
+  - type: fieldState
+    name: umesh
+    enabled: true
+    filter:
+      type: FinalOnly
+    expression: umesh
+- name: 'Simulation 2: Initial state'
+  description: ''
+  maxRunTimeMinutes: 15
+  solverMode: direct
+  analysisType: static
+  harmonics:
+  - 1
+  mesh: Mesh 1
+  variableOverride: Sweep 1
+  physics:
+  - solidMechanics
+  - electrostatics
+  - meshDeformation
+  eigenmodePortAnalysis: false
+  numericalJacobian: false
+  disabledScriptSections: []
+  fieldInitializations:
+  - type: postProcessing
+    sourceValueSimulationName: 'Simulation 1: Field state'
+    sourceValueOutputName: u
+    field: displacement
+    physics: solidMechanics
+  - type: postProcessing
+    sourceValueSimulationName: 'Simulation 1: Field state'
+    sourceValueOutputName: v
+    field: electricPotential
+    physics: electrostatics
+  - type: postProcessing
+    sourceValueSimulationName: 'Simulation 1: Field state'
+    sourceValueOutputName: umesh
+    field: meshDeformation
+    physics: meshDeformation
+  outputs:
+  - type: fieldOutput
+    name: u
+    enabled: true
+    filter:
+      type: None
+    skinOnly: true
+    expression: u
+  - type: fieldOutput
+    name: v
+    enabled: true
+    filter:
+      type: None
+    skinOnly: true
+    expression: v
+  - type: discreteOutput
+    name: Pull-in deflection (um)
+    enabled: true
+    expression: Upullin * 1e6
+  - type: discreteOutput
+    name: Pull-in voltage
+    enabled: true
+    expression: Vpullin
+  - type: discreteOutput
+    name: Uz_theoritical
+    enabled: true
+    expression: U_theoritical(Vdc)
+  - type: discreteOutput
+    name: Uz_simulation (um)
+    enabled: true
+    expression: abs(lump.Uz) * 1e6

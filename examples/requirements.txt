@@ -1,0 +1,17 @@
+# Combined requirements for all examples.
+# Optionally, you can install all example dependencies at once:
+#   pip install -r requirements.txt
+#
+# Individual examples also have their own requirements.txt
+# if you only need dependencies for a specific example.
+
+gmsh==4.13.1
+imageio
+imageio-ffmpeg
+matplotlib>=3.7
+numpy
+pandas>=2.0
+Pillow
+pyvista
+pyyaml
+scipy>=1.12.0

@@ -1,0 +1,478 @@
+name: PMUT array demo
+description: Simulation of ultrasound emission from an array of PMUTs.
+dimension: 3
+pmlSettings:
+  numLayers: 2
+variables:
+- name: R
+  expression: 100e-6
+  description: Cavity radius
+- name: thmem
+  expression: 10e-6
+  description: Membrane thickness
+- name: thpiezo
+  expression: 2e-6
+  description: Piezo thickness
+- name: thcavity
+  expression: 20e-6
+  description: Cavity thickness
+- name: n
+  expression: '2'
+  description: Array size (even numbers only)
+- name: freq
+  expression: 1e6
+  description: Frequency
+- name: Rair
+  expression: 5*R*n
+  description: Air bubble radius
+geometries:
+- name: Membrane
+  type: cylinder
+  position:
+    x: -4*R*(n-1)/2
+    y: -4*R*(n-1)/2
+    z: 0.0
+  axis:
+    x: 0.0
+    y: 0.0
+    z: thmem
+  radius: R
+- name: Piezo
+  type: cylinder
+  position:
+    x: -4*R*(n-1)/2
+    y: -4*R*(n-1)/2
+    z: thmem/2 + thpiezo/2
+  axis:
+    x: 0.0
+    y: 0.0
+    z: thpiezo
+  radius: 0.67*R
+- name: Cavity
+  type: cylinder
+  position:
+    x: -4*R*(n-1)/2
+    y: -4*R*(n-1)/2
+    z: -thcavity/2 - thmem/2
+  axis:
+    x: 0.0
+    y: 0.0
+    z: thcavity
+  radius: R
+- name: PMUT_grid
+  type: grid
+  translation:
+    x: 4*R
+    y: 4*R
+    z: 0.0
+  size:
+    x: n
+    y: n
+    z: '1'
+  cadNames:
+  - Membrane
+  - Piezo
+  - Cavity
+- name: Air_sphere
+  type: sphere
+  position:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  radius: Rair
+- name: Sphere_bottom_cut
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: (-Rair + thmem/2) / 2
+  size:
+    x: 2*Rair + 0.001
+    y: 2*Rair + 0.001
+    z: Rair + thmem/2
+- name: Air_dome
+  type: difference
+  cadNames1:
+  - Air_sphere
+  cadNames2:
+  - Sphere_bottom_cut
+  deleteTool: true
+- name: Baseplate
+  type: cylinder
+  position:
+    x: 0.0
+    y: 0.0
+    z: -thcavity/2
+  axis:
+    x: 0.0
+    y: 0.0
+    z: thmem + thcavity
+  radius: Rair
+- name: Baseplate_with_holes
+  type: difference
+  cadNames1:
+  - Baseplate
+  cadNames2:
+  - Cavity
+  deleteTool: true
+- name: Baseplate_with_holes_2
+  type: difference
+  cadNames1:
+  - Baseplate
+  cadNames2:
+  - Membrane
+  deleteTool: false
+- name: Air_dome_2
+  type: difference
+  cadNames1:
+  - Air_sphere
+  cadNames2:
+  - Piezo
+  deleteTool: false
+regions:
+- name: air_bubble
+  entityType: volume
+  type: geometrySelector
+  minSize:
+    x: 1.5*Rair
+    y: 1.5*Rair
+    z: 0.5*Rair
+- name: pzt
+  entityType: volume
+  type: geometrySelector
+  maxSize:
+    x: 2*0.67*R
+    y: 2*0.67*R
+    z: thpiezo
+- name: membranes
+  entityType: volume
+  type: regionRule
+  attributePath:
+  - key: name
+    value: Membrane
+- name: baseplate_clamp
+  entityType: volume
+  type: regionRule
+  attributePath:
+  - key: name
+    value: Baseplate
+- name: air_dome_surface
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: -Rair
+      y: -Rair
+      z: '0'
+    max:
+      x: Rair
+      y: Rair
+      z: Rair
+  minSize:
+    x: Rair
+    y: Rair
+    z: 0.5*Rair
+- name: pzt_bottom_surfaces
+  entityType: surface
+  type: regionRule
+  attributePath:
+  - key: name
+    value: Piezo
+  boundingBox:
+    min:
+      x: -4*R*(n-1)/2 - R
+      y: -4*R*(n-1)/2 - R
+      z: thmem/2
+    max:
+      x: 4*R*(n-1)/2 + R
+      y: 4*R*(n-1)/2 + R
+      z: thmem/2
+- name: pzt_top_surfaces
+  entityType: surface
+  type: regionRule
+  attributePath:
+  - key: name
+    value: Piezo
+  boundingBox:
+    min:
+      x: -4*R*(n-1)/2 - R
+      y: -4*R*(n-1)/2 - R
+      z: thmem/2 + thpiezo
+    max:
+      x: 4*R*(n-1)/2 + R
+      y: 4*R*(n-1)/2 + R
+      z: thmem/2 + thpiezo
+- name: p_above
+  entityType: point
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: -0.1*Rair
+      y: -0.1*Rair
+      z: 0.9*Rair
+    max:
+      x: 0.1*Rair
+      y: 0.1*Rair
+      z: 1.1*Rair
+- name: mono_si
+  entityType: volume
+  type: computed
+  operation: union
+  regions:
+  - baseplate_clamp
+  - membranes
+- name: solid_volumes
+  entityType: volume
+  type: computed
+  operation: union
+  regions:
+  - mono_si
+  - pzt
+materials:
+- name: Air
+  description: Air, 20 C, 100kPa
+  color: '#99D9FF'
+  target: air_bubble
+  density: '1.225'
+  heatCapacity: '1012'
+  speedOfSound: '343'
+  dynamicViscosity: '1.8e-05'
+  electricConductivity: '0'
+  electricPermittivity: epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '0.026'
+- name: PZT
+  description: Lead zirconate titanate (PZT-5H)
+  color: '#FFD700'
+  abbreviation: PZT
+  target: pzt
+  density: '7500'
+  heatCapacity: '420'
+  electricPermittivity:
+  - - 1704 * epsilon0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 1704 * epsilon0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 1433 * epsilon0
+  thermalConductivity: '0.14'
+  elasticityMatrix:
+  - - 127000000000.0
+    - 80200000000.0
+    - 84600000000.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 80200000000.0
+    - 127000000000.0
+    - 84600000000.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 84600000000.0
+    - 84600000000.0
+    - 117000000000.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 22900000000.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 22900000000.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 23400000000.0
+  piezoelectricCoupling:
+  - - 0.0
+    - 0.0
+    - -6.6
+  - - 0.0
+    - 0.0
+    - -6.6
+  - - 0.0
+    - 0.0
+    - 23.2
+  - - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 17.0
+    - 0.0
+  - - 17.0
+    - 0.0
+    - 0.0
+- name: Monocrystalline silicon
+  description: Monocrystalline silicon
+  color: '#808080'
+  abbreviation: Si
+  target: mono_si
+  density: '2329'
+  heatCapacity: '700'
+  coefficientOfThermalExpansion: '2.6e-6'
+  electricConductivity: '0.00031'
+  electricPermittivity: 11.7*epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '149'
+  elasticityMatrix:
+  - - 194500000000.0
+    - 35700000000.0
+    - 64100000000.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 35700000000.0
+    - 194500000000.0
+    - 64100000000.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 64100000000.0
+    - 64100000000.0
+    - 165700000000.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 79600000000.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 79600000000.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 50900000000.0
+physics:
+- type: elasticWaves
+  target: solid_volumes
+  interactions:
+  - type: elasticWavesClamp
+    name: Clamp
+    enabled: true
+    target: baseplate_clamp
+  - type: elasticWavesPiezoelectricity
+    name: Piezoelectricity
+    enabled: true
+    target: pzt
+- type: acousticWaves
+  target: air_bubble
+  interactions:
+  - type: acousticWavesPml
+    name: PML
+    enabled: true
+    target: air_dome_surface
+  - type: acousticStructureForElasticWaves
+    name: Acoustic structure
+    enabled: true
+- type: electrostatics
+  target: pzt
+  interactions:
+  - type: electrostaticsConstraint
+    name: Ground
+    enabled: true
+    target: pzt_bottom_surfaces
+    electrostaticsConstraint: '0'
+  - type: electrostaticsLump
+    name: Voltage excitation
+    enabled: true
+    namespace: lump
+    target: pzt_top_surfaces
+    electrostaticsLumpVoltage: sin(2*pi*freq*t)
+variableOverrides:
+- name: freq_sweep
+  overrides:
+  - variable: freq
+    values: linspace(0.7e6, 0.9e6, 41)
+  sweepType: specific_values
+meshes:
+- name: Mesh 1
+  useMeshRefiner: true
+  scaleFactor: 1.0
+  curvatureEnhancement: 6.0
+  targetWidthToHeightRatio: 4.0
+  maxRunTimeMinutes: 60
+  meshSizeMax: 0.0001
+  meshSizeMin: 0.0
+simulations:
+- name: Simulation 1
+  description: ''
+  maxRunTimeMinutes: 60
+  solverMode: direct
+  analysisType: harmonic
+  harmonics:
+  - 2
+  - 3
+  mesh: Mesh 1
+  variableOverride: freq_sweep
+  physics:
+  - elasticWaves
+  - acousticWaves
+  - electrostatics
+  fundamentalFrequency: freq
+  numFFTSamples: 3
+  eigenmodePortAnalysis: false
+  numericalJacobian: false
+  disabledScriptSections: []
+  outputs:
+  - type: fieldOutput
+    name: u harmonic 2
+    enabled: true
+    filter:
+      type: None
+    skinOnly: true
+    expression: harm(2, u)
+  - type: fieldOutput
+    name: p harmonic 2
+    enabled: true
+    filter:
+      type: None
+    expression: harm(2, p)
+  - type: fieldOutput
+    name: p harmonic 3
+    enabled: true
+    filter:
+      type: None
+    expression: harm(3, p)
+  - type: discreteOutput
+    name: P above
+    enabled: true
+    expression: probe(reg.p_above, sqrt(pow(harm(2, p), 2) + pow(harm(3, p), 2)))
+  - type: discreteOutput
+    name: U max
+    enabled: true
+    expression: maxvalue(reg.solid_volumes, sqrt(pow(harm(2, compz(u)), 2) + pow(harm(3,
+      compz(u)), 2)), 5)
+  - type: discreteOutput
+    name: V drive real
+    enabled: true
+    expression: harm(2, lump.V)
+  - type: discreteOutput
+    name: I drive real
+    enabled: true
+    expression: harm(2, dt(lump.Q))
+  - type: discreteOutput
+    name: I drive imag
+    enabled: true
+    expression: harm(3, dt(lump.Q))

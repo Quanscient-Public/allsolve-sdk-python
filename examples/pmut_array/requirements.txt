@@ -1,0 +1,6 @@
+matplotlib>=3.7
+pandas>=2.0
+numpy
+pyvista
+imageio
+imageio-ffmpeg

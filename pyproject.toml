@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "allsolve"
+version = "0.4.4"
+authors = [
+  { name="Asser Lähdemäki", email="asser.lahdemaki@quanscient.com" },
+  { name="Toni Partanen", email="toni.partanen@quanscient.com" },
+]
+description = "Quanscient Allsolve SDK"
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = [
+    "quanscient",
+    "allsolve",
+    "simulation",
+    "multiphysics",
+    "scientific-computing",
+    "cloud-simulation",
+    "finite-element",
+    "fem",
+    "fea",
+    "electromagnetics",
+    "acoustics",
+    "solid-mechanics",
+    "heat-transfer",
+    "mems",
+    "radio-frequency",
+    "superconductors",
+    "pmut",
+    "cmut",
+    "transducer",
+    "ultrasonics",
+    "piezoelectric",
+    "microspeaker",
+    "electric-motors",
+    "harmonic-balance",
+    "parametric-sweep",
+    "surrogate-model",
+    "pareto-front",
+    "meshing",
+    "gds",
+    "gdsii"
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Development Status :: 5 - Production/Stable",
+]
+dependencies = [
+    "python_dateutil >= 2.8.0",
+    "urllib3 >= 1.26.0",
+    "pydantic >= 2.7.2",
+    "aenum >= 3.1.0",
+    "requests >= 2.28.0",
+    "pyyaml >= 6.0",
+    "python-dotenv >= 0.20.0",
+    "zstandard >= 0.18.0",
+]
+
+[project.optional-dependencies]
+dataframe = ["pandas>=2.0"]
+full = ["allsolve[dataframe]"]
+
+[project.urls]
+Homepage = "https://quanscient.com"
+Repository = "https://github.com/Quanscient-Public/allsolve-sdk-python"
+Issues = "https://github.com/Quanscient-Public/allsolve-sdk-python/issues"
+Changelog = "https://github.com/Quanscient-Public/allsolve-sdk-python/blob/main/CHANGELOG.md"
+
+[tool.hatch.build]
+include = [
+  "src/allsolve",
+  "src/allsolve_rawapi/*",
+  "src/quanscient-stubs",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/allsolve", "src/allsolve_rawapi", "src/quanscient-stubs"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.coverage.run]
+omit = ["src/test/*", "tests/*"]

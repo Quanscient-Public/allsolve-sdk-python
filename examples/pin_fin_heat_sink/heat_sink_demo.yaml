@@ -1,0 +1,238 @@
+name: Pin fin heat sink demo
+description: Demo simulation for a pin fin heat sink
+dimension: 3
+variables:
+- name: base_length_x
+  expression: '0.06'
+  description: Base plate length in X direction
+- name: base_width_y
+  expression: '0.06'
+  description: Base plate width in Y direction
+- name: base_thickness
+  expression: '0.005'
+  description: Base plate thickness
+- name: pin_radius
+  expression: '0.002'
+  description: Radius of cylindrical pins
+- name: pin_height
+  expression: '0.025'
+  description: Height of cylindrical pins
+- name: pin_spacing
+  expression: '0.008'
+  description: Center-to-center spacing between pins
+- name: num_pins_x
+  expression: '7'
+  description: Number of pins in X direction
+- name: num_pins_y
+  expression: '7'
+  description: Number of pins in Y direction
+- name: air_box_size
+  expression: '0.1'
+  description: Size of the air box (cube)
+- name: offset_x
+  expression: '- (num_pins_x - 1) * pin_spacing / 2'
+  description: X offset to center the pin array
+- name: offset_y
+  expression: '- (num_pins_y - 1) * pin_spacing / 2'
+  description: Y offset to center the pin array
+geometries:
+- name: base_plate
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  size:
+    x: base_length_x
+    y: base_width_y
+    z: base_thickness
+- name: single_pin
+  type: cylinder
+  position:
+    x: offset_x
+    y: offset_y
+    z: base_thickness / 2 + pin_height / 2
+  axis:
+    x: 0.0
+    y: 0.0
+    z: pin_height
+  radius: pin_radius
+- name: pin_array
+  type: grid
+  translation:
+    x: pin_spacing
+    y: pin_spacing
+    z: 0.0
+  size:
+    x: num_pins_x
+    y: num_pins_y
+    z: '1'
+  cadNames:
+  - single_pin
+- name: air_box
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: air_box_size / 2 - base_thickness / 2
+  size:
+    x: air_box_size
+    y: air_box_size
+    z: air_box_size
+  rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+regions:
+- name: copper_material_region
+  entityType: volume
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: -base_length_x / 2
+      y: -base_width_y / 2
+      z: -base_thickness / 2
+    max:
+      x: base_length_x / 2
+      y: base_width_y / 2
+      z: base_thickness / 2 + pin_height
+- name: air
+  entityType: volume
+  type: geometrySelector
+  minSize:
+    x: air_box_size
+    y: air_box_size
+    z: air_box_size
+- name: pins
+  entityType: volume
+  type: geometrySelector
+  maxSize:
+    x: pin_radius * 2
+    y: pin_radius * 2
+    z: pin_height
+- name: pin_surfaces
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: -base_length_x / 2
+      y: -base_width_y / 2
+      z: '0'
+    max:
+      x: base_length_x / 2
+      y: base_width_y / 2
+      z: base_thickness / 2 + pin_height
+- name: plate_top_surface
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: -base_length_x / 2
+      y: -base_width_y / 2
+      z: base_thickness / 2
+    max:
+      x: base_length_x / 2
+      y: base_width_y / 2
+      z: base_thickness / 2
+- name: plate_bottom_surface
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: -base_length_x / 2
+      y: -base_width_y / 2
+      z: -base_thickness / 2
+    max:
+      x: base_length_x / 2
+      y: base_width_y / 2
+      z: -base_thickness / 2
+- name: convection_surfaces
+  entityType: surface
+  type: computed
+  operation: union
+  regions:
+  - pin_surfaces
+  - plate_top_surface
+materials:
+- name: Copper
+  description: Copper
+  color: '#DD6839'
+  abbreviation: Cu
+  target: copper_material_region
+  density: '8960'
+  heatCapacity: '385'
+  coefficientOfThermalExpansion: '16.5e-06'
+  electricConductivity: 6e7
+  electricPermittivity: epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '401'
+- name: Air
+  description: Air, 20 C, 100kPa
+  color: '#99D9FF'
+  target: air
+  density: '1.225'
+  heatCapacity: '1012'
+  speedOfSound: '343'
+  dynamicViscosity: '1.8e-5'
+  electricConductivity: '0'
+  electricPermittivity: epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '0.026'
+physics:
+- type: heatTransfer
+  interactions:
+  - type: heatSource
+    name: Heat source
+    enabled: true
+    target: plate_bottom_surface
+    heatSourcePowerDensity: '100'
+  - type: heatTransferConvection
+    name: Convection
+    enabled: true
+    target: convection_surfaces
+    heatTransferConvectionHeatTransferCoefficient: '10'
+    heatTransferConvectionFluidTemperature: '293.15'
+meshes:
+- name: Default mesh
+  useMeshRefiner: false
+  scaleFactor: 1.0
+  curvatureEnhancement: 6.0
+  maxRunTimeMinutes: 10
+  refinements:
+  - region: pins
+    maxSize: pin_height / 10
+simulations:
+- name: Heat sink demo
+  description: Transient simulation of heat transfer
+  maxRunTimeMinutes: 10
+  solverMode: direct
+  analysisType: transient
+  mesh: Default mesh
+  physics:
+  - heatTransfer
+  transientStartTime: '0'
+  transientEndTime: '10'
+  transientTimestepSize: '1'
+  timestepAlgorithm: implicitEuler
+  eigenmodePortAnalysis: false
+  numericalJacobian: false
+  disabledScriptSections: []
+  outputs:
+  - type: fieldOutput
+    name: Temperature
+    enabled: true
+    filter:
+      type: None
+    expression: T
+  - type: discreteOutput
+    name: Average temperature (copper)
+    enabled: true
+    expression: average(reg.copper_material_region, T, 3)
+  - type: discreteOutput
+    name: Average temperature (air)
+    enabled: true
+    expression: average(reg.air, T, 3)
+  customScripts:
+  - name: afterFieldsCreated.py
+    sectionName: afterFieldsCreated
+    content: fld.T.setvalue(reg.all, 293.15)

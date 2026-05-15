@@ -1,0 +1,713 @@
+name: test something
+description: "" # descriptions are optional in all objects
+dimension: 3
+# geometry: # deprecated, for geometry pipeline version V1
+#   type: step
+#   filename: ./cube.step
+labels: [] # labels are optional
+# Print messages from jobs etc while importing, defaults to false if not given
+verbose: true
+geometries:
+  - type: step
+    filepath: ./cube.step
+  # Supported basic 3D shapes:
+  # - type: box
+  #   name: my_box
+  #   position:
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   size:
+  #     x: 1
+  #     y: 1
+  #     z: 1
+  #   rotation:  # optional
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   alignment: center  # optional, one of: center, corner
+  #   enabled: "1" # optional. Can be a string expression like "eq(my_variable, 1)"
+  # - type: cylinder
+  #   name: my_cylinder
+  #   position:
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   axis:
+  #     x: 0
+  #     y: 0
+  #     z: 1
+  #   radius: 1
+  #   innerRadius: 0.5  # optional, for hollow cylinders
+  #   angle1: 0  # optional, first angle for partial cylinders
+  #   angle2: 360  # optional, second angle for partial cylinders
+  #   rotation:  # optional
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   alignment: center  # optional, one of: center, base
+  # - type: sphere
+  #   name: my_sphere
+  #   position:
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   radius: 1
+  #   innerRadius: 0.5  # optional, for hollow spheres
+  #   angle1: 0  # optional
+  #   angle2: 360  # optional
+  #   rotation:  # optional
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  # - type: cone
+  #   name: my_cone
+  #   position:
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   axis:
+  #     x: 0
+  #     y: 0
+  #     z: 1
+  #   radius1: 1
+  #   radius2: 0
+  #   angle1: 0  # optional, first angle for partial cones
+  #   angle2: 360  # optional, second angle for partial cones
+  #   rotation:  # optional
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   alignment: center  # optional, one of: center, base
+  # - type: torus
+  #   name: my_torus
+  #   position:
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   radius1: 1
+  #   radius2: 0.25
+  #   innerRadius: 0.1  # optional, for hollow toruses
+  #   angle1: 0  # optional, first angle for partial toruses
+  #   angle2: 360  # optional, second angle for partial toruses
+  #   rotation:  # optional
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  # - type: surfaceRectangle
+  #   name: my_surface_rectangle
+  #   size:
+  #     x: 1
+  #     y: 1
+  #   offset:
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   originPoint: 1  # can be tag (int) or name (str)
+  #   mainAxisPoint: 2  # can be tag (int) or name (str)
+  #   secondaryAxisPoint: 3  # can be tag (int) or name (str)
+  # Basic 2D shapes:
+  # - type: disk
+  #   name: my_disk
+  #   position:
+  #     x: 0
+  #     y: 0
+  #   radius: 1
+  #   innerRadius: 0.5  # optional, for ring-shaped disks
+  #   angle1: 0  # optional, first angle for partial disks
+  #   angle2: 360  # optional, second angle for partial disks
+  #   rotation:  # optional
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  # - type: rectangle
+  #   name: my_rectangle
+  #   position:
+  #     x: 0
+  #     y: 0
+  #   size:
+  #     x: 1
+  #     y: 1
+  #   rotation:  # optional
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   alignment: center  # optional, one of: center, corner
+  # CAD file imports:
+  # - type: iges
+  #   filepath: ./geometry.iges
+  #   cleanup: false  # optional, defaults to false
+  #   offset:
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  # - type: sat
+  #   filepath: ./geometry.sat
+  #   cleanup: false  # optional, defaults to false
+  #   offset:
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  # - type: brep
+  #   filepath: ./geometry.brep
+  #   cleanup: false  # optional, defaults to false
+  #   offset:
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  # - type: gds2
+  #   filepath: ./geometry.gds
+  #   cleanup: false  # optional, defaults to false
+  #   unit: micrometer  # optional, defaults to micrometer
+  #   layers:  # required, at least one layer
+  #     - layer: 1
+  #       type: 0
+  #       absoluteZ0: 0.0
+  #       thickness: 1.0
+  #     - layer: 2
+  #       type: 0
+  #       absoluteZ0: 1.0
+  #       thickness: 0.5
+  #   extrudeParameters:
+  #     unifyLayerDiscretizations: 'off'
+  #     fuzzyValue: 0.0001
+  #     featureAngleThreshold: 30.0
+  #     lengthRatioThreshold: 5.0
+  #     circleMaxArcAnglePerSegment: 5.625
+  #     circleFitToleranceFraction: 200.0
+  #     splineMethod: iterative
+  #     splineTolerance: 0.1
+  #     iterativeMaxIterations: '5'
+  # Boolean operations:
+  # - type: union
+  #   name: combined_shape
+  #   entityTags: [1, 2, 3]  # optional, list of entity tags
+  #   cadNames: ["box1", "cylinder1"]  # optional, list of CAD names
+  #   cadPaths:  # optional, list of CAD paths for hierarchical selection
+  #     - ["Assembly", "Part1"]  # path segments as a list
+  #     - ["*"]  # wildcard matching a single level
+  #     - ["Assembly", "**", "Part"]  # ** matches zero or more levels
+  #     - ["Assembly", {key: "name", value: "Part1"}]  # attribute filter
+  # - type: difference
+  #   name: subtracted_shape
+  #   entityTags1: [1]  # optional, first set of entities
+  #   cadNames1: ["box1"]  # optional, first set of CAD names
+  #   cadPaths1: [["Assembly", "Part1"]]  # optional, first set of CAD paths
+  #   entityTags2: [2]  # optional, second set of entities
+  #   cadNames2: ["cylinder1"]  # optional, second set of CAD names
+  #   cadPaths2: [["Assembly", "Part2"]]  # optional, second set of CAD paths
+  #   deleteTool: true  # optional, defaults to true
+  # - type: intersection
+  #   name: intersected_shape
+  #   entityTags1: [1]  # optional
+  #   cadNames1: ["box1"]  # optional
+  #   cadPaths1: [["Assembly", "Part1"]]  # optional
+  #   entityTags2: [2]  # optional
+  #   cadNames2: ["cylinder1"]  # optional
+  #   cadPaths2: [["Assembly", "Part2"]]  # optional
+  #   deleteTool: true  # optional, defaults to true
+  # - type: fragments
+  #   name: fragmented_shape
+  #   entityTags1: [1]  # optional
+  #   cadNames1: ["box1"]  # optional
+  #   cadPaths1: [["Assembly", "Part1"]]  # optional
+  #   entityTags2: [2]  # optional
+  #   cadNames2: ["cylinder1"]  # optional
+  #   cadPaths2: [["Assembly", "Part2"]]  # optional
+  #   deleteTool: true  # optional, defaults to true
+  # - type: fragmentAll  # or fragment_all
+  #   name: all_fragmented
+  # Transformations:
+  # - type: translate
+  #   name: translated_shape
+  #   translation:
+  #     x: 1
+  #     y: 0
+  #     z: 0
+  #   entityTags: [1]  # optional
+  #   cadNames: ["box1"]  # optional
+  #   cadPaths: [["Assembly", "Part1"]]  # optional
+  # - type: rotate
+  #   name: rotated_shape
+  #   axis:
+  #     x: 0
+  #     y: 0
+  #     z: 1
+  #   center:
+  #     x: 0
+  #     y: 0
+  #     z: 0
+  #   angle: 45  # rotation angle in degrees
+  #   entityTags: [1]  # optional
+  #   cadNames: ["box1"]  # optional
+  #   cadPaths: [["Assembly", "Part1"]]  # optional
+  # - type: grid
+  #   name: grid_shape
+  #   translation:
+  #     x: 2
+  #     y: 0
+  #     z: 0
+  #   size:
+  #     x: 3
+  #     y: 3
+  #     z: 1
+  #   entityTags: [1]  # optional
+  #   cadNames: ["box1"]  # optional
+  #   cadPaths: [["Assembly", "Part1"]]  # optional
+  # - type: remove
+  #   name: removed_shape
+  #   entityTags: [1]  # optional
+  #   cadNames: ["box1"]  # optional
+  #   cadPaths: [["Assembly", "Part1"]]  # optional
+regions:
+  - name: ball
+    type: regionRule
+    entityType: volume
+    attributePath:
+      - key: name
+        value: "1"
+  - name: drive
+    type: regionRule
+    entityType: volume
+    attributePath:
+      - key: name
+        value: "2"
+  - name: gnd
+    type: regionRule
+    entityType: volume
+    attributePath:
+      - key: name
+        value: "3"
+  - name: air1
+    type: regionRule
+    entityType: volume
+    attributePath:
+      - key: name
+        value: "4"
+  - name: air2
+    type: regionRule
+    entityType: volume
+    attributePath:
+      - key: name
+        value: "5"
+  - name: all_but_cubes
+    type: computed
+    entityType: volume
+    operation: union
+    regions:
+      - ball
+      - air1
+      - air2
+  - name: cubes
+    type: computed
+    entityType: volume
+    operation: union
+    regions:
+      - drive
+      - gnd
+variables:
+  - description: ""
+    expression: 1
+    name: pres
+  - description: ""
+    expression: 10 * pres # Preceding variables can be referenced
+    name: test2
+functions:
+  - name: testfunc
+    type: interpolated
+    args:
+      - name: arg1
+        values: [0, 1, 2, 3, 4]
+    description: ""
+    values: [1, 2, 3, 5, 7]
+  - name: fromcsv # spline function fromcsv(column2, column3, ...) = column1
+    type: interpolated
+    description: ""
+    fromCsv: example.csv
+  - args:
+      - name: alpha
+        values: [0, 1, 2, 3, 4]
+    expression: sin(alpha)
+    description: ""
+    name: testregular
+    type: regular
+materials:
+  - abbreviation: Al # optional
+    color: "#888B8D" # optional, defaults to #000000
+    target: cubes # optional, but necessary for use in simulation
+    description: Aluminium
+    name: Aluminium
+    coefficientOfThermalExpansion: [1, 2, 3, 4, 5, 6] # maps to par.alpha()
+    # coefficientOfThermalExpansion: 2.3e-5 # for isotropic
+    density: 2700 # maps to par.rho()
+    dynamicViscosity: [[1, 2, 3], [4, 5, 6], [7, 8, 9]] # maps to par.Mu()
+    # dynamicViscosity: 1.23e-3 # for isotropic
+    #elasticityMatrix:
+    #  youngsModulus: 68e9
+    #  poissonsRatio: 0.32
+    # elasticityMatrix:
+    #   shearWaveVelocity: 3000
+    #   pressureWaveVelocity: 1500
+    elasticityMatrix: [
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+      ] # maps to par.H()
+    electricConductivity: 3.69e+07 # maps to par.sigma()
+    # electricConductivity: [[1,2,3],[4,5,6],[7,8,9]] # For anisotropic
+    electricPermittivity: epsilon0 # maps to par.epsilon()
+    # electricPermittivity: [[1,2,3],[4,5,6],[7,8,9]] # For anisotropic
+    magneticPermeability: mu0 # maps to par.mu()
+    # magneticPermeability: [[1,2,3],[4,5,6],[7,8,9]] # For anisotropic
+    massDampingCoefficient: 1.23e-3 # maps to par.alphad()
+    # some or all of the elements in the matrix can be given as string
+    # expressions (same syntax as Allsolve GUI) instead of numbers:
+    piezoelectricCoupling: [
+        [1, "10*49", 3],
+        ["pres", 5, 6],
+        [7, "v", 9],
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ] # maps to par.C(v)
+    speedOfSound: 6320 # maps to par.c()
+    # variables can be referenced
+    stiffnessDampingCoefficient: 1.23e-3 * pres # maps to par.betad()
+    # As well as functions and fields:
+    thermalConductivity: 237 * testfunc(v) # maps to par.k(v)
+    # thermalConductivity: [[1,2,3],[4,5,6],[7,8,9]] # For anisotropic
+    # Using a derived field j works as well:
+    heatCapacity: 897 / compx(j) # maps to par.cp(j)
+    # The fields need to be def as arguments to the parameter function if used as
+    # above, ie. in the main script: par.k(v) and par.cp(j)
+    pronySeries:
+      poissonsRatio: 0 # maps to par.nup()
+      youngsModulus: [0] # maps to par.Ep()
+      relaxationTime: [0] # maps to par.taup()
+    # orientation: "[0, 0, 0]" # optional
+    # enabled: "1" # optional. Can be a string expression like "eq(my_variable, 1)"
+  - color: "#535050"
+    description: Air
+    name: Air
+    target: all_but_cubes
+    pronySeries:
+      poissonsRatio: 0
+      youngsModulus: [0]
+      relaxationTime: [0]
+    electricConductivity: 0
+    electricPermittivity: epsilon0
+    magneticPermeability: mu0
+  #
+  # Does not work yet but something like this to use existing library materials:
+  # - color: '#535050'
+  #   description: A new material without any existing properties
+  #   name: New material 2
+  #   import: Air # Exact name from Allsolve material library
+
+# Physics definitions (commented reference examples)
+# physics:
+#   # acousticWaves
+#   - type: acousticWaves
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: acousticStructure
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: acousticStructureForElasticWaves
+#       - type: acousticWavesAbsorbingBoundary # target: some_surface_region
+#       - type: acousticWavesAcousticDamping # target: some_surface_region; acousticWavesAcousticDampingDampingValue: 0.1
+#       - type: acousticWavesConstraint # target: some_surface_region; acousticWavesConstraint: 0
+#       - type: acousticWavesContinuity # targets: {continuityTarget1: region_a, continuityTarget2: region_b}
+#       - type: acousticWavesNormalAcceleration # target: some_surface_region; acousticWavesNormalAcceleration: 0
+#       - type: acousticWavesPeriodicity # targets: {target1: region_a, target2: region_b}; acousticWavesPeriodicityType: acousticWavesPeriodicityTypeTranslation; acousticWavesPeriodicityTranslationDistance: 1
+#       - type: acousticWavesPml # target: some_surface_region; acousticWavesPmlType: acousticWavesPmlTypeAml
+#
+#   # currentFlow
+#   - type: currentFlow
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: currentDensity # target: some_surface_region; currentDensity: "[0; 0; 1]"
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: currentFlowConstraint # target: some_surface_region; currentFlowConstraint: 0
+#       - type: currentFlowLump # target: some_surface_region; currentFlowLumpActuationMode: currentFlowLumpActuationModeVoltage; currentFlowLumpVoltage: 1
+#       - type: currentFlowLumpVICut # target: loop_region (orientationPoint is auto-determined); currentFlowLumpVICutActuationMode: currentFlowLumpVICutActuationModeCurrent; currentFlowLumpVICutCurrent: 0.1
+#       - type: currentFlowPeriodicity # targets: {target1: region_a, target2: region_b}; currentFlowPeriodicityType: currentFlowPeriodicityTypeTranslation; currentFlowPeriodicityTranslationDistance: 1
+#
+#   # elasticWaves
+#   - type: elasticWaves
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: elasticWavesAbsorbingBoundary # target: some_surface_region
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: elasticWavesClamp # target: some_surface_region
+#       - type: elasticWavesConstraint # target: some_surface_region; elasticWavesConstraint: "[[1,0,0],[0,1,0],[0,0,1]]"
+#       - type: elasticWavesContinuity # targets: {continuityTarget1: region_a, continuityTarget2: region_b}
+#       - type: elasticWavesElectricForce
+#       - type: elasticWavesLoad # target: some_surface_region; elasticWavesForce: "[0; 0; 1]"
+#       - type: elasticWavesLump # target: some_surface_region; elasticWavesLumpActuationMode: elasticWavesLumpActuationModeDisplacement; elasticWavesLumpDisplacement: "[[0,0,0],[0,0,0],[0,0,0]]"
+#       - type: elasticWavesPeriodicity # targets: {target1: region_a, target2: region_b}; elasticWavesPeriodicityType: elasticWavesPeriodicityTypeTranslation; elasticWavesPeriodicityTranslationDistance: 1
+#       - type: elasticWavesPiezoelectricity # target: some_surface_region
+#       - type: elasticWavesPml # target: some_surface_region; elasticWavesPmlType: elasticWavesPmlTypeAml
+#       - type: elasticWavesPressure # target: some_surface_region; elasticWavesPressure: 0
+#       - type: elasticWavesProportionalDamping # target: some_surface_region; elasticWavesProportionalDampingAlpha: 0.01; elasticWavesProportionalDampingBeta: 1e-6
+#       - type: elasticWavesSymmetry # target: some_surface_region
+#       - type: elasticWavesThermalExpansion # target: some_surface_region; elasticWavesThermalExpansionReferenceTemperature: 273
+#       - type: elasticWavesViscousDamping # target: some_surface_region; elasticWavesViscousDampingBulkViscosity: 0; elasticWavesViscousDampingShearViscosity: 0
+#       - type: viscoelasticity # target: some_surface_region
+#
+#   # electromagneticWaves
+#   - type: electromagneticWaves
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: electromagneticWavesAbsorbingBoundary # target: some_surface_region
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: electromagneticWavesBoundaryImpedance # target: some_surface_region; electromagneticWavesBoundaryImpedance: 377
+#       - type: electromagneticWavesConstraint # target: some_surface_region; electromagneticWavesConstraint: "[0; 0; 0]"
+#       - type: electromagneticWavesDielectricLoss # target: some_surface_region; electromagneticWavesDielectricLossLossTangent: 0.01
+#       - type: electromagneticWavesEigenmodePort # port_target: port_region, mode_pec: pec_region; electromagneticWavesEigenmodePortNumEigenmodes: 5; electromagneticWavesEigenmodePortDrive: 1
+#       - type: electromagneticWavesLumpVI # port_target: port_region, one_volt_electrode: anode, ground_electrode: cathode; electromagneticWavesLumpVIActuationMode: electromagneticWavesLumpVIActuationModeVoltage; electromagneticWavesLumpVIVoltage: 1
+#       - type: electromagneticWavesPerfectConductor # target: some_surface_region
+#       - type: electromagneticWavesPeriodicity # targets: {target1: region_a, target2: region_b}; electromagneticWavesPeriodicityType: electromagneticWavesPeriodicityTypeTranslation; electromagneticWavesPeriodicityTranslationDistance: 1
+#       - type: electromagneticWavesPml # target: some_surface_region; electromagneticWavesPmlType: electromagneticWavesPmlTypeAml
+#       - type: electromagneticWavesRectangularPort # target: some_surface_region; electromagneticWavesRectangularPortModeType: electromagneticWavesRectangularPortModeTypeTE; electromagneticWavesRectangularPortDrive: 1
+#
+#   # electrostatics
+#   - type: electrostatics
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: elasticWavesPiezoelectricity # target: some_surface_region
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: electrostaticsConstraint # target: some_surface_region; electrostaticsConstraint: 0
+#       - type: electrostaticsLargeDisplacement
+#       - type: electrostaticsLump # target: some_surface_region; electrostaticsLumpActuationMode: electrostaticsLumpActuationModeVoltage; electrostaticsLumpVoltage: 1
+#       - type: electrostaticsPeriodicity # targets: {target1: region_a, target2: region_b}; electrostaticsPeriodicityType: electrostaticsPeriodicityTypeTranslation; electrostaticsPeriodicityTranslationDistance: 1
+#       - type: piezoelectricity # target: some_surface_region
+#
+#   # heatFluid
+#   - type: heatFluid
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: heatFluidConstraint # target: some_surface_region; heatFluidConstraint: 293
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: heatFluidHeatSource # target: some_surface_region; heatFluidHeatSourcePowerDensity: 1000
+#       - type: heatFluidPeriodicity # targets: {target1: region_a, target2: region_b}; heatFluidPeriodicityType: heatFluidPeriodicityTypeTranslation; heatFluidPeriodicityTranslationDistance: 1
+#
+#   # heatTransfer
+#   - type: heatTransfer
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: heatSource # target: some_surface_region; heatSourcePowerDensity: 1000
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: heatTransferConvection # target: some_surface_region; heatTransferConvectionHeatTransferCoefficient: 10; heatTransferConvectionFluidTemperature: 293
+#       - type: heatTransferLumpTPhi # target: some_surface_region; heatTransferLumpTPhiActuationMode: heatTransferLumpTPhiActuationModeTemperature; heatTransferLumpTPhiTemperature: 293
+#       - type: heatTransferPeriodicity # targets: {target1: region_a, target2: region_b}; heatTransferPeriodicityType: heatTransferPeriodicityTypeTranslation; heatTransferPeriodicityTranslationDistance: 1
+#       - type: jouleHeating # target: some_surface_region
+#       - type: temperatureConstraint # target: some_surface_region; temperatureConstraint: 293
+#
+#   # laminarFlow
+#   - type: laminarFlow
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: laminarFlowFluidStructure # target: some_surface_region
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: laminarFlowForce # target: some_surface_region; laminarFlowForce: "[0; 0; 0]"
+#       - type: laminarFlowLargeDisplacement
+#       - type: laminarFlowLinear # target: some_surface_region; laminarFlowLinearCompressible: 0
+#       - type: laminarFlowLumpPM # target: some_surface_region; laminarFlowLumpPMActuationMode: laminarFlowLumpPMActuationModePressure; laminarFlowLumpPMPressure: 0
+#       - type: laminarFlowLumpVFv # target: some_surface_region; laminarFlowLumpVFvActuationMode: laminarFlowLumpVFvActuationModeVelocity; laminarFlowLumpVFvVelocity: "[[0,0,0],[0,0,0],[0,0,0]]"
+#       - type: laminarFlowPressureConstraint # target: some_surface_region; laminarFlowPressureConstraint: 0
+#       - type: laminarFlowPressurePeriodicity # targets: {target1: region_a, target2: region_b}; laminarFlowPressurePeriodicityType: laminarFlowPressurePeriodicityTypeTranslation; laminarFlowPressurePeriodicityTranslationDistance: 1
+#       - type: laminarFlowPressureSymmetry # target: some_surface_region
+#       - type: laminarFlowThermalFluid
+#       - type: laminarFlowVelocityConstraint # target: some_surface_region; laminarFlowVelocityConstraint: "[[1,0,0],[0,1,0],[0,0,1]]"
+#       - type: laminarFlowVelocityPeriodicity # targets: {target1: region_a, target2: region_b}; laminarFlowVelocityPeriodicityType: laminarFlowVelocityPeriodicityTypeTranslation; laminarFlowVelocityPeriodicityTranslationDistance: 1
+#       - type: laminarFlowVelocitySymmetry # target: some_surface_region
+#
+#   # magnetismA
+#   - type: magnetismA
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: electromagneticCoupling
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: magneticWall # target: some_surface_region
+#       - type: magnetismABackgroundField # target: some_surface_region; magnetismABackgroundField: "[0; 0; 0]"
+#       - type: magnetismAPeriodicity # targets: {target1: region_a, target2: region_b}; magnetismAPeriodicityType: magnetismAPeriodicityTypeTranslation; magnetismAPeriodicityTranslationDistance: 1
+#
+#   # magnetismH
+#   - type: magnetismH
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: hPhiCoupling
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: magnetismHConstraint # target: some_surface_region; magnetismHConstraint: "[0; 0; 0]"
+#       - type: magnetismHElectricalInsulator # target: some_surface_region
+#       - type: magnetismHPeriodicity # targets: {target1: region_a, target2: region_b}; magnetismHPeriodicityType: magnetismHPeriodicityTypeTranslation; magnetismHPeriodicityTranslationDistance: 1
+#
+#   # magnetismPhi
+#   - type: magnetismPhi
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: magnetismPhiBackgroundField # target: some_surface_region; magnetismPhiBackgroundField: "[0; 0; 0]"
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: magnetismPhiConstraint # target: some_surface_region; magnetismPhiConstraint: 0
+#       - type: magnetismPhiContinuity # targets: {continuityTarget1: region_a, continuityTarget2: region_b}
+#       - type: magnetismPhiExternalField # target: some_surface_region; magnetismPhiExternalField: "[0; 0; 0]"
+#       - type: magnetismPhiLumpIV # target: loop_region (orientationPoint is auto-determined); magnetismPhiLumpIVActuationMode: magnetismPhiLumpIVActuationModeCurrent; magnetismPhiLumpIVCurrent: 0
+#       - type: magnetismPhiLumpPhiPhiB # target: some_surface_region; magnetismPhiLumpPhiPhiBActuationMode: magnetismPhiLumpPhiPhiBActuationModeMagenticScalarPotential; magnetismPhiLumpPhiPhiBMagneticScalarPotential: 0
+#       - type: magnetismPhiPeriodicity # targets: {periodicityTarget1: region_a, periodicityTarget2: region_b}; magnetismPhiPeriodicityType: magnetismPhiPeriodicityTypeTranslation; magnetismPhiPeriodicityTranslationDistance: 1
+#
+#   # meshDeformation
+#   - type: meshDeformation
+#     target: cubes # optional, default is everything
+#     interactions:
+#       - type: meshDeformationClamp # target: some_surface_region
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: meshDeformationConstraint # target: some_surface_region; meshDeformationConstraint: "[[1,0,0],[0,1,0],[0,0,1]]"
+#       - type: meshDeformationPeriodicity # targets: {target1: region_a, target2: region_b}; meshDeformationPeriodicityType: meshDeformationPeriodicityTypeTranslation; meshDeformationPeriodicityTranslationDistance: 1
+#       - type: meshDeformationSymmetry # target: some_surface_region
+#
+#   # solidMechanics
+#   - type: solidMechanics
+#     target: cubes # optional, default is everything
+#     interactions:#
+#       - type: clamp # target: some_surface_region
+#         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
+#         enabled: true # optional for every interaction, default is true
+#       - type: load # target: some_surface_region; force: "[0; 0; 1]"
+#       - type: piezoelectricity # target: some_surface_region
+#       - type: solidMechanicsConstraint # target: some_surface_region; solidMechanicsConstraint: "[[1,0,0],[0,1,0],[0,0,1]]"
+#       - type: solidMechanicsContact # gamma_1: region_a, gamma_1_side: region_a_side, gamma_2: region_b, gamma_2_side: region_b_side; solidMechanicsContactStiction: 0
+#       - type: solidMechanicsElectricForce
+#       - type: solidMechanicsGeometricNonlinearity
+#       - type: solidMechanicsLargeDisplacement
+#       - type: solidMechanicsLump # target: some_surface_region; solidMechanicsLumpActuationMode: solidMechanicsLumpActuationModeDisplacement; solidMechanicsLumpForce: "[[0,0,0],[0,0,0],[0,0,0]]"
+#       - type: solidMechanicsMagneticForce
+#       - type: solidMechanicsPeriodicity # targets: {target1: region_a, target2: region_b}; solidMechanicsPeriodicityType: solidMechanicsPeriodicityTypeTranslation; solidMechanicsPeriodicityTranslationDistance: 1
+#       - type: solidMechanicsPressure # target: some_surface_region; solidMechanicsPressure: 0
+#       - type: solidMechanicsPrestress # target: some_surface_region; solidMechanicsPrestress: "[[0,0,0],[0,0,0],[0,0,0]]"
+#       - type: solidMechanicsProportionalDamping # target: some_surface_region; solidMechanicsProportionalDampingAlpha: 0.01; solidMechanicsProportionalDampingBeta: 1e-6
+#       - type: solidMechanicsSymmetry # target: some_surface_region
+#       - type: thermalExpansion # target: some_surface_region; thermalExpansionReferenceTemperature: 273
+
+variableOverrides:
+  - name: pres_sweep
+    overrides:
+      - variable: pres
+        values: linspace(100000, 400000, 4) # Allsolve expression or raw list: [100000, 200000, 300000, 400000]
+  - name: multi_sweep
+    overrides:
+      - variable: pres
+        values: linspace(100000, 400000, 4)
+      - variable: test2
+        values: linspace(1, 10, 3)
+    sweepType:
+      cartesian_product
+      # Overriding with a single value also works:
+      #- variable: pres
+      #  values: 400000
+meshes:
+  - name: test_mesh
+    scaleFactor: 0.7 # optional, defaults to 1
+    refinements:
+      - region: cubes
+        maxSize: 1000 / pres
+    # simpleExtrusion:
+    #   regions:
+    #     - drive
+    #   subLayerCounts: [ floor(pres / 5000) ] # list of Allsolve expressions or raw values
+    saveMesh: true # save the mesh locally for inspection, defaults to false
+    createOnly: false # optional, if true, mesh will be created only (not run)
+    useMeshRefiner: true # Use automatic refinement where manual refinements are not set, defaults to true
+    curvatureEnhancement: 6 # optional, defaults to 6
+    targetWidthToHeightRatio: 4 # optional, defaults to 4
+    curvedMesh: false # optional, defaults to false
+    maxRunTimeMinutes: 15 # optional, defaults to 15
+    variableOverride: pres_sweep
+    #meshSizeMax: 0.1 # optional, defaults to no max
+    #meshSizeMin: 0.01 # optional, defaults to no min
+simulations:
+  - name: test_simulation
+    description: Test simulation description
+    maxRunTimeMinutes: 10 # optional, defaults to 10
+    solverMode: direct # optional, "direct" or "iterative", defaults to "direct"
+    mesh: test_mesh # optional, name of mesh to use
+    variableOverride: pres_sweep # optional, name of variable override to use
+    runtime: # optional
+      nodeType: CORES_1_16GB # optional, defaults to CORES_3_10GB_FAST_START
+      # Available node types: CORES_1_16GB, CORES_2_32GB, CORES_3_10GB_FAST_START,
+      # CORES_4_64GB, CORES_8_128GB, CORES_16_256GB, CORES_32_512GB
+      nodeCount: 1 # optional, defaults to 1
+    scripts: # optional
+      - filepath: sim/simulation.py # resolved relative to YAML file location
+        isMain: true # optional, defaults to false
+      # - filepath: sim/params.py
+      #   isMain: false
+    # outputs: # optional output interactions for this simulation
+    #   - type: field
+    #     name: u
+    #     enabled: true # optional, defaults to true
+    #     expression: u # expression to write as output field
+    #     skinOnly: false # optional, defaults to false
+    #     deformedMesh: false # optional, defaults to false
+    #     filter: # optional; type can be None, EveryNthStep, StepIndices, Expression
+    #       type: None
+    #       # value: 5
+    #   - type: fieldState
+    #     name: T_state
+    #     enabled: true
+    #     fieldState: T
+    #     filter: # optional; type can be FinalOnly, EveryStep, EveryNthStep, StepIndices, Expression
+    #       type: FinalOnly
+    #   - type: value
+    #     name: max_temp
+    #     enabled: true
+    #     expression: max(T)
+    #   - type: acousticWavesRadiationPattern
+    #     name: acoustic_pattern
+    #     enabled: true
+    #     acousticWavesRadiationPatternNumPoints: 36
+    #     acousticWavesRadiationPatternPlaneNormal: "[0; 0; 1]"
+    #     acousticWavesRadiationPatternFarFieldC: 343
+    #     acousticWavesRadiationPatternFarFieldRho: 1.2
+    #   - type: electromagneticWavesRadiationPattern
+    #     name: em_pattern
+    #     enabled: true
+    #     electromagneticWavesRadiationPatternNumPoints: 36
+    #     electromagneticWavesRadiationPatternPlaneNormal: "[0; 0; 1]"
+    #   - type: eigenfrequencies
+    #     name: eigenfrequencies_out
+    #     enabled: true
+    #   - type: eigenvalues
+    #     name: eigenvalues_out
+    #     enabled: true
+    #   - type: finalHPhiState
+    #     name: final_h_phi_state_out
+    #     enabled: true
+    #     finalHPhiStateTransientProjection: true
+    #   - type: magneticForce
+    #     name: magnetic_force_out
+    #     enabled: true
+    #   - type: qFactors
+    #     name: q_factors_out
+    #     enabled: true
+    #   - type: sParameters
+    #     name: s_parameters_out
+    #     enabled: true
+    #   - type: transientState
+    #     name: transient_state_out
+    #     enabled: true
+    createOnly: false # optional, if true, simulation will be created only (not run)
