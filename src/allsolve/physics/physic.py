@@ -118,6 +118,7 @@ class Physic:
         definition: str,
         project_id: str | None = None,
         target_region_id: str | None = None,
+        physics_set_id: str | None = None,
     ) -> "Physic":
         """
         Create a new physic.
@@ -126,6 +127,7 @@ class Physic:
             definition: The definition of the physic (e.g., "solidMechanics").
             project_id: The ID of the project. Can be omitted if project API key is used.
             target_region_id: Optional target region ID.
+            physics_set_id: Optional physics set ID. Uses the default set if omitted.
 
         Returns:
             The created Physics.
@@ -139,6 +141,7 @@ class Physic:
                 new_physics=rawapi.NewPhysics(
                     definition=definition,
                     target=target_region_id if target_region_id else None,
+                    physicsSetId=physics_set_id,
                 ),
             )
         return cls._from_rawapi(project_id, response.physics)
@@ -160,13 +163,18 @@ class Physic:
         self._definition_id = self.definition_id
         self._target_region_id = self._resolve_target_region_id(target)
 
-    def _create_bound(self, project_id: str | None = None) -> "Physic":
+    def _create_bound(
+        self,
+        project_id: str | None = None,
+        physics_set_id: str | None = None,
+    ) -> "Physic":
         if self._physics is not None:
             raise ValueError("Physic is already initialized")
         return self.__class__.create(
             definition=self.definition,
             project_id=project_id,
             target_region_id=self._target_region_id,
+            physics_set_id=physics_set_id,
         )
 
     def _ensure_bound(self) -> rawapi.Physics:
@@ -228,6 +236,29 @@ class Physic:
         self._current_uncommitted_update().target = (
             target_region_id if target_region_id else None
         )
+
+    @property
+    @prevent_deleted
+    def physics_set_id(self) -> str:
+        """Get the physics set ID of the physic."""
+        if self._physics is None:
+            raise NotInitializedError("Physic is not initialized")
+        if self._uncommitted_update is not None:
+            update_set_id = self._uncommitted_update.physics_set_id
+            if update_set_id is not None:
+                return update_set_id
+        physics = self._ensure_bound()
+        return physics.physics_set_id
+
+    @physics_set_id.setter
+    @prevent_deleted
+    def physics_set_id(self, physics_set_id: str) -> None:
+        """
+        Set the physics set ID of the physic.
+        Use save() to commit the change.
+        """
+        self._ensure_bound()
+        self._current_uncommitted_update().physics_set_id = physics_set_id
 
     @property
     @prevent_deleted
@@ -438,10 +469,16 @@ class Physic:
                 physics_update=physics_update,
             )
 
+        physics_set_id = (
+            physics_update.physics_set_id
+            if physics_update.physics_set_id is not None
+            else physics.physics_set_id
+        )
         self._physics = rawapi.Physics(
             id=physics.id,
             definition=physics.definition,
             target=physics_update.target,
+            physicsSetId=physics_set_id,
             interactions=physics.interactions,
             fields=physics_update.fields,
         )
@@ -468,6 +505,7 @@ class Physic:
         if self._uncommitted_update is None:
             self._uncommitted_update = rawapi.PhysicsUpdate(
                 target=physics.target,
+                physicsSetId=physics.physics_set_id,
                 fields=[
                     rawapi.PhysicsField(
                         fieldId=field.field_id,

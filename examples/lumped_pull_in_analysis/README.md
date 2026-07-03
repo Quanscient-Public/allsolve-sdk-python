@@ -6,52 +6,29 @@ The script builds coupled electrostatic–mechanical physics, runs a DC voltage
 sweep, and saves comparison outputs (simulated vs theoretical deflection,
 pull-in quantities).
 
-# Installation
+# Prerequisites
 
-You need to have python3 and virtualenv module "venv" installed. Copy the allsolve
-wheel package to the working directory. Then, create a new virtualenv and install
-the dependencies with the following:
-
-```
-$ python3 -m venv venv
-$ source venv/bin/activate
-(venv) $ pip install -U pip
-(venv) $ pip install -r requirements.txt
-```
+Follow [Installation](../README.md#installation) and [Running](../README.md#running)
+in the parent example README to set up Python, install the Allsolve SDK,
+and configure credentials.
 
 # Running
 
-Create Organization API key via Allsolve web UI.
-Use "Create key" action from "Settings" / "Organization" / "API keys" menu.
-
-Then run:
+From the `examples/` directory:
 
 ```
-(venv) $ export ALLSOLVE_ACCESS_KEY=<your key id>
-(venv) $ export ALLSOLVE_SECRET_KEY=<your secret key>
-(venv) $ python lumped_pull_in_analysis.py
+(venv) $ python lumped_pull_in_analysis/lumped_pull_in_analysis.py
 ```
 
-Optionally you can create .env file and copy the key and secret there.
-
-.env file:
-
-```
-ALLSOLVE_ACCESS_KEY=<your key id>
-ALLSOLVE_SECRET_KEY=<your secret key>
-```
-
-Then run the script:
-
-```
-(venv) $ python lumped_pull_in_analysis.py
-```
+When prompted `Delete project? [Y/n]`, answer **`n`** if you plan to run the visualize
+script below.
 
 # Visualization
 
-After the simulation has finished, you can visualize the results by running:
+After the simulation has finished, install this example's dependencies and visualize the results:
 
 ```
+(venv) $ pip install -r requirements.txt
 (venv) $ python visualize_pull_in_results.py
 ```
 

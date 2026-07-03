@@ -40,15 +40,22 @@ def main():
     )
     print(f"Created project: {project.name} (id: {project.id})")
 
-    build_geometry(project, verbose=verbose)
-    regions = create_regions(project)
-    create_materials(project, regions)
-    create_physics(project, regions)
-    mesh = create_mesh(project, regions)
-    sim = create_simulation(project, mesh)
-    run_mesh_and_simulation(mesh, sim, verbose=verbose)
-
-    client.set_current_project(project)
+    try:
+        build_geometry(project, verbose=verbose)
+        regions = create_regions(project)
+        create_materials(project, regions)
+        physics_set = create_physics(project, regions)
+        mesh = create_mesh(project, regions)
+        sim = create_simulation(project, mesh, physics_set)
+        run_mesh_and_simulation(mesh, sim, verbose=verbose)
+        client.set_current_project(project)
+    except Exception as e:
+        print(f"Error running project: {e}")
+    finally:
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            client.set_current_project(None)
+            project.delete()
+            print("Project deleted.")
 
 
 def build_geometry(project: allsolve.Project, verbose: bool = False) -> None:
@@ -225,8 +232,11 @@ def create_materials(project: allsolve.Project, regions: SimpleNamespace) -> Non
     )
 
 
-def create_physics(project: allsolve.Project, regions: SimpleNamespace) -> None:
-    solid_mechanics_physics = project.add_physics(allsolve.Physics.SolidMechanics())
+def create_physics(
+    project: allsolve.Project, regions: SimpleNamespace
+) -> allsolve.PhysicsSet:
+    physics_set = project.get_default_physics_set()
+    solid_mechanics_physics = physics_set.add_physics(allsolve.Physics.SolidMechanics())
     solid_mechanics_physics.add_interactions(
         [
             allsolve.Interaction.SolidMechanicsClamp(
@@ -235,6 +245,7 @@ def create_physics(project: allsolve.Project, regions: SimpleNamespace) -> None:
             ),
         ]
     )
+    return physics_set
 
 
 def create_mesh(project: allsolve.Project, regions: SimpleNamespace) -> allsolve.Mesh:
@@ -255,7 +266,9 @@ def create_mesh(project: allsolve.Project, regions: SimpleNamespace) -> allsolve
 
 
 def create_simulation(
-    project: allsolve.Project, mesh: allsolve.Mesh
+    project: allsolve.Project,
+    mesh: allsolve.Mesh,
+    physics_set: allsolve.PhysicsSet,
 ) -> allsolve.Simulation:
     sim = project.create_simulation_eigenmode(
         name="Simulation 1",
@@ -263,6 +276,7 @@ def create_simulation(
         max_run_time_minutes=60,
         solver_mode=allsolve.SolverMode.ITERATIVE,
         mesh=mesh.id,
+        physics_set=physics_set,
         num_requested_eigenmodes="5",
         target_eigenfrequency="0",
         solver_tolerance="1e-6",
@@ -291,4 +305,7 @@ def run_mesh_and_simulation(
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"Error: {e}")

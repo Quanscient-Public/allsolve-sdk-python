@@ -3,12 +3,17 @@
 
 # pyright: reportUnusedImport=false
 
-from importlib.metadata import PackageNotFoundError, version
 
-try:
-    __version__ = version("allsolve")
-except PackageNotFoundError:
-    __version__ = "unknown"
+def _resolve_package_version() -> str:
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version("allsolve")
+    except PackageNotFoundError:
+        return "unknown"
+
+
+__version__ = _resolve_package_version()
 
 __all__ = [
     "__version__",
@@ -61,7 +66,6 @@ __all__ = [
     "MeshInstance",
     "MeshSettings",
     "MeshDensity",
-    "MeshQuality",
     "MeshRefinement",
     "MeshExtrusion",
     "SlantedExtrusion",
@@ -95,8 +99,12 @@ __all__ = [
     "NotInitializedError",
     "NotProjectAPIKeyError",
     "DeletedError",
+    "ResourceReservationError",
     # client
     "Client",
+    # resource reservation
+    "ResourceReservation",
+    "ReservationStatus",
     # api
     "setup",
     "is_setup",
@@ -105,6 +113,8 @@ __all__ = [
     "clean_cache",
     # quota
     "get_quota",
+    # team
+    "get_teams",
     # job
     "Job",
     "OnError",
@@ -143,6 +153,7 @@ __all__ = [
     "ElasticWavesLumpActuationMode",
     "ElasticWavesPeriodicityType",
     "ElasticWavesPmlType",
+    "ElectromagneticWavesBoundaryAdmittanceType",
     "ElectromagneticWavesEigenmodePortTargetEigenvalueType",
     "ElectromagneticWavesLumpVIActuationMode",
     "ElectromagneticWavesPeriodicityType",
@@ -180,6 +191,7 @@ __all__ = [
     "FileOverwriteMode",
     # override
     "VariableOverrides",
+    "PhysicsSet",
     # from allsolve_rawapi
     "ExpressionBoundingBox",
     "ExpressionVector",
@@ -197,6 +209,8 @@ __all__ = [
     "CadSplineMethod",
     "FieldInitializationType",
     "OrganizationQuota",
+    "Team",
+    "TeamQuota",
     "ProjectTypeFilter",
 ]
 
@@ -247,7 +261,6 @@ from .mesh import (
     MeshInstance,
     MeshSettings,
     MeshDensity,
-    MeshQuality,
     MeshRefinement,
     AutoTransfiniteGroup,
     MeshExtrusion,
@@ -278,10 +291,18 @@ from .region import (
     RegionOperation,
 )
 from .file import delete_file
-from .util import JobError, NotInitializedError, NotProjectAPIKeyError, DeletedError
+from .util import (
+    JobError,
+    NotInitializedError,
+    NotProjectAPIKeyError,
+    DeletedError,
+    ResourceReservationError,
+)
 from .client import Client
+from .resource_reservation import ResourceReservation, ReservationStatus
 from .api import setup, is_setup, is_project_api_key, get_cache_dir, clean_cache
 from .quota import get_quota
+from .team import get_teams
 from .job import Job, OnError
 from .material import Material, MaterialProperty
 from .physics import (
@@ -320,6 +341,7 @@ from .import_project import import_project
 from .export_project import export_project_data
 from .util import FileOverwriteMode
 from .override import VariableOverrides
+from .physics_set import PhysicsSet
 
 from allsolve_rawapi import (
     ExpressionBoundingBox,
@@ -339,5 +361,7 @@ from allsolve_rawapi import (
     CadSplineMethod,
     FieldInitializationType,
     OrganizationQuota,
+    Team,
+    TeamQuota,
     ProjectTypeFilter,
 )

@@ -1,2 +1,0 @@
-allsolve>=0.4.2
-dotenv

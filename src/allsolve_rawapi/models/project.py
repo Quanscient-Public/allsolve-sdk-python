@@ -40,7 +40,8 @@ class Project(BaseModel):
     geometry_no_implicit_fragment: Optional[StrictBool] = Field(default=None, alias="geometryNoImplicitFragment")
     pml_settings: Optional[PMLSettings] = Field(default=None, alias="pmlSettings")
     copy_files_job_id: Optional[StrictStr] = Field(default=None, description="This is non-null if this project is a copy of another project and the files are still being copied. This project is not functional before this job succeeds. ", alias="copyFilesJobId")
-    __properties: ClassVar[List[str]] = ["id", "name", "description", "readonly", "labels", "geometryPipelineVersion", "dimension", "geometryNoImplicitFragment", "pmlSettings", "copyFilesJobId"]
+    team_id: Optional[Annotated[str, Field(min_length=1, strict=True)]] = Field(default=None, alias="teamId")
+    __properties: ClassVar[List[str]] = ["id", "name", "description", "readonly", "labels", "geometryPipelineVersion", "dimension", "geometryNoImplicitFragment", "pmlSettings", "copyFilesJobId", "teamId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -105,7 +106,8 @@ class Project(BaseModel):
             "dimension": obj.get("dimension"),
             "geometryNoImplicitFragment": obj.get("geometryNoImplicitFragment"),
             "pmlSettings": PMLSettings.from_dict(obj["pmlSettings"]) if obj.get("pmlSettings") is not None else None,
-            "copyFilesJobId": obj.get("copyFilesJobId")
+            "copyFilesJobId": obj.get("copyFilesJobId"),
+            "teamId": obj.get("teamId")
         })
         return _obj
 

@@ -35,6 +35,7 @@ __all__ = [
     "ElasticWavesLumpActuationMode",
     "ElasticWavesPeriodicityType",
     "ElasticWavesPmlType",
+    "ElectromagneticWavesBoundaryAdmittanceType",
     "ElectromagneticWavesEigenmodePortTargetEigenvalueType",
     "ElectromagneticWavesLumpVIActuationMode",
     "ElectromagneticWavesPeriodicityType",

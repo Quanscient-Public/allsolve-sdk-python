@@ -1,4 +1,4 @@
-name: Bending beam from YAML
+name: Bending beam sweep
 description: Demo simulation for a bending beam with a sweep over some simulation
   parameters
 dimension: 3
@@ -32,6 +32,7 @@ geometries:
     x: length
     y: width
     z: height
+  alignment: center
 regions:
 - name: beam_volume
   entityType: volume
@@ -94,6 +95,7 @@ regions:
       z: (height / 2) + tolerance
 materials:
 - name: Aluminium
+  description: Aluminium
   color: '#aaaaaa'
   abbreviation: Al
   enabled: eq(material_index,0)
@@ -124,18 +126,20 @@ materials:
   elasticityMatrix:
     youngsModulus: '130000000000.0'
     poissonsRatio: '0.34'
-physics:
-- type: solidMechanics
-  interactions:
-  - type: clamp
-    name: Clamp
-    enabled: true
-    target: clamp_surface
-  - type: load
-    name: Load
-    enabled: true
-    target: top_surface
-    force: '[0; 0; force]'
+physicsSets:
+- name: Physics 1
+  physics:
+  - type: solidMechanics
+    interactions:
+    - type: clamp
+      name: Clamp
+      enabled: true
+      target: clamp_surface
+    - type: load
+      name: Load
+      enabled: true
+      target: top_surface
+      force: '[0; 0; force]'
 variableOverrides:
 - name: sweep_1
   overrides:
@@ -149,9 +153,11 @@ variableOverrides:
 meshes:
 - name: Mesh 1
   useMeshRefiner: false
-  scaleFactor: 1.0
-  curvatureEnhancement: 12.0
-  targetWidthToHeightRatio: 4.0
+  scaleFactor: '1'
+  minSizeFactor: '0.0001'
+  maxSizeFactor: '0.1'
+  curvatureEnhancement: '12'
+  targetWidthToHeightRatio: '4'
   maxRunTimeMinutes: 60
   variableOverride: sweep_1
 simulations:
@@ -164,8 +170,7 @@ simulations:
   - 1
   mesh: Mesh 1
   variableOverride: sweep_1
-  physics:
-  - solidMechanics
+  physicsSet: Physics 1
   eigenmodePortAnalysis: false
   numericalJacobian: false
   disabledScriptSections: []

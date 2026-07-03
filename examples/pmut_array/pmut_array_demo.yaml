@@ -37,6 +37,7 @@ geometries:
     y: 0.0
     z: thmem
   radius: R
+  alignment: center
 - name: Piezo
   type: cylinder
   position:
@@ -48,6 +49,7 @@ geometries:
     y: 0.0
     z: thpiezo
   radius: 0.67*R
+  alignment: center
 - name: Cavity
   type: cylinder
   position:
@@ -59,6 +61,7 @@ geometries:
     y: 0.0
     z: thcavity
   radius: R
+  alignment: center
 - name: PMUT_grid
   type: grid
   translation:
@@ -90,6 +93,7 @@ geometries:
     x: 2*Rair + 0.001
     y: 2*Rair + 0.001
     z: Rair + thmem/2
+  alignment: center
 - name: Air_dome
   type: difference
   cadNames1:
@@ -108,6 +112,7 @@ geometries:
     y: 0.0
     z: thmem + thcavity
   radius: Rair
+  alignment: center
 - name: Baseplate_with_holes
   type: difference
   cadNames1:
@@ -364,42 +369,44 @@ materials:
     - 0.0
     - 0.0
     - 50900000000.0
-physics:
-- type: elasticWaves
-  target: solid_volumes
-  interactions:
-  - type: elasticWavesClamp
-    name: Clamp
-    enabled: true
-    target: baseplate_clamp
-  - type: elasticWavesPiezoelectricity
-    name: Piezoelectricity
-    enabled: true
+physicsSets:
+- name: Physics 1
+  physics:
+  - type: elasticWaves
+    target: solid_volumes
+    interactions:
+    - type: elasticWavesClamp
+      name: Clamp
+      enabled: true
+      target: baseplate_clamp
+    - type: elasticWavesPiezoelectricity
+      name: Piezoelectricity
+      enabled: true
+      target: pzt
+  - type: acousticWaves
+    target: air_bubble
+    interactions:
+    - type: acousticWavesPml
+      name: PML
+      enabled: true
+      target: air_dome_surface
+    - type: acousticStructureForElasticWaves
+      name: Acoustic structure
+      enabled: true
+  - type: electrostatics
     target: pzt
-- type: acousticWaves
-  target: air_bubble
-  interactions:
-  - type: acousticWavesPml
-    name: PML
-    enabled: true
-    target: air_dome_surface
-  - type: acousticStructureForElasticWaves
-    name: Acoustic structure
-    enabled: true
-- type: electrostatics
-  target: pzt
-  interactions:
-  - type: electrostaticsConstraint
-    name: Ground
-    enabled: true
-    target: pzt_bottom_surfaces
-    electrostaticsConstraint: '0'
-  - type: electrostaticsLump
-    name: Voltage excitation
-    enabled: true
-    namespace: lump
-    target: pzt_top_surfaces
-    electrostaticsLumpVoltage: sin(2*pi*freq*t)
+    interactions:
+    - type: electrostaticsConstraint
+      name: Ground
+      enabled: true
+      target: pzt_bottom_surfaces
+      electrostaticsConstraint: '0'
+    - type: electrostaticsLump
+      name: Voltage excitation
+      enabled: true
+      namespace: lump
+      target: pzt_top_surfaces
+      electrostaticsLumpVoltage: sin(2*pi*freq*t)
 variableOverrides:
 - name: freq_sweep
   overrides:
@@ -409,12 +416,12 @@ variableOverrides:
 meshes:
 - name: Mesh 1
   useMeshRefiner: true
-  scaleFactor: 1.0
-  curvatureEnhancement: 6.0
-  targetWidthToHeightRatio: 4.0
+  scaleFactor: '1.0'
+  curvatureEnhancement: '6.0'
+  targetWidthToHeightRatio: '4.0'
   maxRunTimeMinutes: 60
-  meshSizeMax: 0.0001
-  meshSizeMin: 0.0
+  meshSizeMax: '0.0001'
+  meshSizeMin: '0.0'
 simulations:
 - name: Simulation 1
   description: ''
@@ -426,10 +433,7 @@ simulations:
   - 3
   mesh: Mesh 1
   variableOverride: freq_sweep
-  physics:
-  - elasticWaves
-  - acousticWaves
-  - electrostatics
+  physicsSet: Physics 1
   fundamentalFrequency: freq
   numFFTSamples: 3
   eigenmodePortAnalysis: false

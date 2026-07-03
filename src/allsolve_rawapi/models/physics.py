@@ -33,9 +33,10 @@ class Physics(BaseModel):
     id: StrictStr
     definition: Annotated[str, Field(min_length=1, strict=True)]
     target: Optional[StrictStr] = None
+    physics_set_id: Annotated[str, Field(min_length=1, strict=True)] = Field(alias="physicsSetId")
     interactions: List[Interaction]
     fields: List[PhysicsField]
-    __properties: ClassVar[List[str]] = ["id", "definition", "target", "interactions", "fields"]
+    __properties: ClassVar[List[str]] = ["id", "definition", "target", "physicsSetId", "interactions", "fields"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -105,6 +106,7 @@ class Physics(BaseModel):
             "id": obj.get("id"),
             "definition": obj.get("definition"),
             "target": obj.get("target"),
+            "physicsSetId": obj.get("physicsSetId"),
             "interactions": [Interaction.from_dict(_item) for _item in obj["interactions"]] if obj.get("interactions") is not None else None,
             "fields": [PhysicsField.from_dict(_item) for _item in obj["fields"]] if obj.get("fields") is not None else None
         })

@@ -125,6 +125,15 @@ class ElasticWavesPmlType(_Enum):
     """Box PML"""
 
 
+class ElectromagneticWavesBoundaryAdmittanceType(_Enum):
+    """"""
+
+    ADMITTANCE = "electromagneticWavesBoundaryAdmittanceTypeAdmittance"
+    """Admittance"""
+    GOOD_CONDUCTOR = "electromagneticWavesBoundaryAdmittanceTypeGoodConductor"
+    """Good conductor"""
+
+
 class ElectromagneticWavesEigenmodePortTargetEigenvalueType(_Enum):
     """Target eigenvalue type"""
 

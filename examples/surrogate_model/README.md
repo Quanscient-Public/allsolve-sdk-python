@@ -3,43 +3,16 @@
 This is a demo project for using Quanscient Allsolve public API to train a surrogate
 model for a simulation.
 
-# Installation
+# Prerequisites
 
-You need to have python3 and virtualenv module "venv" installed. Copy the allsolve
-wheel package to the working directory. Then, create a new virtualenv and install
-the dependencies with the following:
-
-```
-$ python3 -m venv venv
-$ source venv/bin/activate
-(venv) $ pip install -U pip
-(venv) $ pip install -r requirements.txt
-```
+Follow [Installation](../README.md#installation) and [Running](../README.md#running)
+in the parent example README to set up Python, install the Allsolve SDK,
+and configure credentials.
 
 # Running
 
-Create Organization API key via Allsolve web UI.
-Use "Create key" action from "Settings" / "Organization" / "API keys" menu.
-
-Then run:
+From the `examples/` directory:
 
 ```
-(venv) $ export ALLSOLVE_ACCESS_KEY=<your key id>
-(venv) $ export ALLSOLVE_SECRET_KEY=<your secret key>
-(venv) $ python surrogate_model.py
-```
-
-Optionally you can create .env file and copy the key and secret there.
-
-.env file:
-
-```
-ALLSOLVE_ACCESS_KEY=<your key id>
-ALLSOLVE_SECRET_KEY=<your secret key>
-```
-
-Then run the script:
-
-```
-(venv) $ python surrogate_model.py
+(venv) $ python surrogate_model/surrogate_model.py
 ```

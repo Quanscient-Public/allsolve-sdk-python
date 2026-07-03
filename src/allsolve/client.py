@@ -23,6 +23,14 @@ from urllib3.util.retry import Retry
 
 from .api import _current_client
 from .project import GeometryPipelineVersion, Project
+from .quota import get_quota as _get_quota
+from .resource_reservation import (
+    DEFAULT_MAX_IDLE_SECONDS,
+    ResourceReservation,
+    _ReservationLeaseKeeper,
+)
+from .simulation import CPU
+from .team import get_teams as _get_teams
 from .token import AccessToken, parse_access_token
 from .util import NotProjectAPIKeyError
 
@@ -289,6 +297,7 @@ class Client:
         _adapter = HTTPAdapter(max_retries=self._config.retries)
         self._http_session.mount("https://", _adapter)
         self._http_session.mount("http://", _adapter)
+        self._lease_keepers: dict[str, _ReservationLeaseKeeper] = {}
 
         if _set_as_default:
             _current_client.set(self)
@@ -341,6 +350,27 @@ class Client:
     def sdk_version(self) -> str:
         """The SDK version string."""
         return self._sdk_version
+
+    # ------------------------------------------------------------------
+    # Thread context
+    # ------------------------------------------------------------------
+
+    @contextmanager
+    def in_thread(self) -> Generator[Client, None, None]:
+        """
+        Bind this client as the active SDK client in the current thread.
+
+        Use this instead of ``with client`` when the same :class:`Client` is
+        shared across threads (for example in
+        :class:`concurrent.futures.ThreadPoolExecutor` workers).  Each thread
+        keeps its own context-var reset token; ``with client`` stores its token
+        on the instance and is not safe for concurrent use.
+        """
+        token = _current_client.set(self)
+        try:
+            yield self
+        finally:
+            _current_client.reset(token)
 
     # ------------------------------------------------------------------
     # Internal API / auth helpers (used by api.py delegation layer)
@@ -483,6 +513,7 @@ class Client:
         geometry_pipeline_version: GeometryPipelineVersion = GeometryPipelineVersion.V2,
         dimension: int = 3,
         geometry_no_implicit_fragment: bool = False,
+        team_id: str | None = None,
     ) -> Project:
         """
         Create a new project.
@@ -499,6 +530,7 @@ class Client:
                 By default, the final Fragment All operation splits intersecting geometric
                 entities into non-intersecting, disjoint parts. Setting parameter to True
                 prevents automatic splitting, preserving the original geometric entities as-is.
+            team_id: Optional team to assign the project to. See :meth:`Project.create`.
 
         Returns:
             The created project.
@@ -514,6 +546,7 @@ class Client:
             geometry_pipeline_version=geometry_pipeline_version,
             dimension=dimension,
             geometry_no_implicit_fragment=geometry_no_implicit_fragment,
+            team_id=team_id,
         )
 
     def delete_project(self, project_id: str) -> None:
@@ -631,6 +664,137 @@ class Client:
         return Project.get(project_id)
 
     # ------------------------------------------------------------------
+    # Resource reservation
+    # ------------------------------------------------------------------
+
+    def _get_or_create_lease_keeper(
+        self, reservation_id: str
+    ) -> _ReservationLeaseKeeper:
+        if reservation_id not in self._lease_keepers:
+            self._lease_keepers[reservation_id] = _ReservationLeaseKeeper(
+                reservation_id,
+                self,
+            )
+        return self._lease_keepers[reservation_id]
+
+    def _acquire_job_lease_keeper(self, reservation_id: str) -> None:
+        self._get_or_create_lease_keeper(reservation_id).acquire_job()
+
+    def _release_job_lease_keeper(self, reservation_id: str) -> None:
+        keeper = self._lease_keepers.get(reservation_id)
+        if keeper is None:
+            return
+        keeper.release_job()
+        if not keeper.is_active():
+            self._drop_lease_keeper(reservation_id)
+
+    def _acquire_auto_renew_lease_keeper(
+        self,
+        reservation_id: str,
+        *,
+        max_idle_seconds: float = DEFAULT_MAX_IDLE_SECONDS,
+    ) -> None:
+        self._get_or_create_lease_keeper(reservation_id).acquire_auto_renew(
+            max_idle_seconds=max_idle_seconds,
+        )
+
+    def _release_auto_renew_lease_keeper(self, reservation_id: str) -> None:
+        keeper = self._lease_keepers.get(reservation_id)
+        if keeper is None:
+            return
+        keeper.release_auto_renew()
+        if not keeper.is_active():
+            self._drop_lease_keeper(reservation_id)
+
+    def _drop_lease_keeper(self, reservation_id: str) -> None:
+        """Remove a lease keeper from the client registry."""
+        self._lease_keepers.pop(reservation_id, None)
+
+    @contextmanager
+    def resource_reservation(
+        self,
+        *,
+        node_type: CPU | None = None,
+        main_node_type: CPU | None = None,
+        num_nodes: int = 1,
+        num_replicas: int = 1,
+        team_id: str | None = None,
+        max_idle_seconds: float = DEFAULT_MAX_IDLE_SECONDS,
+        wait_until_ready: bool = True,
+        wait_until_released_on_exit: bool = False,
+        poll_interval_s: float = 1.0,
+    ) -> Generator[ResourceReservation, None, None]:
+        """
+        Context manager that creates a reservation and releases it on exit.
+
+        Calls :meth:`ResourceReservation.create`, which starts idle lease renewal
+        automatically.
+
+        Parameters:
+            node_type: Compute size (:class:`~allsolve.CPU`), same as simulation ``nodeType``.
+                When omitted or :attr:`~allsolve.CPU.DEFAULT`, the server uses ``large-new``.
+            main_node_type: Optional main / coordinator node size; defaults to ``node_type``.
+                You may need to select a bigger main node if the mesh is very large or
+                memory limitations require it.
+            num_nodes: Number of DDM nodes per replica (minimum 1).
+                Select more if you need the due memory limitations.
+            num_replicas: Replica groups to reserve (minimum 1); one per
+                concurrent sweep step. All reserved replicas incur quota cost
+                for the lease duration. Sweep parallelism is capped by your
+                organization's max parallelism (default 100) — excess replicas
+                remain idle but are still billed.
+            team_id: Team whose quota to use. When team credits enforcement is active
+                and the API user belongs to more than one team with active team credits,
+                this is required. When omitted and the user belongs to exactly one such
+                team, that team is used automatically. Use :func:`~allsolve.get_teams`
+                to discover valid team ids.
+            max_idle_seconds: Maximum consecutive idle time between jobs (default 10
+                minutes) for which the SDK renews the lease in a background thread.
+                :meth:`create` starts this automatically. Renewal stops when the limit
+                is reached, :meth:`stop_auto_renew` is called, or :meth:`release` is
+                called; reaching the limit does not call :meth:`release`. The idle
+                timer restarts each time a job finishes (when using
+                :meth:`Mesh.run`, :meth:`Simulation.run`,
+                or :func:`keep_reservation_alive`).
+            wait_until_ready: Poll until status is ``reserved`` before yielding.
+            wait_until_released_on_exit: After a successful :meth:`ResourceReservation.release`,
+                poll until status is ``released``.
+            poll_interval_s: Poll interval when waiting for readiness or release.
+        """
+        reservation = ResourceReservation.create(
+            node_type=node_type,
+            main_node_type=main_node_type,
+            num_nodes=num_nodes,
+            num_replicas=num_replicas,
+            team_id=team_id,
+            max_idle_seconds=max_idle_seconds,
+        )
+        try:
+            if wait_until_ready:
+                reservation.wait_until_ready(poll_interval_s=poll_interval_s)
+            yield reservation
+        finally:
+            reservation.stop_auto_renew()
+            released = False
+            try:
+                reservation.release()
+                released = True
+            except Exception:
+                logger.exception(
+                    "Failed to release resource reservation %s",
+                    reservation.id,
+                )
+            if wait_until_released_on_exit and released:
+                try:
+                    reservation.wait_until_released(poll_interval_s=poll_interval_s)
+                except Exception:
+                    logger.exception(
+                        "Failed while waiting for resource reservation %s "
+                        "to be released",
+                        reservation.id,
+                    )
+
+    # ------------------------------------------------------------------
     # Import / Export
     # ------------------------------------------------------------------
 
@@ -731,11 +895,19 @@ class Client:
 
         Returns:
             Current quota status including total credits, used credits,
-            and concurrent core limits.
+            concurrent core limits, team credits enforcement status,
+            and per-team quota.
         """
-        from .quota import get_quota as _get_quota
-
         return _get_quota()
+
+    def get_teams(self) -> list[rawapi.Team]:
+        """
+        Get teams available to the API user.
+
+        Returns:
+            Teams the API user is a member of that have active team credits.
+        """
+        return _get_teams()
 
     def is_project_api_key(self) -> bool:
         """

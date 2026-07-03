@@ -1,14 +1,7 @@
-import os
 import allsolve
 import signal
 
-api_key = os.environ["QS_ACCESS_KEY"]
-api_secret = os.environ["QS_SECRET_KEY"]
-allsolve.setup(
-    api_key=api_key,
-    api_secret=api_secret,
-    host="https://allsolve.quanscient.com",
-)
+allsolve.setup()
 
 # Global variables for signal handler
 geometry_builder = None
@@ -107,7 +100,7 @@ def run_project(project: allsolve.Project):
         attribute_path=[("BC_ID", "1")],
     )
 
-    all = project.create_region_rule(
+    _all = project.create_region_rule(
         name="all",
         entity_type=allsolve.Region.VOLUME,
         bounding_box=allsolve.ExpressionBoundingBox(

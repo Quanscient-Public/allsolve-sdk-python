@@ -16,6 +16,8 @@ from .api import (
 )
 from .http_transfer import CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S, validate_url_scheme
 
+_BATCH_UPLOAD_MAX_ITEMS = 1000
+
 
 def create_file(
     filepath: pathlib.Path,
@@ -51,8 +53,7 @@ def upload_file(
             file_id=handle.id,
         )
 
-    with open(filepath, "rb") as f:
-        completion = upload_parts(f, url_info)
+    completion = upload_file_with_urls(filepath, url_info)
 
     with get_api() as api:
         api.mark_file_uploaded(
@@ -108,6 +109,51 @@ def upload_parts(
             )
 
     return completion
+
+
+def upload_file_with_urls(
+    filepath: pathlib.Path, url_info: rawapi.FileUploadUrls
+) -> rawapi.FileUploadCompletion:
+    """Upload a file using pre-fetched presigned URLs."""
+    if not filepath.is_file():
+        raise FileNotFoundError(f"File not found: {filepath}")
+    if url_info.upload_urls is None:
+        raise ValueError("File upload URLs are not set")
+
+    with open(filepath, "rb") as f:
+        return upload_parts(f, url_info)
+
+
+def mark_files_uploaded_batch(
+    items: list[tuple[str, rawapi.FileUploadCompletion]],
+    project_id: str | None = None,
+) -> list[rawapi.InputFile]:
+    """Mark multiple files as uploaded, chunking at the API limit of 1000."""
+    if not items:
+        return []
+
+    project_id = check_for_project_api_key(project_id)
+    uploaded_files: list[rawapi.InputFile] = []
+
+    with get_api() as api:
+        for start in range(0, len(items), _BATCH_UPLOAD_MAX_ITEMS):
+            chunk = items[start : start + _BATCH_UPLOAD_MAX_ITEMS]
+            response = api.mark_files_uploaded(
+                authorization=get_auth(),
+                project_id=project_id,
+                mark_file_batch_uploaded_request=rawapi.MarkFileBatchUploadedRequest(
+                    completions=[
+                        rawapi.FileUploadCompletionItem(
+                            fileId=file_id,
+                            completion=completion,
+                        )
+                        for file_id, completion in chunk
+                    ]
+                ),
+            )
+            uploaded_files.extend(response.files)
+
+    return uploaded_files
 
 
 def delete_file(

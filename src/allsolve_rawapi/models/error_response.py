@@ -34,8 +34,8 @@ class ErrorResponse(BaseModel):
     @field_validator('error')
     def error_validate_enum(cls, value):
         """Validates the enum"""
-        if value not in set(['unauthorized', 'forbidden', 'not_found', 'internal', 'bad_request', 'conflict', 'invalid_request', 'invalid_client', 'invalid_grant', 'invalid_scope', 'unauthorized_client', 'unsupported_grant_type', 'resource_unavailable', 'mesh_needed', 'simulation_script_generation_failed', 'vcpu_limit_exceeded', 'quota_exceeded']):
-            raise ValueError("must be one of enum values ('unauthorized', 'forbidden', 'not_found', 'internal', 'bad_request', 'conflict', 'invalid_request', 'invalid_client', 'invalid_grant', 'invalid_scope', 'unauthorized_client', 'unsupported_grant_type', 'resource_unavailable', 'mesh_needed', 'simulation_script_generation_failed', 'vcpu_limit_exceeded', 'quota_exceeded')")
+        if value not in set(['unauthorized', 'forbidden', 'not_found', 'internal', 'bad_request', 'conflict', 'invalid_request', 'invalid_client', 'invalid_grant', 'invalid_scope', 'unauthorized_client', 'unsupported_grant_type', 'resource_unavailable', 'mesh_needed', 'simulation_script_generation_failed', 'vcpu_limit_exceeded', 'quota_exceeded', 'team_reserved_quota_not_active', 'team_quota_enforcement_active_no_team']):
+            raise ValueError("must be one of enum values ('unauthorized', 'forbidden', 'not_found', 'internal', 'bad_request', 'conflict', 'invalid_request', 'invalid_client', 'invalid_grant', 'invalid_scope', 'unauthorized_client', 'unsupported_grant_type', 'resource_unavailable', 'mesh_needed', 'simulation_script_generation_failed', 'vcpu_limit_exceeded', 'quota_exceeded', 'team_reserved_quota_not_active', 'team_quota_enforcement_active_no_team')")
         return value
 
     model_config = ConfigDict(

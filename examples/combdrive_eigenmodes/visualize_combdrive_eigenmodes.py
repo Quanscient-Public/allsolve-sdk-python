@@ -38,21 +38,29 @@ def main():
         project = allsolve.Project.get_by_name(name=PROJECT_NAME)
     if project is None or project.name != PROJECT_NAME:
         raise ValueError(
-            f"Project not found: {PROJECT_NAME!r}. Run bending_beam_sweep.py first."
+            f"Project not found: {PROJECT_NAME!r}. Run combdrive_eigenmodes.py first."
         )
 
-    download_simulation_result_vtu_files(project)
+    try:
+        download_simulation_result_vtu_files(project)
 
-    # To run visualizations in interactive mode, use:
-    # python visualize_combdrive_eigenmodes.py --interactive
-    interactive = "--interactive" in sys.argv
-    if interactive:
-        # Show the interactive grid if the --interactive flag is used
-        show_interactive_grid()
-    else:
-        # Create the PNG images and animated GIFs to the output folder
-        create_png_images_with_pyvista()
-        create_animated_gifs()
+        # To run visualizations in interactive mode, use:
+        # python visualize_combdrive_eigenmodes.py --interactive
+        interactive = "--interactive" in sys.argv
+        if interactive:
+            # Show the interactive grid if the --interactive flag is used
+            show_interactive_grid()
+        else:
+            # Create the PNG images and animated GIFs to the output folder
+            create_png_images_with_pyvista()
+            create_animated_gifs()
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        client.set_current_project(None)
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            project.delete()
+            print("Project deleted.")
 
 
 def download_simulation_result_vtu_files(project: allsolve.Project):
@@ -255,4 +263,7 @@ def show_interactive_grid(results_dir: str = RESULTS_DIR):
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"Error: {e}")

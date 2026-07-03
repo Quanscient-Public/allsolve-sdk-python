@@ -1,17 +1,10 @@
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.optimize import Bounds
-import os
 import matplotlib.pyplot as plt
 import allsolve
 
-api_key = os.environ["QS_ACCESS_KEY"]
-api_secret = os.environ["QS_SECRET_KEY"]
-allsolve.setup(
-    api_key=api_key,
-    api_secret=api_secret,
-    host="https://allsolve.quanscient.com",
-)
+allsolve.setup()
 
 project = allsolve.Project.from_token()
 

@@ -9,52 +9,29 @@ The script saves the simulation output data to a CSV file and uses Matplotlib to
 The demo project is based on example case:
 https://allsolve.quanscient.com/documentation/guides/example-cases/muts/muts-001-pmut-array
 
-# Installation
+# Prerequisites
 
-You need to have python3 and virtualenv module "venv" installed. Copy the allsolve
-wheel package to the working directory. Then, create a new virtualenv and install
-the dependencies with the following:
-
-```
-$ python3 -m venv venv
-$ source venv/bin/activate
-(venv) $ pip install -U pip
-(venv) $ pip install -r requirements.txt
-```
+Follow [Installation](../README.md#installation) and [Running](../README.md#running)
+in the parent example README to set up Python, install the Allsolve SDK,
+and configure credentials.
 
 # Running
 
-Create Organization API key via Allsolve web UI.
-Use "Create key" action from "Settings" / "Organization" / "API keys" menu.
-
-Then run:
+From the `examples/` directory:
 
 ```
-(venv) $ export ALLSOLVE_ACCESS_KEY=<your key id>
-(venv) $ export ALLSOLVE_SECRET_KEY=<your secret key>
-(venv) $ python pmut_array_demo.py
+(venv) $ python pmut_array/pmut_array_demo.py
 ```
 
-Optionally you can create .env file and copy the key and secret there.
-
-.env file:
-
-```
-ALLSOLVE_ACCESS_KEY=<your key id>
-ALLSOLVE_SECRET_KEY=<your secret key>
-```
-
-Then run the script:
-
-```
-(venv) $ python pmut_array_demo.py
-```
+When prompted `Delete project? [Y/n]`, answer **`n`** if you plan to run the visualize
+script below.
 
 # Visualization
 
-After the simulation has finished, you can visualize the results by running:
+After the simulation has finished, install this example's dependencies and visualize the results:
 
 ```
+(venv) $ pip install -r requirements.txt
 (venv) $ python visualize_pmut_array_results.py
 ```
 

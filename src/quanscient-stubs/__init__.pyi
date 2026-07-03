@@ -5984,6 +5984,8 @@ class mesh:
     def write(self, *args, **kwargs) -> Any: ...
     ...
 
+class operation: ...
+
 class parameter:
     @overload
     def __add__(self, arg0: parameter) -> expression: ...
@@ -7621,6 +7623,7 @@ class universe:
     eigensolveshiftangle = 0.1
     epstype = "krylovschur"
     extraintegrationorder = 0
+    fastprocessrows = True
     fouriercroppingthreshold = 1e-14
     gmresmodifiedgramschmidt = False
     gmresreorthogonalize = True
@@ -7634,6 +7637,7 @@ class universe:
     partitionermaximbalance = 1.001
     partitionertype = "recursive"
     peptype = "toar"
+    pmlnoaux = True
     printconditionnumber = False
     quadmaxnumits = 20
     quadrefinement = False
@@ -7645,6 +7649,7 @@ class universe:
     usequadblas = True
     usereducedacousticpml = False
     usereducedelasticpml = True
+    warningnegativedetjac = True
     writeownedonly = False
     writetobinary = True
     xdtxdtdtx: Any = [[], [], []]
@@ -10764,7 +10769,9 @@ def integral(
 @overload
 def integral(
     physreg: int,
-    tointegrate: tuple[expressionlike, preconditioner],
+    tointegrate: Sequence[
+        tuple[expressionlike, int, Sequence[operation], preconditioner]
+    ],
     integrationorderdelta: int = 0,
     blocknumber: int = 0,
 ) -> list[tuple[integration, preconditioner]]: ...
@@ -10772,7 +10779,9 @@ def integral(
 def integral(
     physreg: int,
     meshdeform: expressionlike,
-    tointegrate: tuple[expressionlike, preconditioner],
+    tointegrate: Sequence[
+        tuple[expressionlike, int, Sequence[operation], preconditioner]
+    ],
     integrationorderdelta: int = 0,
     blocknumber: int = 0,
 ) -> list[tuple[integration, preconditioner]]: ...
@@ -10780,39 +10789,9 @@ def integral(
 def integral(
     physreg: int,
     numcoefharms: int,
-    tointegrate: tuple[expressionlike, preconditioner],
-    integrationorderdelta: int = 0,
-    blocknumber: int = 0,
-) -> list[tuple[integration, preconditioner]]: ...
-@overload
-def integral(
-    physreg: int,
-    numcoefharms: int,
-    meshdeform: expressionlike,
-    tointegrate: tuple[expressionlike, preconditioner],
-    integrationorderdelta: int = 0,
-    blocknumber: int = 0,
-) -> list[tuple[integration, preconditioner]]: ...
-@overload
-def integral(
-    physreg: int,
-    tointegrate: Sequence[tuple[expressionlike, int, preconditioner]],
-    integrationorderdelta: int = 0,
-    blocknumber: int = 0,
-) -> list[tuple[integration, preconditioner]]: ...
-@overload
-def integral(
-    physreg: int,
-    meshdeform: expressionlike,
-    tointegrate: Sequence[tuple[expressionlike, int, preconditioner]],
-    integrationorderdelta: int = 0,
-    blocknumber: int = 0,
-) -> list[tuple[integration, preconditioner]]: ...
-@overload
-def integral(
-    physreg: int,
-    numcoefharms: int,
-    tointegrate: Sequence[tuple[expressionlike, int, preconditioner]],
+    tointegrate: Sequence[
+        tuple[expressionlike, int, Sequence[operation], preconditioner]
+    ],
     integrationorderdelta: int = 0,
     blocknumber: int = 0,
 ) -> list[tuple[integration, preconditioner]]: ...
@@ -10821,7 +10800,9 @@ def integral(
     physreg: int,
     numcoefharms: int,
     meshdeform: expressionlike,
-    tointegrate: Sequence[tuple[expressionlike, int, preconditioner]],
+    tointegrate: Sequence[
+        tuple[expressionlike, int, Sequence[operation], preconditioner]
+    ],
     integrationorderdelta: int = 0,
     blocknumber: int = 0,
 ) -> list[tuple[integration, preconditioner]]: ...
@@ -11587,7 +11568,7 @@ def predefinedacousticwave(
     density: expressionlike,
     neperattenuation: expressionlike,
     precondtype: str = "",
-) -> list[tuple[expression, int, preconditioner]]:
+) -> list[tuple[expression, int, list[operation], preconditioner]]:
     """
     This function defines the equation for (linear) acoustic wave propagation:
 
@@ -11655,7 +11636,7 @@ def predefinedacousticwave(
     neperattenuation: expressionlike,
     pmlterms: Sequence[expressionlike],
     precondtype: str = "",
-) -> list[tuple[expression, int, preconditioner]]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 def predefinedacousticwave(*args, **kwargs) -> Any: ...
 def predefinedadvectiondiffusion(
     doff: expressionlike,
@@ -11698,14 +11679,14 @@ def predefinedadvectiondiffusion(
     return expression()
 
 def predefinedaml(
-    c: expressionlike, shifted: bool = False, reflectioncoef: float = 1e-05
+    c: expressionlike, shifted: bool = False, reflectioncoef: float = 0.0
 ) -> list[expression]: ...
 def predefinedboxpml(
     pmlreg: int,
     innerreg: int,
     c: expressionlike,
     shifted: bool = False,
-    reflectioncoef: float = 1e-05,
+    reflectioncoef: float = 0.0,
 ) -> list[expression]:
     """
     This is a collective MPI operation and hence must be called by all the ranks. This function returns
@@ -11984,7 +11965,7 @@ def predefinedelasticwave(
     bulkviscosity: expressionlike,
     shearviscosity: expressionlike,
     precondtype: str = "",
-) -> list[tuple[expression, int, preconditioner]]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 @overload
 def predefinedelasticwave(
     dofu: expressionlike,
@@ -11996,7 +11977,7 @@ def predefinedelasticwave(
     shearviscosity: expressionlike,
     pmlterms: Sequence[expressionlike],
     precondtype: str = "",
-) -> list[tuple[expression, int, preconditioner]]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 @overload
 def predefinedelasticwave(
     dofu: expressionlike,
@@ -12005,7 +11986,7 @@ def predefinedelasticwave(
     Hr: expressionlike,
     Hi: expressionlike,
     precondtype: str = "",
-) -> list[tuple[expression, int, preconditioner]]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 @overload
 def predefinedelasticwave(
     dofu: expressionlike,
@@ -12015,7 +11996,7 @@ def predefinedelasticwave(
     Hi: expressionlike,
     pmlterms: Sequence[expressionlike],
     precondtype: str = "",
-) -> list[tuple[expression, int, preconditioner]]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 @overload
 def predefinedelasticwave(
     dofu: expressionlike,
@@ -12025,7 +12006,7 @@ def predefinedelasticwave(
     alpha: expressionlike,
     beta: expressionlike,
     precondtype: str = "",
-) -> list[tuple[expression, int, preconditioner]]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 @overload
 def predefinedelasticwave(
     dofu: expressionlike,
@@ -12036,7 +12017,7 @@ def predefinedelasticwave(
     beta: expressionlike,
     pmlterms: Sequence[expressionlike],
     precondtype: str = "",
-) -> list[tuple[expression, int, preconditioner]]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 def predefinedelasticwave(*args, **kwargs) -> Any: ...
 @overload
 def predefinedelasticwavefromv(
@@ -12048,7 +12029,7 @@ def predefinedelasticwavefromv(
     bulkviscosity: expressionlike,
     shearviscosity: expressionlike,
     precondtype: str = "",
-) -> list[tuple[expression, int, preconditioner]]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 @overload
 def predefinedelasticwavefromv(
     dofu: expressionlike,
@@ -12060,7 +12041,7 @@ def predefinedelasticwavefromv(
     shearviscosity: expressionlike,
     pmlterms: Sequence[expressionlike],
     precondtype: str = "",
-) -> list[tuple[expression, int, preconditioner]]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 def predefinedelasticwavefromv(*args, **kwargs) -> Any: ...
 def predefinedelectrostaticforce(
     input: expressionlike, E: expressionlike, epsilon: expressionlike
@@ -12119,11 +12100,11 @@ def predefinedelectrostatics(
     tfv: expressionlike,
     epsilon: expressionlike,
     precondtype: str = "",
-) -> tuple[expression, preconditioner]:
+) -> list[tuple[expression, int, list[operation], preconditioner]]:
     """
     <<INTERNAL>>
     """
-    return (expression(), preconditioner())
+    ...
 
 def predefinedemboundaryadmittance(
     dofE: expressionlike, tfE: expressionlike, Yr: expressionlike, Yi: expressionlike
@@ -12142,7 +12123,7 @@ def predefinedemwave(
     sigi: expressionlike,
     precondtype: str = "",
     eigenmodecalc: bool = False,
-) -> tuple[expression, preconditioner]:
+) -> list[tuple[expression, int, list[operation], preconditioner]]:
     """
     This defines the equation for (linear) electromagnetic wave propagation:
 
@@ -12193,7 +12174,7 @@ def predefinedemwave(
     pmlterms: Sequence[expressionlike],
     precondtype: str = "",
     eigenmodecalc: bool = False,
-) -> tuple[expression, preconditioner]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 def predefinedemwave(*args, **kwargs) -> Any: ...
 @overload
 def predefinedfluidstructureinteraction(
@@ -12269,6 +12250,16 @@ def predefinedfluidstructureinteraction(
     tfu: expressionlike,
 ) -> expression: ...
 def predefinedfluidstructureinteraction(*args, **kwargs) -> Any: ...
+def predefinedhyperelasticity(
+    dofu: expressionlike,
+    tfu: expressionlike,
+    u: field,
+    E: expressionlike,
+    nu: expressionlike,
+    prestress: expressionlike,
+) -> expression:
+    return expression()
+
 @overload
 def predefinedlinearpoissonwalldistance(
     physreg: int,
@@ -12397,7 +12388,7 @@ def predefinedmagnetostaticforce(
 @overload
 def predefinedmagnetostatics(
     dofa: expressionlike, tfa: expressionlike, nu: expressionlike, precondtype: str = ""
-) -> tuple[expression, preconditioner]:
+) -> list[tuple[expression, int, list[operation], preconditioner]]:
     """
     <<INTERNAL>>
     """
@@ -12410,7 +12401,7 @@ def predefinedmagnetostatics(
     nu: expressionlike,
     dhdb: expressionlike,
     precondtype: str = "",
-) -> tuple[expression, preconditioner]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 def predefinedmagnetostatics(*args, **kwargs) -> Any: ...
 def predefinednavierstokes(
     dofv: expressionlike,
@@ -12426,7 +12417,7 @@ def predefinednavierstokes(
     isdensityconstant: bool = True,
     isviscosityconstant: bool = True,
     precondtype: str = "",
-) -> tuple[expression, preconditioner]:
+) -> list[tuple[expression, int, list[operation], preconditioner]]:
     """
     This defines the weak formulation for the general (nonlinear) flow of Newtonian fluids:
 
@@ -12481,7 +12472,7 @@ def predefinednavierstokes(
     --------
     predefinedstokes
     """
-    return (expression(), preconditioner())
+    ...
 
 def predefinednavierstokescrosswindstabilization(
     dofv: expressionlike,
@@ -12813,9 +12804,7 @@ def predefinedstabilizednavierstokes(
     cwnd: bool,
     vorder: int,
     gradv: Sequence[expressionlike],
-) -> tuple[expression, preconditioner]:
-    return (expression(), preconditioner())
-
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
 def predefinedstokes(
     dofv: expressionlike,
     tfv: expressionlike,
@@ -12829,7 +12818,7 @@ def predefinedstokes(
     isdensityconstant: bool = True,
     isviscosityconstant: bool = True,
     precondtype: str = "",
-) -> tuple[expression, preconditioner]:
+) -> list[tuple[expression, int, list[operation], preconditioner]]:
     """
     This defines the weak formulation for the Stokes (**creeping**) flow, a linear form of Navier-Stokes where the advective term is
     ignored as the inertial forces are smaller compared to the viscous forces:
@@ -12886,7 +12875,7 @@ def predefinedstokes(
     --------
     predefinednavierstokes
     """
-    return (expression(), preconditioner())
+    ...
 
 def predefinedstreamlinestabilizationparameter(
     v: expressionlike, diffusivity: expressionlike
@@ -12967,7 +12956,26 @@ def predefinedviscoelasticity(
     Ep: expressionlike,
     nup: expressionlike,
     taup: expressionlike,
-    physicalregion: int,
+    unused: int,
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
+def predefinedviscohyperelasticity(
+    dofu: expressionlike,
+    tfu: expressionlike,
+    u: field,
+    Ep: expressionlike,
+    nup: expressionlike,
+    taup: expressionlike,
+    prestress: expressionlike,
+) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
+def predefinedyeoh(
+    dofu: expressionlike,
+    tfu: expressionlike,
+    u: field,
+    C1: float = 1.0,
+    C2: float = 100.0,
+    C3: float = 0.0,
+    kappa: float = 1000.0,
+    epsilon: float = 1e-06,
 ) -> expression:
     return expression()
 
@@ -14185,6 +14193,15 @@ def transpose(input: expressionlike) -> expression:
     >>> matexpr = expression(3,3, [1,2,3, 4,5,6, 7,8,9])
     >>> transposed = transpose(matexpr)
     """
+    return expression()
+
+def viscohyperelasticstress(
+    physreg: int,
+    u: field,
+    Ep: expressionlike,
+    nup: expressionlike,
+    taup: expressionlike,
+) -> expression:
     return expression()
 
 def vonmises(stress: expressionlike) -> expression:

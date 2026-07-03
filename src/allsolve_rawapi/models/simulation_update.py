@@ -45,6 +45,7 @@ class SimulationUpdate(BaseModel):
     solver_precision: Optional[SolverPrecision] = Field(default=None, alias="solverPrecision")
     mesh: Optional[Annotated[str, Field(min_length=1, strict=True)]] = None
     override_set: Optional[Annotated[str, Field(min_length=1, strict=True)]] = Field(default=None, alias="overrideSet")
+    physics_set: Optional[Annotated[str, Field(min_length=1, strict=True)]] = Field(default=None, alias="physicsSet")
     physics: Optional[List[StrictStr]] = Field(default=None, description="A list of physics ids to simulate. This selection is only needed for some analysis types like `transient`. By default all physics are simulated.")
     internal_start_time: Optional[Annotated[str, Field(strict=True, max_length=5000)]] = Field(default=None, alias="internalStartTime")
     internal_end_time: Optional[Annotated[str, Field(strict=True, max_length=5000)]] = Field(default=None, alias="internalEndTime")
@@ -63,7 +64,7 @@ class SimulationUpdate(BaseModel):
     target_frequency: Optional[Annotated[str, Field(strict=True, max_length=5000)]] = Field(default=None, alias="targetFrequency")
     numerical_jacobian: Optional[StrictBool] = Field(default=None, alias="numericalJacobian")
     disabled_script_sections: Optional[List[DisabledScriptSection]] = Field(default=None, description="A list of section names that should be disabled in the generated scripts.", alias="disabledScriptSections")
-    __properties: ClassVar[List[str]] = ["name", "description", "analysisType", "harmonics", "nodeCount", "nodeType", "mainNodeType", "maxRunTimeMinutes", "solverMode", "solverPrecision", "mesh", "overrideSet", "physics", "internalStartTime", "internalEndTime", "internalTimestepSize", "timestepAlgorithm", "fundamentalFrequency", "numFFTSamples", "numRequestedEigenmodes", "targetEigenfrequency", "eigenmodePortAnalysis", "solverTolerance", "nonlinearSolverTolerance", "nonlinearSolverMaxIterations", "eigenmodeSolverTolerance", "eigenmodeSolverMaxIterations", "targetFrequency", "numericalJacobian", "disabledScriptSections"]
+    __properties: ClassVar[List[str]] = ["name", "description", "analysisType", "harmonics", "nodeCount", "nodeType", "mainNodeType", "maxRunTimeMinutes", "solverMode", "solverPrecision", "mesh", "overrideSet", "physicsSet", "physics", "internalStartTime", "internalEndTime", "internalTimestepSize", "timestepAlgorithm", "fundamentalFrequency", "numFFTSamples", "numRequestedEigenmodes", "targetEigenfrequency", "eigenmodePortAnalysis", "solverTolerance", "nonlinearSolverTolerance", "nonlinearSolverMaxIterations", "eigenmodeSolverTolerance", "eigenmodeSolverMaxIterations", "targetFrequency", "numericalJacobian", "disabledScriptSections"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -128,6 +129,7 @@ class SimulationUpdate(BaseModel):
             "solverPrecision": obj.get("solverPrecision"),
             "mesh": obj.get("mesh"),
             "overrideSet": obj.get("overrideSet"),
+            "physicsSet": obj.get("physicsSet"),
             "physics": obj.get("physics"),
             "internalStartTime": obj.get("internalStartTime"),
             "internalEndTime": obj.get("internalEndTime"),

@@ -83,6 +83,9 @@ __all__ = [
     "CadVector",
     "CadWedge",
     "CopyRequest",
+    "CreateGeometryElementBatchRequest",
+    "CreateGeometryElementBatchResponse",
+    "CreatedGeometryElement",
     "CustomScriptSectionName",
     "DisabledScriptSection",
     "DistributedSolverMode",
@@ -100,6 +103,7 @@ __all__ = [
     "FileDownloadUrl",
     "FileUploadCompletedPart",
     "FileUploadCompletion",
+    "FileUploadCompletionItem",
     "FileUploadUrls",
     "FlattenAndRebuildExtrusion",
     "GDSImportConfig",
@@ -112,6 +116,7 @@ __all__ = [
     "GeometryPipelineVersion",
     "GeometryProcessingStartResponse",
     "GeometryUnit",
+    "GetJobStatusesRequest",
     "HealthResponse",
     "InputFile",
     "InputModelUrls",
@@ -126,8 +131,11 @@ __all__ = [
     "JobStatus",
     "JobStatusReason",
     "JobStatusType",
+    "JobStatusesResult",
     "JobType",
     "LibraryOwnerType",
+    "MarkFileBatchUploadedRequest",
+    "MarkFileBatchUploadedResponse",
     "Material",
     "MaterialUpdate",
     "Mesh",
@@ -154,8 +162,10 @@ __all__ = [
     "NewMaterial",
     "NewOverrideSet",
     "NewPhysics",
+    "NewPhysicsSet",
     "NewProject",
     "NewRegion",
+    "NewSimulation",
     "OauthClientTokenGrantType",
     "OauthClientTokenResponse",
     "OrganizationQuota",
@@ -170,6 +180,8 @@ __all__ = [
     "PhysicsCreationResponse",
     "PhysicsDeletionResponse",
     "PhysicsField",
+    "PhysicsSet",
+    "PhysicsSetUpdate",
     "PhysicsUpdate",
     "Project",
     "ProjectListResult",
@@ -183,6 +195,9 @@ __all__ = [
     "RegionRuleOperation",
     "RegionSelector",
     "RegionUpdate",
+    "ReservationStatus",
+    "ResourceReservation",
+    "ResourceReservationRequest",
     "STEPImportConfig",
     "SelectiveMeshRefinement",
     "SelectiveMeshRefinementItem",
@@ -203,11 +218,15 @@ __all__ = [
     "SimulationUpdate",
     "SlantedExtrusion",
     "SolverPrecision",
+    "StartJobRequest",
     "StructuredCurveSegment",
     "StructuredMeshDefinitions",
     "StructuredMeshEntity",
     "StructuredMeshing",
     "SweepType",
+    "Team",
+    "TeamList",
+    "TeamQuota",
     "TimestepAlgorithm",
 ]
 
@@ -281,6 +300,9 @@ from allsolve_rawapi.models.cad_unit_defaults_input import CadUnitDefaultsInput 
 from allsolve_rawapi.models.cad_vector import CadVector as CadVector
 from allsolve_rawapi.models.cad_wedge import CadWedge as CadWedge
 from allsolve_rawapi.models.copy_request import CopyRequest as CopyRequest
+from allsolve_rawapi.models.create_geometry_element_batch_request import CreateGeometryElementBatchRequest as CreateGeometryElementBatchRequest
+from allsolve_rawapi.models.create_geometry_element_batch_response import CreateGeometryElementBatchResponse as CreateGeometryElementBatchResponse
+from allsolve_rawapi.models.created_geometry_element import CreatedGeometryElement as CreatedGeometryElement
 from allsolve_rawapi.models.custom_script_section_name import CustomScriptSectionName as CustomScriptSectionName
 from allsolve_rawapi.models.disabled_script_section import DisabledScriptSection as DisabledScriptSection
 from allsolve_rawapi.models.distributed_solver_mode import DistributedSolverMode as DistributedSolverMode
@@ -298,6 +320,7 @@ from allsolve_rawapi.models.field_initialization_update import FieldInitializati
 from allsolve_rawapi.models.file_download_url import FileDownloadUrl as FileDownloadUrl
 from allsolve_rawapi.models.file_upload_completed_part import FileUploadCompletedPart as FileUploadCompletedPart
 from allsolve_rawapi.models.file_upload_completion import FileUploadCompletion as FileUploadCompletion
+from allsolve_rawapi.models.file_upload_completion_item import FileUploadCompletionItem as FileUploadCompletionItem
 from allsolve_rawapi.models.file_upload_urls import FileUploadUrls as FileUploadUrls
 from allsolve_rawapi.models.flatten_and_rebuild_extrusion import FlattenAndRebuildExtrusion as FlattenAndRebuildExtrusion
 from allsolve_rawapi.models.gds_import_config import GDSImportConfig as GDSImportConfig
@@ -310,6 +333,7 @@ from allsolve_rawapi.models.geometry_file_type import GeometryFileType as Geomet
 from allsolve_rawapi.models.geometry_pipeline_version import GeometryPipelineVersion as GeometryPipelineVersion
 from allsolve_rawapi.models.geometry_processing_start_response import GeometryProcessingStartResponse as GeometryProcessingStartResponse
 from allsolve_rawapi.models.geometry_unit import GeometryUnit as GeometryUnit
+from allsolve_rawapi.models.get_job_statuses_request import GetJobStatusesRequest as GetJobStatusesRequest
 from allsolve_rawapi.models.health_response import HealthResponse as HealthResponse
 from allsolve_rawapi.models.input_file import InputFile as InputFile
 from allsolve_rawapi.models.input_model_urls import InputModelUrls as InputModelUrls
@@ -324,8 +348,11 @@ from allsolve_rawapi.models.job_log_event import JobLogEvent as JobLogEvent
 from allsolve_rawapi.models.job_status import JobStatus as JobStatus
 from allsolve_rawapi.models.job_status_reason import JobStatusReason as JobStatusReason
 from allsolve_rawapi.models.job_status_type import JobStatusType as JobStatusType
+from allsolve_rawapi.models.job_statuses_result import JobStatusesResult as JobStatusesResult
 from allsolve_rawapi.models.job_type import JobType as JobType
 from allsolve_rawapi.models.library_owner_type import LibraryOwnerType as LibraryOwnerType
+from allsolve_rawapi.models.mark_file_batch_uploaded_request import MarkFileBatchUploadedRequest as MarkFileBatchUploadedRequest
+from allsolve_rawapi.models.mark_file_batch_uploaded_response import MarkFileBatchUploadedResponse as MarkFileBatchUploadedResponse
 from allsolve_rawapi.models.material import Material as Material
 from allsolve_rawapi.models.material_update import MaterialUpdate as MaterialUpdate
 from allsolve_rawapi.models.mesh import Mesh as Mesh
@@ -352,8 +379,10 @@ from allsolve_rawapi.models.new_interaction import NewInteraction as NewInteract
 from allsolve_rawapi.models.new_material import NewMaterial as NewMaterial
 from allsolve_rawapi.models.new_override_set import NewOverrideSet as NewOverrideSet
 from allsolve_rawapi.models.new_physics import NewPhysics as NewPhysics
+from allsolve_rawapi.models.new_physics_set import NewPhysicsSet as NewPhysicsSet
 from allsolve_rawapi.models.new_project import NewProject as NewProject
 from allsolve_rawapi.models.new_region import NewRegion as NewRegion
+from allsolve_rawapi.models.new_simulation import NewSimulation as NewSimulation
 from allsolve_rawapi.models.oauth_client_token_grant_type import OauthClientTokenGrantType as OauthClientTokenGrantType
 from allsolve_rawapi.models.oauth_client_token_response import OauthClientTokenResponse as OauthClientTokenResponse
 from allsolve_rawapi.models.organization_quota import OrganizationQuota as OrganizationQuota
@@ -368,6 +397,8 @@ from allsolve_rawapi.models.physics import Physics as Physics
 from allsolve_rawapi.models.physics_creation_response import PhysicsCreationResponse as PhysicsCreationResponse
 from allsolve_rawapi.models.physics_deletion_response import PhysicsDeletionResponse as PhysicsDeletionResponse
 from allsolve_rawapi.models.physics_field import PhysicsField as PhysicsField
+from allsolve_rawapi.models.physics_set import PhysicsSet as PhysicsSet
+from allsolve_rawapi.models.physics_set_update import PhysicsSetUpdate as PhysicsSetUpdate
 from allsolve_rawapi.models.physics_update import PhysicsUpdate as PhysicsUpdate
 from allsolve_rawapi.models.project import Project as Project
 from allsolve_rawapi.models.project_list_result import ProjectListResult as ProjectListResult
@@ -381,6 +412,9 @@ from allsolve_rawapi.models.region_rule import RegionRule as RegionRule
 from allsolve_rawapi.models.region_rule_operation import RegionRuleOperation as RegionRuleOperation
 from allsolve_rawapi.models.region_selector import RegionSelector as RegionSelector
 from allsolve_rawapi.models.region_update import RegionUpdate as RegionUpdate
+from allsolve_rawapi.models.reservation_status import ReservationStatus as ReservationStatus
+from allsolve_rawapi.models.resource_reservation import ResourceReservation as ResourceReservation
+from allsolve_rawapi.models.resource_reservation_request import ResourceReservationRequest as ResourceReservationRequest
 from allsolve_rawapi.models.step_import_config import STEPImportConfig as STEPImportConfig
 from allsolve_rawapi.models.selective_mesh_refinement import SelectiveMeshRefinement as SelectiveMeshRefinement
 from allsolve_rawapi.models.selective_mesh_refinement_item import SelectiveMeshRefinementItem as SelectiveMeshRefinementItem
@@ -401,10 +435,14 @@ from allsolve_rawapi.models.simulation_script_update import SimulationScriptUpda
 from allsolve_rawapi.models.simulation_update import SimulationUpdate as SimulationUpdate
 from allsolve_rawapi.models.slanted_extrusion import SlantedExtrusion as SlantedExtrusion
 from allsolve_rawapi.models.solver_precision import SolverPrecision as SolverPrecision
+from allsolve_rawapi.models.start_job_request import StartJobRequest as StartJobRequest
 from allsolve_rawapi.models.structured_curve_segment import StructuredCurveSegment as StructuredCurveSegment
 from allsolve_rawapi.models.structured_mesh_definitions import StructuredMeshDefinitions as StructuredMeshDefinitions
 from allsolve_rawapi.models.structured_mesh_entity import StructuredMeshEntity as StructuredMeshEntity
 from allsolve_rawapi.models.structured_meshing import StructuredMeshing as StructuredMeshing
 from allsolve_rawapi.models.sweep_type import SweepType as SweepType
+from allsolve_rawapi.models.team import Team as Team
+from allsolve_rawapi.models.team_list import TeamList as TeamList
+from allsolve_rawapi.models.team_quota import TeamQuota as TeamQuota
 from allsolve_rawapi.models.timestep_algorithm import TimestepAlgorithm as TimestepAlgorithm
 

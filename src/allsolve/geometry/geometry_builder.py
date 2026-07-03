@@ -1,9 +1,11 @@
 # Copyright 2026 Quanscient Oy
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import List, TextIO, Tuple, Union
-from typing_extensions import Self
+import concurrent.futures
 import sys
+from typing import List, TextIO, Tuple, Union
+
+from typing_extensions import Self
 
 from allsolve.geometry.cad_boolean_operation import (
     CadUnion,
@@ -35,6 +37,7 @@ from .cad_basic_geometry import (
     CadPoint,
 )
 from .cad_file_import import (
+    CadFileImport,
     CadStepFile,
     CadIgesFile,
     CadSatFile,
@@ -47,9 +50,20 @@ from .cad_file_import import (
 )
 import allsolve_rawapi as rawapi
 from allsolve_rawapi.exceptions import ApiException
-from ..api import get_api, get_auth, check_for_project_api_key
+from ..api import (
+    check_for_project_api_key,
+    get_api,
+    get_auth,
+    _get_current_client,
+)
+from ..file import mark_files_uploaded_batch
 from ..job import Job, OnError
 from ..job_mixin import JobMixin
+from ..resource_reservation import (
+    ResourceReservation,
+    build_start_job_request,
+    keep_reservation_alive,
+)
 from ..util import JobError
 
 CadElement = Union[
@@ -78,6 +92,10 @@ CadElement = Union[
     CadDisk,
     CadRectangle,
 ]
+
+
+_BATCH_CREATE_MAX_ITEMS = 1000
+_BATCH_UPLOAD_MAX_WORKERS = 8
 
 
 class GeometryBuilder(JobMixin):
@@ -131,8 +149,10 @@ class GeometryBuilder(JobMixin):
             The GeometryBuilder object.
         """
         if isinstance(geometry, list):
-            for cad_geometry_element in geometry:
-                self._create_element(cad_geometry_element)
+            if len(geometry) == 1:
+                self._create_element(geometry[0])
+            elif len(geometry) > 1:
+                self._create_elements_batch(geometry)
         else:
             self._create_element(geometry)
         return self
@@ -1091,6 +1111,8 @@ class GeometryBuilder(JobMixin):
         print_logs: bool = False,
         refresh_delay_s: float = 1,
         on_error: OnError = OnError.IGNORE,
+        *,
+        resource_reservation: ResourceReservation | str | None = None,
     ) -> Self:
         """Processes the geometry elements in the project and returns when the processing is complete.
 
@@ -1101,11 +1123,18 @@ class GeometryBuilder(JobMixin):
                 ``OnError.IGNORE`` (default) — never raises; use :meth:`get_status` to check.
                 ``OnError.RAISE`` — raises :exc:`JobError` unless status is ``SUCCESS``.
                 ``OnError.STRICT`` — same as ``RAISE`` for geometry (no partial state is usable).
+            resource_reservation: Optional reservation for the job
+                (:class:`~allsolve.resource_reservation.ResourceReservation` or id
+                string). Renews the reservation lease for the full duration of this call.
 
         Returns:
             The GeometryBuilder object.
         """
-        self.run(print_logs=print_logs, refresh_delay_s=refresh_delay_s)
+        self.run(
+            print_logs=print_logs,
+            refresh_delay_s=refresh_delay_s,
+            resource_reservation=resource_reservation,
+        )
         status = self.get_status()
         if on_error is not OnError.IGNORE and status != Job.SUCCESS:
             raise JobError(
@@ -1135,7 +1164,9 @@ class GeometryBuilder(JobMixin):
         Returns:
             A list of created CAD geometry elements or a single created CAD geometry element.
         """
-        return [self._create_element(geometry) for geometry in geometries]
+        if len(geometries) <= 1:
+            return [self._create_element(geometry) for geometry in geometries]
+        return self._create_elements_batch(geometries)
 
     def get_elements(self) -> List[CadElement]:
         """
@@ -1160,22 +1191,34 @@ class GeometryBuilder(JobMixin):
                 elements.append(cad_element)
             return elements
 
-    def start(self, last_element_id: str | None = None) -> None:
+    def start(
+        self,
+        last_element_id: str | None = None,
+        *,
+        resource_reservation: ResourceReservation | str | None = None,
+    ) -> None:
         """
         Starts processing the geometry elements in the project.
 
         Parameters:
             last_element_id: Optional last geometry element id to process in the project.
             If not provided, all geometry elements in the project will be processed.
+            resource_reservation: Optional reservation for the job
+                (:class:`~allsolve.resource_reservation.ResourceReservation` or id
+                string). Assigns reserved compute to the job start request. Does not
+                renew the lease while the job runs; use :meth:`run`, :meth:`build`, or
+                wrap manual polling in
+                :func:`~allsolve.resource_reservation.keep_reservation_alive`.
         """
         project_id = check_for_project_api_key(self._project_id)
+        start_body = build_start_job_request(resource_reservation)
 
         with get_api() as api:
             response = api.start_processing_geometry(
                 authorization=get_auth(),
                 project_id=project_id,
                 last_element=last_element_id,
-                body={},
+                start_job_request=start_body,
             )
             job_id = response.job_id
             self._job = Job(project_id, job_id)
@@ -1185,6 +1228,8 @@ class GeometryBuilder(JobMixin):
         print_logs: bool = False,
         refresh_delay_s: float = 1,
         last_element_id: str | None = None,
+        *,
+        resource_reservation: ResourceReservation | str | None = None,
     ) -> None:
         """
         Processes the geometry elements in the project and returns when the processing is complete.
@@ -1195,13 +1240,20 @@ class GeometryBuilder(JobMixin):
             refresh_delay_s: Optional delay in seconds between checking the status of the job.
             last_element_id: Optional last geometry element id to process in the project.
             If not provided, all geometry elements in the project will be processed.
+            resource_reservation: Optional reservation for the job
+                (:class:`~allsolve.resource_reservation.ResourceReservation` or id
+                string). Renews the reservation lease for the full duration of this call.
         """
-        self.start(last_element_id=last_element_id)
-        while self.is_running(refresh_delay_s=refresh_delay_s):
+        with keep_reservation_alive(resource_reservation):
+            self.start(
+                last_element_id=last_element_id,
+                resource_reservation=resource_reservation,
+            )
+            while self.is_running(refresh_delay_s=refresh_delay_s):
+                if print_logs:
+                    self.print_new_loglines()
             if print_logs:
                 self.print_new_loglines()
-        if print_logs:
-            self.print_new_loglines()
 
     def abort(self) -> None:
         """
@@ -1341,42 +1393,109 @@ class GeometryBuilder(JobMixin):
         geometry._id = response.id
         geometry._project_id = project_id
         geometry._upload()
+        return geometry
 
-        # For GDS2 file imports, wait for layer generation job to finish or building geometry fails
-        if geometry.type == CadGeometryType.GDS2_FILE:
+    def _create_elements_batch(self, geometries: List[CadElement]) -> List[CadElement]:
+        """Create multiple geometry elements using the batch API."""
+        project_id = check_for_project_api_key(self._project_id)
+        results: List[CadElement] = []
+
+        for chunk_start in range(0, len(geometries), _BATCH_CREATE_MAX_ITEMS):
+            chunk = geometries[chunk_start : chunk_start + _BATCH_CREATE_MAX_ITEMS]
+
+            for chunk_index, geometry in enumerate(chunk):
+                if geometry._is_file_import():
+                    geometry._initialize_file_attributes()
+                if geometry.name is None:
+                    raise ValueError(
+                        f"CAD geometry element name is required for element at index "
+                        f"{chunk_start + chunk_index}"
+                    )
+
+            payloads = [g._to_rawapi_new_geometry_element() for g in chunk]
+
             with get_api() as api:
-                # Fetch elements again because GDS2 layer generation job is created after
-                # the file upload is completed
-                response_elements: List[rawapi.GeometryElement] = (
-                    api.get_geometry_elements(
+                try:
+                    response = api.create_geometry_elements(
                         authorization=get_auth(),
                         project_id=project_id,
+                        create_geometry_element_batch_request=rawapi.CreateGeometryElementBatchRequest(
+                            newElements=payloads
+                        ),
                     )
-                )
-                if response_elements is None or len(response_elements) == 0:
-                    raise ValueError("No geometry elements found")
-                # Find the GDS2 element by id
-                gds2_element = next(
-                    (
-                        element
-                        for element in response_elements
-                        if element.id == geometry.id
-                    ),
-                    None,
-                )
-                if gds2_element is None:
-                    raise ValueError("GDS2 element not found")
-                # Get GDS2 layer generation job id
-                job_id = gds2_element.job_id
+                except ApiException as e:
+                    message = getattr(e.data, "message", None) if e.data else None
+                    raise ValueError(message or str(e)) from e
 
-            # Wait for GDS2 layer generation job to finish
-            if job_id is not None:
-                job = Job(project_id, job_id)
-                while job.is_running(refresh_delay_s=1):
-                    pass
-                if job.get_status() != Job.SUCCESS:
-                    raise ValueError("Failed to read layers from GDSII file")
-        return geometry
+            created_elements = response.created_elements
+            if created_elements is None or len(created_elements) != len(chunk):
+                raise ValueError(
+                    "Batch geometry created count does not match requested count"
+                )
+
+            upload_tasks: list[tuple[CadFileImport, rawapi.FileUploadUrls]] = []
+            chunk_results: List[CadElement] = []
+
+            for geometry, created in zip(chunk, created_elements, strict=True):
+                element_id = created.element.id
+                if element_id is None:
+                    raise ValueError(
+                        f"Created geometry element ID is not set for "
+                        f"'{geometry.name}'"
+                    )
+                geometry._id = element_id
+                geometry._project_id = project_id
+
+                if geometry._is_file_import():
+                    if not isinstance(geometry, CadFileImport):
+                        raise TypeError(
+                            f"File import geometry must be a CadFileImport instance "
+                            f"for '{geometry.name}'"
+                        )
+                    if created.file_upload_urls is None:
+                        raise ValueError(
+                            f"File upload URLs are not set for file import "
+                            f"'{geometry.name}'"
+                        )
+                    upload_tasks.append((geometry, created.file_upload_urls))
+                    chunk_results.append(geometry)
+                else:
+                    chunk_results.append(
+                        self._convert_cad_element_from_rawapi(
+                            created.element, project_id
+                        )
+                    )
+
+            if upload_tasks:
+                client = _get_current_client()
+
+                def _upload_one(
+                    file_import: CadFileImport, url_info: rawapi.FileUploadUrls
+                ) -> tuple[str, rawapi.FileUploadCompletion]:
+                    with client.in_thread():
+                        completion = file_import._upload_from_urls(url_info)
+                    if file_import.id is None:
+                        raise ValueError(
+                            f"Geometry element ID is not set for '{file_import.name}'"
+                        )
+                    return (file_import.id, completion)
+
+                completions: list[tuple[str, rawapi.FileUploadCompletion]] = []
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=_BATCH_UPLOAD_MAX_WORKERS
+                ) as pool:
+                    futures = [
+                        pool.submit(_upload_one, geometry, url_info)
+                        for geometry, url_info in upload_tasks
+                    ]
+                    for future in concurrent.futures.as_completed(futures):
+                        completions.append(future.result())
+
+                mark_files_uploaded_batch(completions, project_id=project_id)
+
+            results.extend(chunk_results)
+
+        return results
 
     def __str__(self) -> str:
         elements = self.get_elements()

@@ -114,15 +114,24 @@ class VariableOverrides:
         ],
         project_id: str,
     ) -> List[Tuple[str, str]]:
+        variables_by_name: dict[str, Variable] | None = None
         override_list: List[Tuple[str, str]] = []
         for variable, value in overrides:
             if isinstance(variable, str):
-                var: Variable | None = Variable.get_by_name(variable, project_id)
-                if var is None:
+                if variables_by_name is None:
+                    variables_by_name = {}
+                    for var in Variable.get_all(project_id=project_id):
+                        if var.name in variables_by_name:
+                            raise ValueError(
+                                f"Multiple variables found with name {var.name}"
+                            )
+                        variables_by_name[var.name] = var
+                resolved_var = variables_by_name.get(variable)
+                if resolved_var is None:
                     raise ValueError(
                         f"Variable {variable} not found in project {project_id}"
                     )
-                variable = var
+                variable = resolved_var
             if not isinstance(variable, Variable):
                 raise ValueError(f"Variable {variable} is not a variable.")
 

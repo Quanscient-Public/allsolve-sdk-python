@@ -248,6 +248,14 @@ class MaterialProperty:
                 alternative="heatCapacityGeneric",
             )
 
+    class LongitudinalAttenuation(PhysicalProperty):
+        def __init__(self, value: str | float) -> None:
+            super().__init__(
+                value=value,
+                definition="longitudinalAttenuation",
+                alternative="longitudinalAttenuationGeneric",
+            )
+
     class MagneticPermeability(PhysicalProperty):
         def __init__(self, value: str | float) -> None:
             super().__init__(
@@ -344,6 +352,14 @@ class MaterialProperty:
                 ),
             ]
 
+    class ShearAttenuation(PhysicalProperty):
+        def __init__(self, value: str | float) -> None:
+            super().__init__(
+                value=value,
+                definition="shearAttenuation",
+                alternative="shearAttenuationGeneric",
+            )
+
     class SpeedOfSound(PhysicalProperty):
         def __init__(self, value: str | float) -> None:
             super().__init__(
@@ -389,6 +405,76 @@ class MaterialProperty:
                 definition="thermalConductivity",
                 alternative="thermalConductivityAnisotropic",
             )
+
+    class ViscousDampingBulkViscosityShearViscosity(PhysicalProperty):
+        def __init__(
+            self, bulk_viscosity: str | float, shear_viscosity: str | float
+        ) -> None:
+            super().__init__(
+                value="",
+                definition="",
+                alternative="",
+            )
+            self.bulk_viscosity = str(bulk_viscosity)
+            self.shear_viscosity = str(shear_viscosity)
+
+        def to_rawapi(self) -> List[rawapi.PhysicalProperty]:
+            return [
+                rawapi.PhysicalProperty(
+                    definition="bulkViscosity",
+                    alternative="bulkViscosityGeneric",
+                    value=self.bulk_viscosity,
+                ),
+                rawapi.PhysicalProperty(
+                    definition="shearViscosity",
+                    alternative="shearViscosityGeneric",
+                    value=self.shear_viscosity,
+                ),
+                rawapi.PhysicalProperty(
+                    definition="viscousDamping",
+                    alternative="viscousDampingBulkViscosityShearViscosity",
+                ),
+            ]
+
+    class ViscousDampingLongitudinalAttenuationShearAttenuation(PhysicalProperty):
+        def __init__(
+            self,
+            longitudinal_attenuation: str | float,
+            shear_attenuation: str | float,
+        ) -> None:
+            super().__init__(
+                value="",
+                definition="",
+                alternative="",
+            )
+            self.longitudinal_attenuation = str(longitudinal_attenuation)
+            self.shear_attenuation = str(shear_attenuation)
+
+        def to_rawapi(self) -> List[rawapi.PhysicalProperty]:
+            return [
+                rawapi.PhysicalProperty(
+                    definition="longitudinalAttenuation",
+                    alternative="longitudinalAttenuationGeneric",
+                    value=self.longitudinal_attenuation,
+                ),
+                rawapi.PhysicalProperty(
+                    definition="shearAttenuation",
+                    alternative="shearAttenuationGeneric",
+                    value=self.shear_attenuation,
+                ),
+                rawapi.PhysicalProperty(
+                    definition="bulkViscosity",
+                    alternative="bulkViscosityLongitudinalAttenuationShearAttenuation",
+                ),
+                rawapi.PhysicalProperty(
+                    definition="shearViscosity",
+                    alternative="shearViscosityLongitudinalAttenuationShearAttenuation",
+                ),
+                rawapi.PhysicalProperty(
+                    definition="viscousDamping",
+                    alternative="viscousDampingLongitudinalAttenuationShearAttenuation",
+                ),
+            ]
 
 
 class Material:
@@ -642,6 +728,21 @@ class Material:
 
         if thermalConductivityCount > 1:
             raise ValueError("Only one thermal conductivity is allowed")
+
+        viscousDampingCount = 0
+        for property in properties:
+            if isinstance(
+                property, MaterialProperty.ViscousDampingBulkViscosityShearViscosity
+            ):
+                viscousDampingCount += 1
+            if isinstance(
+                property,
+                MaterialProperty.ViscousDampingLongitudinalAttenuationShearAttenuation,
+            ):
+                viscousDampingCount += 1
+
+        if viscousDampingCount > 1:
+            raise ValueError("Only one viscous damping is allowed")
 
     def __init__(self, project_id: str, material: rawapi.Material) -> None:
         self._project_id = project_id

@@ -1,14 +1,9 @@
-import os
+from pathlib import Path
+
 import allsolve
 import signal
 
-api_key = os.environ["QS_ACCESS_KEY"]
-api_secret = os.environ["QS_SECRET_KEY"]
-allsolve.setup(
-    api_key=api_key,
-    api_secret=api_secret,
-    host="https://allsolve.quanscient.com",
-)
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 # Global variables for signal handler
 geom = None
@@ -58,7 +53,7 @@ def run_project(project: allsolve.Project):
     sim.set_scripts(
         [
             allsolve.Script(
-                filepath="sim/simulation.py",
+                filepath=str(SCRIPT_DIR / "sim" / "simulation.py"),
                 is_main=True,
             ),
         ],
@@ -81,10 +76,13 @@ def run_project(project: allsolve.Project):
 
 
 if __name__ == "__main__":
-    project = allsolve.import_project("import-format.yaml")
-    # project = allsolve.import_project("import-format.json")
+    client = allsolve.Client()
+    project = client.import_project(str(SCRIPT_DIR / "import-format.yaml"))
+    # project = client.import_project(str(SCRIPT_DIR / "import-format.json"))
 
     try:
         run_project(project)
     finally:
-        project.delete()
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            project.delete()
+            print("Project deleted.")

@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import inspect
+import json
 import warnings
 from enum import Enum
 from functools import wraps
+
+import allsolve_rawapi as rawapi
 
 
 def deprecated(reason):
@@ -113,6 +116,40 @@ class NotProjectAPIKeyError(Exception):
     """
 
     pass
+
+
+def parse_api_error(exc: rawapi.ApiException) -> tuple[str | None, str]:
+    """Extract ``error`` code and ``message`` from an API exception body."""
+    message = exc.reason or "API error"
+    error_code: str | None = None
+    if exc.body:
+        try:
+            payload = json.loads(exc.body)
+            if isinstance(payload, dict):
+                if payload.get("error") is not None:
+                    error_code = str(payload["error"])
+                if payload.get("message") is not None:
+                    message = str(payload["message"])
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return error_code, message
+
+
+class ResourceReservationError(Exception):
+    """
+    Raised when a resource reservation operation fails.
+
+    Attributes:
+        error_code: Optional API error code (e.g. ``quota_exceeded``).
+    """
+
+    def __init__(
+        self,
+        message: str,
+        error_code: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.error_code = error_code
 
 
 def prevent_deleted(f):

@@ -121,8 +121,9 @@ def create_materials(project: allsolve.Project, regions: SimpleNamespace) -> Non
 
 def create_physics(
     project: allsolve.Project, regions: SimpleNamespace
-) -> allsolve.Physic:
-    em = project.add_physics(allsolve.Physics.ElectromagneticWaves())
+) -> allsolve.PhysicsSet:
+    physics_set = project.get_default_physics_set()
+    em = physics_set.add_physics(allsolve.Physics.ElectromagneticWaves())
     em.add_interactions(
         [
             allsolve.Interaction.ElectromagneticWavesPerfectConductor(
@@ -153,7 +154,7 @@ def create_physics(
             ),
         ]
     )
-    return em
+    return physics_set
 
 
 def create_cartesian_sweep(project: allsolve.Project) -> allsolve.VariableOverrides:
@@ -171,7 +172,7 @@ def create_cartesian_sweep(project: allsolve.Project) -> allsolve.VariableOverri
 def create_simulation(
     project: allsolve.Project,
     mesh: allsolve.Mesh,
-    em_physics: allsolve.Physic,
+    physics_set: allsolve.PhysicsSet,
     sweep: allsolve.VariableOverrides,
 ) -> allsolve.Simulation:
     sim = project.create_simulation_harmonic(
@@ -182,7 +183,7 @@ def create_simulation(
         fundamental_frequency="freq",
         mesh=mesh,
         variable_overrides=sweep,
-        physics=[em_physics.id],
+        physics_set=physics_set,
         solver_tolerance="1e-06",
         numerical_jacobian=False,
     )

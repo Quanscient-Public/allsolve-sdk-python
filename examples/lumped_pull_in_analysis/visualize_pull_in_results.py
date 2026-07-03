@@ -47,30 +47,38 @@ def main() -> None:
         )
     print(f"Project: {project.name} (id: {project.id})")
 
-    simulations = project.get_simulations()
-    sim = next((s for s in simulations if s.name == SIMULATION_NAME), None)
-    if sim is None:
-        raise ValueError(f"Simulation {SIMULATION_NAME!r} not found in project.")
-    print(f"Simulation: {sim.name} (id: {sim.id})")
+    try:
+        simulations = project.get_simulations()
+        sim = next((s for s in simulations if s.name == SIMULATION_NAME), None)
+        if sim is None:
+            raise ValueError(f"Simulation {SIMULATION_NAME!r} not found in project.")
+        print(f"Simulation: {sim.name} (id: {sim.id})")
 
-    output_data = sim.get_output_data()
-    df = output_data.to_dataframe(include_overrides=True)
+        output_data = sim.get_output_data()
+        df = output_data.to_dataframe(include_overrides=True)
 
-    print(f"Columns: {list(df.columns)}")
-    print(f"Sweep steps: {output_data.get_sweep_count()}")
-    print(df.head().to_string())
+        print(f"Columns: {list(df.columns)}")
+        print(f"Sweep steps: {output_data.get_sweep_count()}")
+        print(df.head().to_string())
 
-    script_dir = Path(__file__).resolve().parent
-    output_dir = script_dir / OUTPUT_DIR_NAME
-    output_dir.mkdir(parents=True, exist_ok=True)
+        script_dir = Path(__file__).resolve().parent
+        output_dir = script_dir / OUTPUT_DIR_NAME
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-    plot_path = output_dir / "pull_in_analysis.png"
-    plot_pull_in(df, plot_path)
+        plot_path = output_dir / "pull_in_analysis.png"
+        plot_pull_in(df, plot_path)
 
-    bar_path = output_dir / "pull_in_bar_comparison.png"
-    plot_bar_comparison(df, bar_path)
+        bar_path = output_dir / "pull_in_bar_comparison.png"
+        plot_bar_comparison(df, bar_path)
 
-    output_data.clean_cache()
+        output_data.clean_cache()
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        client.set_current_project(None)
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            project.delete()
+            print("Project deleted.")
 
 
 def plot_pull_in(df: pd.DataFrame, plot_path: Path) -> None:
@@ -192,4 +200,3 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print(f"Error: {e}")
-        raise

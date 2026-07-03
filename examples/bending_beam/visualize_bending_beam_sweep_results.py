@@ -47,32 +47,39 @@ def main() -> None:
 
     print(f"Project: {project.name} (id: {project.id})")
 
-    simulations = project.get_simulations()
-    if not simulations:
-        raise ValueError("No simulations on this project.")
-    sim = simulations[0]
-    print(f"Simulation: {sim.name} (id: {sim.id})")
+    try:
+        simulations = project.get_simulations()
+        if not simulations:
+            raise ValueError("No simulations on this project.")
+        sim = simulations[0]
+        print(f"Simulation: {sim.name} (id: {sim.id})")
 
-    output_data = sim.get_output_data()
-    n_sweeps = output_data.get_sweep_count()
-    headers = output_data.get_value_headers()
+        output_data = sim.get_output_data()
+        n_sweeps = output_data.get_sweep_count()
+        headers = output_data.get_value_headers()
 
-    df = output_data.to_dataframe()
-    s0 = output_data.sweep_step_to_dataframe(0)
-    print_dataframe_info(df, s0, n_sweeps=n_sweeps, headers=headers)
+        df = output_data.to_dataframe()
+        s0 = output_data.sweep_step_to_dataframe(0)
+        print_dataframe_info(df, s0, n_sweeps=n_sweeps, headers=headers)
 
-    script_dir = Path(__file__).resolve().parent
-    output_dir = script_dir / OUTPUT_DIR_NAME
-    output_dir.mkdir(parents=True, exist_ok=True)
-    plot_path = output_dir / "plot1.png"
-    tip_plot_path = output_dir / "plot2.png"
+        script_dir = Path(__file__).resolve().parent
+        output_dir = script_dir / OUTPUT_DIR_NAME
+        output_dir.mkdir(parents=True, exist_ok=True)
+        plot_path = output_dir / "plot1.png"
+        tip_plot_path = output_dir / "plot2.png"
 
-    plot_sweep_zero_deflection(s0, plot_path)
-    plot_tip_deflection_across_sweeps(df, tip_plot_path)
+        plot_sweep_zero_deflection(s0, plot_path)
+        plot_tip_deflection_across_sweeps(df, tip_plot_path)
 
-    output_data.clean_cache()
-    client.set_current_project(None)  # Clear the project from the cache
-    print("\nOutput cache cleaned.")
+        output_data.clean_cache()
+        print("\nOutput cache cleaned.")
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        client.set_current_project(None)
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            project.delete()
+            print("Project deleted.")
 
 
 def print_dataframe_info(
@@ -200,4 +207,3 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print(f"Error: {e}")
-        raise

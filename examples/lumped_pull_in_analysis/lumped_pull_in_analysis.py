@@ -39,24 +39,31 @@ def main():
     )
     print(f"Created project: {project.name} (id: {project.id})")
 
-    create_variables(project)
-    build_geometry(project, verbose=True)
-    regions = create_regions(project)
-    create_materials(project, regions)
-    physics = create_physics(project, regions)
-    sweep = create_sweep(project)
-    mesh = create_mesh(project, regions)
+    try:
+        create_variables(project)
+        build_geometry(project, verbose=True)
+        regions = create_regions(project)
+        create_materials(project, regions)
+        physics = create_physics(project, regions)
+        sweep = create_sweep(project)
+        mesh = create_mesh(project, regions)
 
-    sim_field_state = create_field_state_simulation(project, mesh, sweep, physics)
-    sim_initial_state = create_initial_state_simulation(
-        project, mesh, sweep, physics, sim_field_state
-    )
+        sim_field_state = create_field_state_simulation(project, mesh, sweep, physics)
+        sim_initial_state = create_initial_state_simulation(
+            project, mesh, sweep, physics, sim_field_state
+        )
 
-    run_mesh_and_simulation(mesh, sim_field_state, verbose=True)
-    run_simulation(sim_initial_state, verbose=True)
-    save_results(sim_initial_state)
-
-    client.set_current_project(project)
+        run_mesh_and_simulation(mesh, sim_field_state, verbose=True)
+        run_simulation(sim_initial_state, verbose=True)
+        save_results(sim_initial_state)
+        client.set_current_project(project)
+    except Exception as e:
+        print(f"Error running project: {e}")
+    finally:
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            client.set_current_project(None)
+            project.delete()
+            print("Project deleted.")
 
 
 def create_variables(project: allsolve.Project) -> None:
@@ -331,13 +338,14 @@ def create_physics(
 ) -> SimpleNamespace:
     physics = SimpleNamespace()
 
-    physics.solid_mechanics = project.add_physics(
+    physics.physics_set = project.get_default_physics_set()
+    physics.solid_mechanics = physics.physics_set.add_physics(
         allsolve.Physics.SolidMechanics(target=regions.solid_domain)
     )
-    physics.electrostatics = project.add_physics(
+    physics.electrostatics = physics.physics_set.add_physics(
         allsolve.Physics.Electrostatics(target=regions.electric_domain)
     )
-    physics.mesh_deformation = project.add_physics(
+    physics.mesh_deformation = physics.physics_set.add_physics(
         allsolve.Physics.MeshDeformation(target=regions.electric_domain)
     )
 
@@ -458,6 +466,7 @@ def create_field_state_simulation(
         solver_mode=allsolve.SolverMode.DIRECT,
         mesh=mesh.id,
         variable_overrides=sweep.id,
+        physics_set=physics.physics_set,
     )
     sim.add_outputs(
         [
@@ -484,6 +493,7 @@ def create_initial_state_simulation(
         solver_mode=allsolve.SolverMode.DIRECT,
         mesh=mesh.id,
         variable_overrides=sweep.id,
+        physics_set=physics.physics_set,
     )
 
     sim.set_field_initializations(
@@ -579,4 +589,7 @@ def save_results(sim: allsolve.Simulation) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"Error: {e}")

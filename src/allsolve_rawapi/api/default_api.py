@@ -19,6 +19,8 @@ from pydantic import Field, StrictBool, StrictBytes, StrictInt, StrictStr, field
 from typing import Any, Dict, List, Optional, Tuple, Union
 from typing_extensions import Annotated
 from allsolve_rawapi.models.copy_request import CopyRequest
+from allsolve_rawapi.models.create_geometry_element_batch_request import CreateGeometryElementBatchRequest
+from allsolve_rawapi.models.create_geometry_element_batch_response import CreateGeometryElementBatchResponse
 from allsolve_rawapi.models.field_initialization import FieldInitialization
 from allsolve_rawapi.models.field_initialization_update import FieldInitializationUpdate
 from allsolve_rawapi.models.file_download_url import FileDownloadUrl
@@ -27,6 +29,7 @@ from allsolve_rawapi.models.file_upload_urls import FileUploadUrls
 from allsolve_rawapi.models.generated_simulation_scripts import GeneratedSimulationScripts
 from allsolve_rawapi.models.geometry_element import GeometryElement
 from allsolve_rawapi.models.geometry_processing_start_response import GeometryProcessingStartResponse
+from allsolve_rawapi.models.get_job_statuses_request import GetJobStatusesRequest
 from allsolve_rawapi.models.health_response import HealthResponse
 from allsolve_rawapi.models.input_file import InputFile
 from allsolve_rawapi.models.input_model_urls import InputModelUrls
@@ -35,6 +38,9 @@ from allsolve_rawapi.models.interaction_update import InteractionUpdate
 from allsolve_rawapi.models.job import Job
 from allsolve_rawapi.models.job_log_event import JobLogEvent
 from allsolve_rawapi.models.job_status import JobStatus
+from allsolve_rawapi.models.job_statuses_result import JobStatusesResult
+from allsolve_rawapi.models.mark_file_batch_uploaded_request import MarkFileBatchUploadedRequest
+from allsolve_rawapi.models.mark_file_batch_uploaded_response import MarkFileBatchUploadedResponse
 from allsolve_rawapi.models.material import Material
 from allsolve_rawapi.models.material_update import MaterialUpdate
 from allsolve_rawapi.models.mesh import Mesh
@@ -45,8 +51,10 @@ from allsolve_rawapi.models.new_interaction import NewInteraction
 from allsolve_rawapi.models.new_material import NewMaterial
 from allsolve_rawapi.models.new_override_set import NewOverrideSet
 from allsolve_rawapi.models.new_physics import NewPhysics
+from allsolve_rawapi.models.new_physics_set import NewPhysicsSet
 from allsolve_rawapi.models.new_project import NewProject
 from allsolve_rawapi.models.new_region import NewRegion
+from allsolve_rawapi.models.new_simulation import NewSimulation
 from allsolve_rawapi.models.oauth_client_token_response import OauthClientTokenResponse
 from allsolve_rawapi.models.organization_quota import OrganizationQuota
 from allsolve_rawapi.models.override_set import OverrideSet
@@ -54,12 +62,16 @@ from allsolve_rawapi.models.override_set_update import OverrideSetUpdate
 from allsolve_rawapi.models.physics import Physics
 from allsolve_rawapi.models.physics_creation_response import PhysicsCreationResponse
 from allsolve_rawapi.models.physics_deletion_response import PhysicsDeletionResponse
+from allsolve_rawapi.models.physics_set import PhysicsSet
+from allsolve_rawapi.models.physics_set_update import PhysicsSetUpdate
 from allsolve_rawapi.models.physics_update import PhysicsUpdate
 from allsolve_rawapi.models.project import Project
 from allsolve_rawapi.models.project_list_result import ProjectListResult
 from allsolve_rawapi.models.project_type_filter import ProjectTypeFilter
 from allsolve_rawapi.models.region import Region
 from allsolve_rawapi.models.region_update import RegionUpdate
+from allsolve_rawapi.models.resource_reservation import ResourceReservation
+from allsolve_rawapi.models.resource_reservation_request import ResourceReservationRequest
 from allsolve_rawapi.models.shared_expression import SharedExpression
 from allsolve_rawapi.models.shared_expression_update import SharedExpressionUpdate
 from allsolve_rawapi.models.simulation import Simulation
@@ -68,6 +80,8 @@ from allsolve_rawapi.models.simulation_input_file_update_response import Simulat
 from allsolve_rawapi.models.simulation_script import SimulationScript
 from allsolve_rawapi.models.simulation_script_update import SimulationScriptUpdate
 from allsolve_rawapi.models.simulation_update import SimulationUpdate
+from allsolve_rawapi.models.start_job_request import StartJobRequest
+from allsolve_rawapi.models.team_list import TeamList
 
 from allsolve_rawapi.api_client import ApiClient, RequestSerialized
 from allsolve_rawapi.api_response import ApiResponse
@@ -1072,6 +1086,334 @@ class DefaultApi:
 
 
     @validate_call
+    def copy_physics_set(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        copy_request: Optional[CopyRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> PhysicsSet:
+        """Create a copy of a physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param copy_request: 
+        :type copy_request: CopyRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._copy_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            copy_request=copy_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def copy_physics_set_with_http_info(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        copy_request: Optional[CopyRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[PhysicsSet]:
+        """Create a copy of a physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param copy_request: 
+        :type copy_request: CopyRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._copy_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            copy_request=copy_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def copy_physics_set_without_preload_content(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        copy_request: Optional[CopyRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Create a copy of a physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param copy_request: 
+        :type copy_request: CopyRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._copy_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            copy_request=copy_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _copy_physics_set_serialize(
+        self,
+        project_id,
+        physics_set_id,
+        authorization,
+        copy_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectId'] = project_id
+        if physics_set_id is not None:
+            _path_params['physicsSetId'] = physics_set_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+        if copy_request is not None:
+            _body_params = copy_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/public/api/v1/projects/{projectId}/physics-sets/{physicsSetId}/copy',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def copy_project(
         self,
         project_id: Annotated[str, Field(min_length=1, strict=True)],
@@ -2038,6 +2380,322 @@ class DefaultApi:
         return self.api_client.param_serialize(
             method='POST',
             resource_path='/public/api/v1/projects/{projectId}/geometry-elements',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def create_geometry_elements(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        create_geometry_element_batch_request: Optional[CreateGeometryElementBatchRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> CreateGeometryElementBatchResponse:
+        """Creates multiple geometry elements
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param create_geometry_element_batch_request: 
+        :type create_geometry_element_batch_request: CreateGeometryElementBatchRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_geometry_elements_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            create_geometry_element_batch_request=create_geometry_element_batch_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "CreateGeometryElementBatchResponse",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def create_geometry_elements_with_http_info(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        create_geometry_element_batch_request: Optional[CreateGeometryElementBatchRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[CreateGeometryElementBatchResponse]:
+        """Creates multiple geometry elements
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param create_geometry_element_batch_request: 
+        :type create_geometry_element_batch_request: CreateGeometryElementBatchRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_geometry_elements_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            create_geometry_element_batch_request=create_geometry_element_batch_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "CreateGeometryElementBatchResponse",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def create_geometry_elements_without_preload_content(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        create_geometry_element_batch_request: Optional[CreateGeometryElementBatchRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Creates multiple geometry elements
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param create_geometry_element_batch_request: 
+        :type create_geometry_element_batch_request: CreateGeometryElementBatchRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_geometry_elements_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            create_geometry_element_batch_request=create_geometry_element_batch_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "CreateGeometryElementBatchResponse",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _create_geometry_elements_serialize(
+        self,
+        project_id,
+        authorization,
+        create_geometry_element_batch_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectId'] = project_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+        if create_geometry_element_batch_request is not None:
+            _body_params = create_geometry_element_batch_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/public/api/v1/projects/{projectId}/geometry-elements/batch',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,
@@ -3668,6 +4326,319 @@ class DefaultApi:
 
 
     @validate_call
+    def create_physics_set(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        new_physics_set: NewPhysicsSet,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> PhysicsSet:
+        """Create physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param new_physics_set:  (required)
+        :type new_physics_set: NewPhysicsSet
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_physics_set_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            new_physics_set=new_physics_set,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def create_physics_set_with_http_info(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        new_physics_set: NewPhysicsSet,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[PhysicsSet]:
+        """Create physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param new_physics_set:  (required)
+        :type new_physics_set: NewPhysicsSet
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_physics_set_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            new_physics_set=new_physics_set,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def create_physics_set_without_preload_content(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        new_physics_set: NewPhysicsSet,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Create physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param new_physics_set:  (required)
+        :type new_physics_set: NewPhysicsSet
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_physics_set_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            new_physics_set=new_physics_set,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _create_physics_set_serialize(
+        self,
+        project_id,
+        authorization,
+        new_physics_set,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectId'] = project_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+        if new_physics_set is not None:
+            _body_params = new_physics_set
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/public/api/v1/projects/{projectId}/physics-sets',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def create_project(
         self,
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
@@ -3687,7 +4658,7 @@ class DefaultApi:
     ) -> Project:
         """Create a new project
 
-        Creates a new project for the organization
+        Creates a new project for the organization. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is assigned automatically. When team credits enforcement is inactive, `teamId` may be omitted. The provided team must have active reserved quota and the API user must be a member of the team. 
 
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
@@ -3761,7 +4732,7 @@ class DefaultApi:
     ) -> ApiResponse[Project]:
         """Create a new project
 
-        Creates a new project for the organization
+        Creates a new project for the organization. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is assigned automatically. When team credits enforcement is inactive, `teamId` may be omitted. The provided team must have active reserved quota and the API user must be a member of the team. 
 
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
@@ -3835,7 +4806,7 @@ class DefaultApi:
     ) -> RESTResponseType:
         """Create a new project
 
-        Creates a new project for the organization
+        Creates a new project for the organization. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is assigned automatically. When team credits enforcement is inactive, `teamId` may be omitted. The provided team must have active reserved quota and the API user must be a member of the team. 
 
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
@@ -4282,6 +5253,304 @@ class DefaultApi:
 
 
     @validate_call
+    def create_resource_reservation(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        resource_reservation_request: ResourceReservationRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ResourceReservation:
+        """Create a compute resource reservation
+
+        Reserve compute resources ahead of starting mesh or simulation jobs. Poll the reservation with GET until status is `reserved`. While the reservation is active, quota hours and concurrent cores are consumed even when no job is running. Renew the lease periodically with POST .../renew-lease (recommended interval is at most every 60 seconds). Each reservation has a fixed 120 second lease; renew resets the lease to 120 seconds from the renewal time. Create and renew are rejected with quota_exceeded when remaining CPU-time quota is less than the vCPU-seconds consumed during a full 120 second lease. If quota is already exhausted, renew releases the reservation and returns quota_exceeded. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is used automatically. 
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param resource_reservation_request: (required)
+        :type resource_reservation_request: ResourceReservationRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_resource_reservation_serialize(
+            authorization=authorization,
+            resource_reservation_request=resource_reservation_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ResourceReservation",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def create_resource_reservation_with_http_info(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        resource_reservation_request: ResourceReservationRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[ResourceReservation]:
+        """Create a compute resource reservation
+
+        Reserve compute resources ahead of starting mesh or simulation jobs. Poll the reservation with GET until status is `reserved`. While the reservation is active, quota hours and concurrent cores are consumed even when no job is running. Renew the lease periodically with POST .../renew-lease (recommended interval is at most every 60 seconds). Each reservation has a fixed 120 second lease; renew resets the lease to 120 seconds from the renewal time. Create and renew are rejected with quota_exceeded when remaining CPU-time quota is less than the vCPU-seconds consumed during a full 120 second lease. If quota is already exhausted, renew releases the reservation and returns quota_exceeded. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is used automatically. 
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param resource_reservation_request: (required)
+        :type resource_reservation_request: ResourceReservationRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_resource_reservation_serialize(
+            authorization=authorization,
+            resource_reservation_request=resource_reservation_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ResourceReservation",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def create_resource_reservation_without_preload_content(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        resource_reservation_request: ResourceReservationRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Create a compute resource reservation
+
+        Reserve compute resources ahead of starting mesh or simulation jobs. Poll the reservation with GET until status is `reserved`. While the reservation is active, quota hours and concurrent cores are consumed even when no job is running. Renew the lease periodically with POST .../renew-lease (recommended interval is at most every 60 seconds). Each reservation has a fixed 120 second lease; renew resets the lease to 120 seconds from the renewal time. Create and renew are rejected with quota_exceeded when remaining CPU-time quota is less than the vCPU-seconds consumed during a full 120 second lease. If quota is already exhausted, renew releases the reservation and returns quota_exceeded. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is used automatically. 
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param resource_reservation_request: (required)
+        :type resource_reservation_request: ResourceReservationRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._create_resource_reservation_serialize(
+            authorization=authorization,
+            resource_reservation_request=resource_reservation_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ResourceReservation",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _create_resource_reservation_serialize(
+        self,
+        authorization,
+        resource_reservation_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+        if resource_reservation_request is not None:
+            _body_params = resource_reservation_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/public/api/v1/resource-reservations',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def create_shared_expression(
         self,
         project_id: Annotated[str, Field(min_length=1, strict=True)],
@@ -4603,7 +5872,7 @@ class DefaultApi:
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
         project_id: Annotated[str, Field(min_length=1, strict=True)],
         template: Annotated[Optional[Annotated[str, Field(min_length=1, strict=True)]], Field(description="Id of the simulation that will be copied as a new simulation. ")] = None,
-        body: Optional[Dict[str, Any]] = None,
+        new_simulation: Optional[NewSimulation] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -4627,8 +5896,8 @@ class DefaultApi:
         :type project_id: str
         :param template: Id of the simulation that will be copied as a new simulation. 
         :type template: str
-        :param body: 
-        :type body: object
+        :param new_simulation: 
+        :type new_simulation: NewSimulation
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -4655,7 +5924,7 @@ class DefaultApi:
             authorization=authorization,
             project_id=project_id,
             template=template,
-            body=body,
+            new_simulation=new_simulation,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -4686,7 +5955,7 @@ class DefaultApi:
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
         project_id: Annotated[str, Field(min_length=1, strict=True)],
         template: Annotated[Optional[Annotated[str, Field(min_length=1, strict=True)]], Field(description="Id of the simulation that will be copied as a new simulation. ")] = None,
-        body: Optional[Dict[str, Any]] = None,
+        new_simulation: Optional[NewSimulation] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -4710,8 +5979,8 @@ class DefaultApi:
         :type project_id: str
         :param template: Id of the simulation that will be copied as a new simulation. 
         :type template: str
-        :param body: 
-        :type body: object
+        :param new_simulation: 
+        :type new_simulation: NewSimulation
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -4738,7 +6007,7 @@ class DefaultApi:
             authorization=authorization,
             project_id=project_id,
             template=template,
-            body=body,
+            new_simulation=new_simulation,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -4769,7 +6038,7 @@ class DefaultApi:
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
         project_id: Annotated[str, Field(min_length=1, strict=True)],
         template: Annotated[Optional[Annotated[str, Field(min_length=1, strict=True)]], Field(description="Id of the simulation that will be copied as a new simulation. ")] = None,
-        body: Optional[Dict[str, Any]] = None,
+        new_simulation: Optional[NewSimulation] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -4793,8 +6062,8 @@ class DefaultApi:
         :type project_id: str
         :param template: Id of the simulation that will be copied as a new simulation. 
         :type template: str
-        :param body: 
-        :type body: object
+        :param new_simulation: 
+        :type new_simulation: NewSimulation
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -4821,7 +6090,7 @@ class DefaultApi:
             authorization=authorization,
             project_id=project_id,
             template=template,
-            body=body,
+            new_simulation=new_simulation,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -4847,7 +6116,7 @@ class DefaultApi:
         authorization,
         project_id,
         template,
-        body,
+        new_simulation,
         _request_auth,
         _content_type,
         _headers,
@@ -4881,8 +6150,8 @@ class DefaultApi:
             _header_params['Authorization'] = authorization
         # process the form parameters
         # process the body parameter
-        if body is not None:
-            _body_params = body
+        if new_simulation is not None:
+            _body_params = new_simulation
 
 
         # set the HTTP header `Accept`
@@ -7060,6 +8329,306 @@ class DefaultApi:
         return self.api_client.param_serialize(
             method='DELETE',
             resource_path='/public/api/v1/projects/{projectId}/physics/{physicsId}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def delete_physics_set(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> object:
+        """Delete physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._delete_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "object",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def delete_physics_set_with_http_info(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[object]:
+        """Delete physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._delete_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "object",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def delete_physics_set_without_preload_content(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Delete physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._delete_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "object",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _delete_physics_set_serialize(
+        self,
+        project_id,
+        physics_set_id,
+        authorization,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectId'] = project_id
+        if physics_set_id is not None:
+            _path_params['physicsSetId'] = physics_set_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='DELETE',
+            resource_path='/public/api/v1/projects/{projectId}/physics-sets/{physicsSetId}',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,
@@ -10941,6 +12510,583 @@ class DefaultApi:
 
 
     @validate_call
+    def get_job_statuses(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        get_job_statuses_request: GetJobStatusesRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> JobStatusesResult:
+        """Get statuses for multiple jobs
+
+        Returns status information for the requested job IDs. IDs that do not exist or are not readable by the caller are omitted. 
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param project_id: (required)
+        :type project_id: str
+        :param get_job_statuses_request: (required)
+        :type get_job_statuses_request: GetJobStatusesRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_job_statuses_serialize(
+            authorization=authorization,
+            project_id=project_id,
+            get_job_statuses_request=get_job_statuses_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "JobStatusesResult",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def get_job_statuses_with_http_info(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        get_job_statuses_request: GetJobStatusesRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[JobStatusesResult]:
+        """Get statuses for multiple jobs
+
+        Returns status information for the requested job IDs. IDs that do not exist or are not readable by the caller are omitted. 
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param project_id: (required)
+        :type project_id: str
+        :param get_job_statuses_request: (required)
+        :type get_job_statuses_request: GetJobStatusesRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_job_statuses_serialize(
+            authorization=authorization,
+            project_id=project_id,
+            get_job_statuses_request=get_job_statuses_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "JobStatusesResult",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def get_job_statuses_without_preload_content(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        get_job_statuses_request: GetJobStatusesRequest,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Get statuses for multiple jobs
+
+        Returns status information for the requested job IDs. IDs that do not exist or are not readable by the caller are omitted. 
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param project_id: (required)
+        :type project_id: str
+        :param get_job_statuses_request: (required)
+        :type get_job_statuses_request: GetJobStatusesRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_job_statuses_serialize(
+            authorization=authorization,
+            project_id=project_id,
+            get_job_statuses_request=get_job_statuses_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "JobStatusesResult",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _get_job_statuses_serialize(
+        self,
+        authorization,
+        project_id,
+        get_job_statuses_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectId'] = project_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+        if get_job_statuses_request is not None:
+            _body_params = get_job_statuses_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/public/api/v1/projects/{projectId}/jobs/statuses',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def get_library_shared_expressions(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> List[SharedExpression]:
+        """Get library shared expressions
+
+        Returns all shared expressions the user is allowed to access.
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_library_shared_expressions_serialize(
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "List[SharedExpression]",
+            '401': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def get_library_shared_expressions_with_http_info(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[List[SharedExpression]]:
+        """Get library shared expressions
+
+        Returns all shared expressions the user is allowed to access.
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_library_shared_expressions_serialize(
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "List[SharedExpression]",
+            '401': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def get_library_shared_expressions_without_preload_content(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Get library shared expressions
+
+        Returns all shared expressions the user is allowed to access.
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_library_shared_expressions_serialize(
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "List[SharedExpression]",
+            '401': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _get_library_shared_expressions_serialize(
+        self,
+        authorization,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/public/api/v1/shared-expressions',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def get_material(
         self,
         project_id: Annotated[str, Field(min_length=1, strict=True)],
@@ -12420,7 +14566,7 @@ class DefaultApi:
     ) -> OrganizationQuota:
         """Get organization quota
 
-        Returns the organization's quota and resource usage information.
+        Returns the organization's quota and resource usage information, including whether team credits enforcement is active and per-team quota for teams the API user belongs to. 
 
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
@@ -12489,7 +14635,7 @@ class DefaultApi:
     ) -> ApiResponse[OrganizationQuota]:
         """Get organization quota
 
-        Returns the organization's quota and resource usage information.
+        Returns the organization's quota and resource usage information, including whether team credits enforcement is active and per-team quota for teams the API user belongs to. 
 
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
@@ -12558,7 +14704,7 @@ class DefaultApi:
     ) -> RESTResponseType:
         """Get organization quota
 
-        Returns the organization's quota and resource usage information.
+        Returns the organization's quota and resource usage information, including whether team credits enforcement is active and per-team quota for teams the API user belongs to. 
 
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
@@ -13539,6 +15685,597 @@ class DefaultApi:
 
 
     @validate_call
+    def get_physics_set(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> PhysicsSet:
+        """Get a physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def get_physics_set_with_http_info(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[PhysicsSet]:
+        """Get a physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def get_physics_set_without_preload_content(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Get a physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _get_physics_set_serialize(
+        self,
+        project_id,
+        physics_set_id,
+        authorization,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectId'] = project_id
+        if physics_set_id is not None:
+            _path_params['physicsSetId'] = physics_set_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/public/api/v1/projects/{projectId}/physics-sets/{physicsSetId}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def get_physics_sets(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> List[PhysicsSet]:
+        """Get all physics sets
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_physics_sets_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "List[PhysicsSet]",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def get_physics_sets_with_http_info(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[List[PhysicsSet]]:
+        """Get all physics sets
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_physics_sets_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "List[PhysicsSet]",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def get_physics_sets_without_preload_content(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Get all physics sets
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_physics_sets_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "List[PhysicsSet]",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _get_physics_sets_serialize(
+        self,
+        project_id,
+        authorization,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectId'] = project_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/public/api/v1/projects/{projectId}/physics-sets',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def get_project(
         self,
         project_id: Annotated[str, Field(min_length=1, strict=True)],
@@ -14431,6 +17168,291 @@ class DefaultApi:
         return self.api_client.param_serialize(
             method='GET',
             resource_path='/public/api/v1/projects/{projectId}/regions',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def get_resource_reservation(
+        self,
+        reservation_id: Annotated[str, Field(min_length=1, strict=True, description="Resource reservation identifier returned by CreateResourceReservation")],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ResourceReservation:
+        """Get resource reservation status
+
+        Poll until status is `reserved` before starting jobs with this reservation id. 
+
+        :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
+        :type reservation_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_resource_reservation_serialize(
+            reservation_id=reservation_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ResourceReservation",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def get_resource_reservation_with_http_info(
+        self,
+        reservation_id: Annotated[str, Field(min_length=1, strict=True, description="Resource reservation identifier returned by CreateResourceReservation")],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[ResourceReservation]:
+        """Get resource reservation status
+
+        Poll until status is `reserved` before starting jobs with this reservation id. 
+
+        :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
+        :type reservation_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_resource_reservation_serialize(
+            reservation_id=reservation_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ResourceReservation",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def get_resource_reservation_without_preload_content(
+        self,
+        reservation_id: Annotated[str, Field(min_length=1, strict=True, description="Resource reservation identifier returned by CreateResourceReservation")],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Get resource reservation status
+
+        Poll until status is `reserved` before starting jobs with this reservation id. 
+
+        :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
+        :type reservation_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_resource_reservation_serialize(
+            reservation_id=reservation_id,
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "ResourceReservation",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _get_resource_reservation_serialize(
+        self,
+        reservation_id,
+        authorization,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if reservation_id is not None:
+            _path_params['reservationId'] = reservation_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/public/api/v1/resource-reservations/{reservationId}',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,
@@ -17520,6 +20542,270 @@ class DefaultApi:
 
 
     @validate_call
+    def get_teams(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> TeamList:
+        """Get teams available to the API user
+
+        Returns teams the API user is a member of and that have active team credits. Use this to discover valid `teamId` values for project creation and resource reservations. 
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_teams_serialize(
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "TeamList",
+            '401': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def get_teams_with_http_info(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[TeamList]:
+        """Get teams available to the API user
+
+        Returns teams the API user is a member of and that have active team credits. Use this to discover valid `teamId` values for project creation and resource reservations. 
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_teams_serialize(
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "TeamList",
+            '401': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def get_teams_without_preload_content(
+        self,
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Get teams available to the API user
+
+        Returns teams the API user is a member of and that have active team credits. Use this to discover valid `teamId` values for project creation and resource reservations. 
+
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._get_teams_serialize(
+            authorization=authorization,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "TeamList",
+            '401': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _get_teams_serialize(
+        self,
+        authorization,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='GET',
+            resource_path='/public/api/v1/teams',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
     def mark_file_uploaded(
         self,
         project_id: Annotated[str, Field(min_length=1, strict=True)],
@@ -17539,9 +20825,9 @@ class DefaultApi:
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
     ) -> InputFile:
-        """Mark extra input file as uploaded
+        """Mark file as uploaded
 
-        Marks an extra input file uploaded making it visible and usable in the project.
+        Marks an input or geometry element file uploaded making it visible and usable in the project.
 
         :param project_id: (required)
         :type project_id: str
@@ -17621,9 +20907,9 @@ class DefaultApi:
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
     ) -> ApiResponse[InputFile]:
-        """Mark extra input file as uploaded
+        """Mark file as uploaded
 
-        Marks an extra input file uploaded making it visible and usable in the project.
+        Marks an input or geometry element file uploaded making it visible and usable in the project.
 
         :param project_id: (required)
         :type project_id: str
@@ -17703,9 +20989,9 @@ class DefaultApi:
         _headers: Optional[Dict[StrictStr, Any]] = None,
         _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
     ) -> RESTResponseType:
-        """Mark extra input file as uploaded
+        """Mark file as uploaded
 
-        Marks an extra input file uploaded making it visible and usable in the project.
+        Marks an input or geometry element file uploaded making it visible and usable in the project.
 
         :param project_id: (required)
         :type project_id: str
@@ -17832,6 +21118,948 @@ class DefaultApi:
         return self.api_client.param_serialize(
             method='PUT',
             resource_path='/public/api/v1/projects/{projectId}/files/{fileId}/upload-complete',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def mark_files_uploaded(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        mark_file_batch_uploaded_request: Optional[MarkFileBatchUploadedRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> MarkFileBatchUploadedResponse:
+        """Mark multiple files as uploaded
+
+        Marks multiple input or geometry element files uploaded making them visible and usable in the project.
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param mark_file_batch_uploaded_request: 
+        :type mark_file_batch_uploaded_request: MarkFileBatchUploadedRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._mark_files_uploaded_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            mark_file_batch_uploaded_request=mark_file_batch_uploaded_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "MarkFileBatchUploadedResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def mark_files_uploaded_with_http_info(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        mark_file_batch_uploaded_request: Optional[MarkFileBatchUploadedRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[MarkFileBatchUploadedResponse]:
+        """Mark multiple files as uploaded
+
+        Marks multiple input or geometry element files uploaded making them visible and usable in the project.
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param mark_file_batch_uploaded_request: 
+        :type mark_file_batch_uploaded_request: MarkFileBatchUploadedRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._mark_files_uploaded_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            mark_file_batch_uploaded_request=mark_file_batch_uploaded_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "MarkFileBatchUploadedResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def mark_files_uploaded_without_preload_content(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        mark_file_batch_uploaded_request: Optional[MarkFileBatchUploadedRequest] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Mark multiple files as uploaded
+
+        Marks multiple input or geometry element files uploaded making them visible and usable in the project.
+
+        :param project_id: (required)
+        :type project_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param mark_file_batch_uploaded_request: 
+        :type mark_file_batch_uploaded_request: MarkFileBatchUploadedRequest
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._mark_files_uploaded_serialize(
+            project_id=project_id,
+            authorization=authorization,
+            mark_file_batch_uploaded_request=mark_file_batch_uploaded_request,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "MarkFileBatchUploadedResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _mark_files_uploaded_serialize(
+        self,
+        project_id,
+        authorization,
+        mark_file_batch_uploaded_request,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectId'] = project_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+        if mark_file_batch_uploaded_request is not None:
+            _body_params = mark_file_batch_uploaded_request
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='PUT',
+            resource_path='/public/api/v1/projects/{projectId}/files/uploads-complete',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def release_resource_reservation(
+        self,
+        reservation_id: Annotated[str, Field(min_length=1, strict=True, description="Resource reservation identifier returned by CreateResourceReservation")],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        body: Optional[Dict[str, Any]] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> object:
+        """Release a resource reservation
+
+        Releases reserved compute instances and stops quota consumption for this reservation.
+
+        :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
+        :type reservation_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param body:
+        :type body: object
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._release_resource_reservation_serialize(
+            reservation_id=reservation_id,
+            authorization=authorization,
+            body=body,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "object",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def release_resource_reservation_with_http_info(
+        self,
+        reservation_id: Annotated[str, Field(min_length=1, strict=True, description="Resource reservation identifier returned by CreateResourceReservation")],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        body: Optional[Dict[str, Any]] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[object]:
+        """Release a resource reservation
+
+        Releases reserved compute instances and stops quota consumption for this reservation.
+
+        :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
+        :type reservation_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param body:
+        :type body: object
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._release_resource_reservation_serialize(
+            reservation_id=reservation_id,
+            authorization=authorization,
+            body=body,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "object",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def release_resource_reservation_without_preload_content(
+        self,
+        reservation_id: Annotated[str, Field(min_length=1, strict=True, description="Resource reservation identifier returned by CreateResourceReservation")],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        body: Optional[Dict[str, Any]] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Release a resource reservation
+
+        Releases reserved compute instances and stops quota consumption for this reservation.
+
+        :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
+        :type reservation_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param body:
+        :type body: object
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._release_resource_reservation_serialize(
+            reservation_id=reservation_id,
+            authorization=authorization,
+            body=body,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "object",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _release_resource_reservation_serialize(
+        self,
+        reservation_id,
+        authorization,
+        body,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if reservation_id is not None:
+            _path_params['reservationId'] = reservation_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+        if body is not None:
+            _body_params = body
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/public/api/v1/resource-reservations/{reservationId}/release',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def renew_resource_reservation_lease(
+        self,
+        reservation_id: Annotated[str, Field(min_length=1, strict=True, description="Resource reservation identifier returned by CreateResourceReservation")],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        body: Optional[Dict[str, Any]] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> object:
+        """Renew resource reservation lease
+
+        Extends the reservation lease. Must be called before the lease expires or compute instances are reclaimed. Each successful renewal sets the lease expiry to 120 seconds from the renewal time. Returns quota_exceeded when remaining CPU-time quota is insufficient for another 120 second lease at the reserved vCPU count; the reservation stays active. If quota is already exhausted, the reservation is released and this endpoint returns quota_exceeded. 
+
+        :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
+        :type reservation_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param body:
+        :type body: object
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._renew_resource_reservation_lease_serialize(
+            reservation_id=reservation_id,
+            authorization=authorization,
+            body=body,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "object",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def renew_resource_reservation_lease_with_http_info(
+        self,
+        reservation_id: Annotated[str, Field(min_length=1, strict=True, description="Resource reservation identifier returned by CreateResourceReservation")],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        body: Optional[Dict[str, Any]] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[object]:
+        """Renew resource reservation lease
+
+        Extends the reservation lease. Must be called before the lease expires or compute instances are reclaimed. Each successful renewal sets the lease expiry to 120 seconds from the renewal time. Returns quota_exceeded when remaining CPU-time quota is insufficient for another 120 second lease at the reserved vCPU count; the reservation stays active. If quota is already exhausted, the reservation is released and this endpoint returns quota_exceeded. 
+
+        :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
+        :type reservation_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param body:
+        :type body: object
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._renew_resource_reservation_lease_serialize(
+            reservation_id=reservation_id,
+            authorization=authorization,
+            body=body,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "object",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def renew_resource_reservation_lease_without_preload_content(
+        self,
+        reservation_id: Annotated[str, Field(min_length=1, strict=True, description="Resource reservation identifier returned by CreateResourceReservation")],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        body: Optional[Dict[str, Any]] = None,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Renew resource reservation lease
+
+        Extends the reservation lease. Must be called before the lease expires or compute instances are reclaimed. Each successful renewal sets the lease expiry to 120 seconds from the renewal time. Returns quota_exceeded when remaining CPU-time quota is insufficient for another 120 second lease at the reserved vCPU count; the reservation stays active. If quota is already exhausted, the reservation is released and this endpoint returns quota_exceeded. 
+
+        :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
+        :type reservation_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param body:
+        :type body: object
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._renew_resource_reservation_lease_serialize(
+            reservation_id=reservation_id,
+            authorization=authorization,
+            body=body,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "object",
+            '400': "ErrorResponse",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _renew_resource_reservation_lease_serialize(
+        self,
+        reservation_id,
+        authorization,
+        body,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if reservation_id is not None:
+            _path_params['reservationId'] = reservation_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+        if body is not None:
+            _body_params = body
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='POST',
+            resource_path='/public/api/v1/resource-reservations/{reservationId}/renew-lease',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,
@@ -18145,7 +22373,7 @@ class DefaultApi:
         mesh_id: Annotated[str, Field(min_length=1, strict=True)],
         mesh_instance_id: Annotated[str, Field(min_length=1, strict=True)],
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
-        body: Optional[Dict[str, Any]] = None,
+        start_job_request: Optional[StartJobRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -18171,8 +22399,8 @@ class DefaultApi:
         :type mesh_instance_id: str
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
-        :param body:
-        :type body: object
+        :param start_job_request:
+        :type start_job_request: StartJobRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -18200,7 +22428,7 @@ class DefaultApi:
             mesh_id=mesh_id,
             mesh_instance_id=mesh_instance_id,
             authorization=authorization,
-            body=body,
+            start_job_request=start_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -18233,7 +22461,7 @@ class DefaultApi:
         mesh_id: Annotated[str, Field(min_length=1, strict=True)],
         mesh_instance_id: Annotated[str, Field(min_length=1, strict=True)],
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
-        body: Optional[Dict[str, Any]] = None,
+        start_job_request: Optional[StartJobRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -18259,8 +22487,8 @@ class DefaultApi:
         :type mesh_instance_id: str
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
-        :param body:
-        :type body: object
+        :param start_job_request:
+        :type start_job_request: StartJobRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -18288,7 +22516,7 @@ class DefaultApi:
             mesh_id=mesh_id,
             mesh_instance_id=mesh_instance_id,
             authorization=authorization,
-            body=body,
+            start_job_request=start_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -18321,7 +22549,7 @@ class DefaultApi:
         mesh_id: Annotated[str, Field(min_length=1, strict=True)],
         mesh_instance_id: Annotated[str, Field(min_length=1, strict=True)],
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
-        body: Optional[Dict[str, Any]] = None,
+        start_job_request: Optional[StartJobRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -18347,8 +22575,8 @@ class DefaultApi:
         :type mesh_instance_id: str
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
-        :param body:
-        :type body: object
+        :param start_job_request:
+        :type start_job_request: StartJobRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -18376,7 +22604,7 @@ class DefaultApi:
             mesh_id=mesh_id,
             mesh_instance_id=mesh_instance_id,
             authorization=authorization,
-            body=body,
+            start_job_request=start_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -18404,7 +22632,7 @@ class DefaultApi:
         mesh_id,
         mesh_instance_id,
         authorization,
-        body,
+        start_job_request,
         _request_auth,
         _content_type,
         _headers,
@@ -18438,8 +22666,8 @@ class DefaultApi:
             _header_params['Authorization'] = authorization
         # process the form parameters
         # process the body parameter
-        if body is not None:
-            _body_params = body
+        if start_job_request is not None:
+            _body_params = start_job_request
 
 
         # set the HTTP header `Accept`
@@ -18493,7 +22721,7 @@ class DefaultApi:
         project_id: Annotated[str, Field(min_length=1, strict=True)],
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
         last_element: Annotated[Optional[StrictStr], Field(description="Should only part of element list be visualized. Processing stops at the lastElement.")] = None,
-        body: Optional[Dict[str, Any]] = None,
+        start_job_request: Optional[StartJobRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -18509,7 +22737,7 @@ class DefaultApi:
     ) -> GeometryProcessingStartResponse:
         """Request start processing geometry
 
-        Once the geometry file has been uploaded or any geometries have been added to the project, this endpoint performs the required steps to visualize the model etc.
+        Once the geometry file has been uploaded or any geometries have been added to the project, this endpoint performs the required steps to visualize the model etc. Optionally pass resourceReservationId from CreateResourceReservation to use pre-reserved compute. 
 
         :param project_id: (required)
         :type project_id: str
@@ -18517,8 +22745,8 @@ class DefaultApi:
         :type authorization: str
         :param last_element: Should only part of element list be visualized. Processing stops at the lastElement.
         :type last_element: str
-        :param body: 
-        :type body: object
+        :param start_job_request: 
+        :type start_job_request: StartJobRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -18545,7 +22773,7 @@ class DefaultApi:
             project_id=project_id,
             authorization=authorization,
             last_element=last_element,
-            body=body,
+            start_job_request=start_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -18576,7 +22804,7 @@ class DefaultApi:
         project_id: Annotated[str, Field(min_length=1, strict=True)],
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
         last_element: Annotated[Optional[StrictStr], Field(description="Should only part of element list be visualized. Processing stops at the lastElement.")] = None,
-        body: Optional[Dict[str, Any]] = None,
+        start_job_request: Optional[StartJobRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -18592,7 +22820,7 @@ class DefaultApi:
     ) -> ApiResponse[GeometryProcessingStartResponse]:
         """Request start processing geometry
 
-        Once the geometry file has been uploaded or any geometries have been added to the project, this endpoint performs the required steps to visualize the model etc.
+        Once the geometry file has been uploaded or any geometries have been added to the project, this endpoint performs the required steps to visualize the model etc. Optionally pass resourceReservationId from CreateResourceReservation to use pre-reserved compute. 
 
         :param project_id: (required)
         :type project_id: str
@@ -18600,8 +22828,8 @@ class DefaultApi:
         :type authorization: str
         :param last_element: Should only part of element list be visualized. Processing stops at the lastElement.
         :type last_element: str
-        :param body: 
-        :type body: object
+        :param start_job_request: 
+        :type start_job_request: StartJobRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -18628,7 +22856,7 @@ class DefaultApi:
             project_id=project_id,
             authorization=authorization,
             last_element=last_element,
-            body=body,
+            start_job_request=start_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -18659,7 +22887,7 @@ class DefaultApi:
         project_id: Annotated[str, Field(min_length=1, strict=True)],
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
         last_element: Annotated[Optional[StrictStr], Field(description="Should only part of element list be visualized. Processing stops at the lastElement.")] = None,
-        body: Optional[Dict[str, Any]] = None,
+        start_job_request: Optional[StartJobRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -18675,7 +22903,7 @@ class DefaultApi:
     ) -> RESTResponseType:
         """Request start processing geometry
 
-        Once the geometry file has been uploaded or any geometries have been added to the project, this endpoint performs the required steps to visualize the model etc.
+        Once the geometry file has been uploaded or any geometries have been added to the project, this endpoint performs the required steps to visualize the model etc. Optionally pass resourceReservationId from CreateResourceReservation to use pre-reserved compute. 
 
         :param project_id: (required)
         :type project_id: str
@@ -18683,8 +22911,8 @@ class DefaultApi:
         :type authorization: str
         :param last_element: Should only part of element list be visualized. Processing stops at the lastElement.
         :type last_element: str
-        :param body: 
-        :type body: object
+        :param start_job_request: 
+        :type start_job_request: StartJobRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -18711,7 +22939,7 @@ class DefaultApi:
             project_id=project_id,
             authorization=authorization,
             last_element=last_element,
-            body=body,
+            start_job_request=start_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -18737,7 +22965,7 @@ class DefaultApi:
         project_id,
         authorization,
         last_element,
-        body,
+        start_job_request,
         _request_auth,
         _content_type,
         _headers,
@@ -18771,8 +22999,8 @@ class DefaultApi:
             _header_params['Authorization'] = authorization
         # process the form parameters
         # process the body parameter
-        if body is not None:
-            _body_params = body
+        if start_job_request is not None:
+            _body_params = start_job_request
 
 
         # set the HTTP header `Accept`
@@ -18826,7 +23054,7 @@ class DefaultApi:
         simulation_id: Annotated[str, Field(min_length=1, strict=True)],
         project_id: Annotated[str, Field(min_length=1, strict=True)],
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
-        body: Optional[Dict[str, Any]] = None,
+        start_job_request: Optional[StartJobRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -18850,8 +23078,8 @@ class DefaultApi:
         :type project_id: str
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
-        :param body:
-        :type body: object
+        :param start_job_request:
+        :type start_job_request: StartJobRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -18878,7 +23106,7 @@ class DefaultApi:
             simulation_id=simulation_id,
             project_id=project_id,
             authorization=authorization,
-            body=body,
+            start_job_request=start_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -18909,7 +23137,7 @@ class DefaultApi:
         simulation_id: Annotated[str, Field(min_length=1, strict=True)],
         project_id: Annotated[str, Field(min_length=1, strict=True)],
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
-        body: Optional[Dict[str, Any]] = None,
+        start_job_request: Optional[StartJobRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -18933,8 +23161,8 @@ class DefaultApi:
         :type project_id: str
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
-        :param body:
-        :type body: object
+        :param start_job_request:
+        :type start_job_request: StartJobRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -18961,7 +23189,7 @@ class DefaultApi:
             simulation_id=simulation_id,
             project_id=project_id,
             authorization=authorization,
-            body=body,
+            start_job_request=start_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -18992,7 +23220,7 @@ class DefaultApi:
         simulation_id: Annotated[str, Field(min_length=1, strict=True)],
         project_id: Annotated[str, Field(min_length=1, strict=True)],
         authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
-        body: Optional[Dict[str, Any]] = None,
+        start_job_request: Optional[StartJobRequest] = None,
         _request_timeout: Union[
             None,
             Annotated[StrictFloat, Field(gt=0)],
@@ -19016,8 +23244,8 @@ class DefaultApi:
         :type project_id: str
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
-        :param body:
-        :type body: object
+        :param start_job_request:
+        :type start_job_request: StartJobRequest
         :param _request_timeout: timeout setting for this request. If one
                                  number provided, it will be total request
                                  timeout. It can also be a pair (tuple) of
@@ -19044,7 +23272,7 @@ class DefaultApi:
             simulation_id=simulation_id,
             project_id=project_id,
             authorization=authorization,
-            body=body,
+            start_job_request=start_job_request,
             _request_auth=_request_auth,
             _content_type=_content_type,
             _headers=_headers,
@@ -19070,7 +23298,7 @@ class DefaultApi:
         simulation_id,
         project_id,
         authorization,
-        body,
+        start_job_request,
         _request_auth,
         _content_type,
         _headers,
@@ -19102,8 +23330,8 @@ class DefaultApi:
             _header_params['Authorization'] = authorization
         # process the form parameters
         # process the body parameter
-        if body is not None:
-            _body_params = body
+        if start_job_request is not None:
+            _body_params = start_job_request
 
 
         # set the HTTP header `Accept`
@@ -21138,6 +25366,334 @@ class DefaultApi:
         return self.api_client.param_serialize(
             method='PUT',
             resource_path='/public/api/v1/projects/{projectId}/physics/{physicsId}',
+            path_params=_path_params,
+            query_params=_query_params,
+            header_params=_header_params,
+            body=_body_params,
+            post_params=_form_params,
+            files=_files,
+            auth_settings=_auth_settings,
+            collection_formats=_collection_formats,
+            _host=_host,
+            _request_auth=_request_auth
+        )
+
+
+
+
+    @validate_call
+    def update_physics_set(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        physics_set_update: PhysicsSetUpdate,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> PhysicsSet:
+        """Update physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param physics_set_update:  (required)
+        :type physics_set_update: PhysicsSetUpdate
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._update_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            physics_set_update=physics_set_update,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        ).data
+
+
+    @validate_call
+    def update_physics_set_with_http_info(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        physics_set_update: PhysicsSetUpdate,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> ApiResponse[PhysicsSet]:
+        """Update physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param physics_set_update:  (required)
+        :type physics_set_update: PhysicsSetUpdate
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._update_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            physics_set_update=physics_set_update,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        response_data.read()
+        return self.api_client.response_deserialize(
+            response_data=response_data,
+            response_types_map=_response_types_map,
+        )
+
+
+    @validate_call
+    def update_physics_set_without_preload_content(
+        self,
+        project_id: Annotated[str, Field(min_length=1, strict=True)],
+        physics_set_id: Annotated[str, Field(min_length=1, strict=True)],
+        authorization: Annotated[str, Field(strict=True, description="The bearer token acquired using the /token endpoint.")],
+        physics_set_update: PhysicsSetUpdate,
+        _request_timeout: Union[
+            None,
+            Annotated[StrictFloat, Field(gt=0)],
+            Tuple[
+                Annotated[StrictFloat, Field(gt=0)],
+                Annotated[StrictFloat, Field(gt=0)]
+            ]
+        ] = None,
+        _request_auth: Optional[Dict[StrictStr, Any]] = None,
+        _content_type: Optional[StrictStr] = None,
+        _headers: Optional[Dict[StrictStr, Any]] = None,
+        _host_index: Annotated[StrictInt, Field(ge=0, le=0)] = 0,
+    ) -> RESTResponseType:
+        """Update physics set
+
+        
+
+        :param project_id: (required)
+        :type project_id: str
+        :param physics_set_id: (required)
+        :type physics_set_id: str
+        :param authorization: The bearer token acquired using the /token endpoint. (required)
+        :type authorization: str
+        :param physics_set_update:  (required)
+        :type physics_set_update: PhysicsSetUpdate
+        :param _request_timeout: timeout setting for this request. If one
+                                 number provided, it will be total request
+                                 timeout. It can also be a pair (tuple) of
+                                 (connection, read) timeouts.
+        :type _request_timeout: int, tuple(int, int), optional
+        :param _request_auth: set to override the auth_settings for an a single
+                              request; this effectively ignores the
+                              authentication in the spec for a single request.
+        :type _request_auth: dict, optional
+        :param _content_type: force content-type for the request.
+        :type _content_type: str, Optional
+        :param _headers: set to override the headers for a single
+                         request; this effectively ignores the headers
+                         in the spec for a single request.
+        :type _headers: dict, optional
+        :param _host_index: set to override the host_index for a single
+                            request; this effectively ignores the host_index
+                            in the spec for a single request.
+        :type _host_index: int, optional
+        :return: Returns the result object.
+        """ # noqa: E501
+
+        _param = self._update_physics_set_serialize(
+            project_id=project_id,
+            physics_set_id=physics_set_id,
+            authorization=authorization,
+            physics_set_update=physics_set_update,
+            _request_auth=_request_auth,
+            _content_type=_content_type,
+            _headers=_headers,
+            _host_index=_host_index
+        )
+
+        _response_types_map: Dict[str, Optional[str]] = {
+            '200': "PhysicsSet",
+            '401': "ErrorResponse",
+            '403': "ErrorResponse",
+            '404': "ErrorResponse",
+        }
+        response_data = self.api_client.call_api(
+            *_param,
+            _request_timeout=_request_timeout
+        )
+        return response_data.response
+
+
+    def _update_physics_set_serialize(
+        self,
+        project_id,
+        physics_set_id,
+        authorization,
+        physics_set_update,
+        _request_auth,
+        _content_type,
+        _headers,
+        _host_index,
+    ) -> RequestSerialized:
+
+        _host = None
+
+        _collection_formats: Dict[str, str] = {
+        }
+
+        _path_params: Dict[str, str] = {}
+        _query_params: List[Tuple[str, str]] = []
+        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _form_params: List[Tuple[str, str]] = []
+        _files: Dict[
+            str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
+        ] = {}
+        _body_params: Optional[bytes] = None
+
+        # process the path parameters
+        if project_id is not None:
+            _path_params['projectId'] = project_id
+        if physics_set_id is not None:
+            _path_params['physicsSetId'] = physics_set_id
+        # process the query parameters
+        # process the header parameters
+        if authorization is not None:
+            _header_params['Authorization'] = authorization
+        # process the form parameters
+        # process the body parameter
+        if physics_set_update is not None:
+            _body_params = physics_set_update
+
+
+        # set the HTTP header `Accept`
+        if 'Accept' not in _header_params:
+            _header_params['Accept'] = self.api_client.select_header_accept(
+                [
+                    'application/json'
+                ]
+            )
+
+        # set the HTTP header `Content-Type`
+        if _content_type:
+            _header_params['Content-Type'] = _content_type
+        else:
+            _default_content_type = (
+                self.api_client.select_header_content_type(
+                    [
+                        'application/json'
+                    ]
+                )
+            )
+            if _default_content_type is not None:
+                _header_params['Content-Type'] = _default_content_type
+
+        # authentication setting
+        _auth_settings: List[str] = [
+            'BearerAuth'
+        ]
+
+        return self.api_client.param_serialize(
+            method='PUT',
+            resource_path='/public/api/v1/projects/{projectId}/physics-sets/{physicsSetId}',
             path_params=_path_params,
             query_params=_query_params,
             header_params=_header_params,

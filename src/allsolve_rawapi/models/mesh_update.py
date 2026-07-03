@@ -33,13 +33,12 @@ class MeshUpdate(BaseModel):
     """ # noqa: E501
     name: StrictStr
     density: Optional[MeshDensity] = None
-    quality: Optional[MeshDensity] = None
     max_run_time_minutes: StrictInt = Field(description="Maximum runtime for the meshing job.", alias="maxRunTimeMinutes")
     node_type: Optional[Annotated[str, Field(min_length=1, strict=True)]] = Field(default=None, alias="nodeType")
     parameters: MeshParameters
     support_data: MeshSupportData = Field(alias="supportData")
     override_sets: List[Annotated[str, Field(min_length=1, strict=True)]] = Field(alias="overrideSets")
-    __properties: ClassVar[List[str]] = ["name", "density", "quality", "maxRunTimeMinutes", "nodeType", "parameters", "supportData", "overrideSets"]
+    __properties: ClassVar[List[str]] = ["name", "density", "maxRunTimeMinutes", "nodeType", "parameters", "supportData", "overrideSets"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -100,7 +99,6 @@ class MeshUpdate(BaseModel):
         _obj = cls.model_validate({
             "name": obj.get("name"),
             "density": obj.get("density"),
-            "quality": obj.get("quality"),
             "maxRunTimeMinutes": obj.get("maxRunTimeMinutes"),
             "nodeType": obj.get("nodeType"),
             "parameters": MeshParameters.from_dict(obj["parameters"]) if obj.get("parameters") is not None else None,

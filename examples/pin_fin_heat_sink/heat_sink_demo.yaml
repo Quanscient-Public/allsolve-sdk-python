@@ -46,6 +46,7 @@ geometries:
     x: base_length_x
     y: base_width_y
     z: base_thickness
+  alignment: center
 - name: single_pin
   type: cylinder
   position:
@@ -57,6 +58,7 @@ geometries:
     y: 0.0
     z: pin_height
   radius: pin_radius
+  alignment: center
 - name: pin_array
   type: grid
   translation:
@@ -79,10 +81,15 @@ geometries:
     x: air_box_size
     y: air_box_size
     z: air_box_size
-  rotation:
-    x: 0.0
-    y: 0.0
-    z: 0.0
+  alignment: center
+- name: air_box_without_pins_and_base_plate
+  type: difference
+  cadNames1:
+  - air_box
+  cadNames2:
+  - pin_array
+  - base_plate
+  deleteTool: false
 regions:
 - name: copper_material_region
   entityType: volume
@@ -178,29 +185,31 @@ materials:
   electricPermittivity: epsilon0
   magneticPermeability: mu0
   thermalConductivity: '0.026'
-physics:
-- type: heatTransfer
-  interactions:
-  - type: heatSource
-    name: Heat source
-    enabled: true
-    target: plate_bottom_surface
-    heatSourcePowerDensity: '100'
-  - type: heatTransferConvection
-    name: Convection
-    enabled: true
-    target: convection_surfaces
-    heatTransferConvectionHeatTransferCoefficient: '10'
-    heatTransferConvectionFluidTemperature: '293.15'
+physicsSets:
+- name: Physics 1
+  physics:
+  - type: heatTransfer
+    interactions:
+    - type: heatSource
+      name: Heat source
+      enabled: true
+      target: plate_bottom_surface
+      heatSourcePowerDensity: '100'
+    - type: heatTransferConvection
+      name: Convection
+      enabled: true
+      target: convection_surfaces
+      heatTransferConvectionHeatTransferCoefficient: '10'
+      heatTransferConvectionFluidTemperature: '293.15'
 meshes:
 - name: Default mesh
   useMeshRefiner: false
-  scaleFactor: 1.0
-  curvatureEnhancement: 6.0
+  scaleFactor: '1.0'
+  curvatureEnhancement: '6.0'
   maxRunTimeMinutes: 10
   refinements:
-  - region: pins
-    maxSize: pin_height / 10
+  - maxSize: pin_height / 10
+    region: pins
 simulations:
 - name: Heat sink demo
   description: Transient simulation of heat transfer
@@ -208,8 +217,7 @@ simulations:
   solverMode: direct
   analysisType: transient
   mesh: Default mesh
-  physics:
-  - heatTransfer
+  physicsSet: Physics 1
   transientStartTime: '0'
   transientEndTime: '10'
   transientTimestepSize: '1'

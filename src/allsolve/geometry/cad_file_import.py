@@ -18,7 +18,7 @@ from allsolve.http_transfer import (
     TRANSFER_TIMEOUT_S,
     validate_url_scheme,
 )
-from allsolve.file import upload_parts
+from allsolve.file import upload_file_with_urls
 import allsolve_rawapi as rawapi
 from allsolve_rawapi.models.cad_gds_unify_layer_discretizations import (
     CadGdsUnifyLayerDiscretizations,
@@ -140,6 +140,16 @@ class CadFileImport(CadGeometryElement):
     def _is_file_import(self) -> bool:
         return True
 
+    def _upload_from_urls(
+        self, url_info: rawapi.FileUploadUrls
+    ) -> rawapi.FileUploadCompletion:
+        """Upload the geometry file using pre-fetched presigned URLs."""
+        if self._filepath is None:
+            raise ValueError("Geometry file path is not set")
+
+        file = pathlib.Path(self._filepath)
+        return upload_file_with_urls(file, url_info)
+
     def _upload(self) -> rawapi.InputFile:
         """
         Upload the geometry file to the project.
@@ -157,12 +167,7 @@ class CadFileImport(CadGeometryElement):
                 authorization=get_auth(), project_id=self._project_id, file_id=self.id
             )
 
-        file = pathlib.Path(self._filepath)
-        if not file.is_file():
-            raise FileNotFoundError(f"Geometry file not found: {self._filepath}")
-
-        with open(file, "rb") as f:
-            completion = upload_parts(f, url_info)
+        completion = self._upload_from_urls(url_info)
 
         with get_api() as api:
             response = api.mark_file_uploaded(

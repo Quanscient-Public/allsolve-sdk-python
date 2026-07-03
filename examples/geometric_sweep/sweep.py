@@ -23,31 +23,43 @@ from control import (
 )
 from geo import build_geometry, create_and_run_mesh
 
-sim: allsolve.Simulation | None = None
 
-try:
+def main() -> None:
+    sim: allsolve.Simulation | None = None
     client = setup_client()
     project = create_project(client)
 
-    create_variables(project)
-    build_geometry(project)
+    try:
+        create_variables(project)
+        build_geometry(project)
 
-    regions = create_regions(project)
-    create_materials(project, regions)
-    em_physics = create_physics(project, regions)
-    sweep = create_cartesian_sweep(project)
-    mesh = create_and_run_mesh(project, sweep=sweep)
+        regions = create_regions(project)
+        create_materials(project, regions)
+        physics_set = create_physics(project, regions)
+        sweep = create_cartesian_sweep(project)
+        mesh = create_and_run_mesh(project, sweep=sweep)
 
-    sim = create_simulation(project, mesh, em_physics, sweep)
+        sim = create_simulation(project, mesh, physics_set, sweep)
 
-    print("Starting simulation ...")
-    sim.run(print_logs=True, on_error=allsolve.OnError.RAISE)
-    print("Simulation completed.")
+        print("Starting simulation ...")
+        sim.run(print_logs=True, on_error=allsolve.OnError.RAISE)
+        print("Simulation completed.")
 
-    client.set_current_project(project)
+        client.set_current_project(project)
+    except Exception:
+        print("Something failed, aborting simulation")
+        print(traceback.format_exc())
+        if sim is not None and sim.is_running():
+            sim.abort()
+    finally:
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            client.set_current_project(None)
+            project.delete()
+            print("Project deleted.")
 
-except Exception:
-    print("Something failed, aborting simulation")
-    print(traceback.format_exc())
-    if sim is not None and sim.is_running():
-        sim.abort()
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        print(f"Error: {e}")

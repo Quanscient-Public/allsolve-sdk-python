@@ -36,13 +36,12 @@ class Mesh(BaseModel):
     name: Annotated[str, Field(strict=True, max_length=100)]
     importer_geometry_element_id: Optional[StrictStr] = Field(default=None, description="This points to the geometry element that imported this mesh. ", alias="importerGeometryElementId")
     density: Optional[MeshDensity] = None
-    quality: Optional[MeshDensity] = None
     max_run_time_minutes: StrictInt = Field(description="Maximum runtime for the meshing job.", alias="maxRunTimeMinutes")
     node_type: Optional[Annotated[str, Field(min_length=1, strict=True)]] = Field(default=None, alias="nodeType")
     parameters: MeshParameters
     support_data: MeshSupportData = Field(alias="supportData")
     instances: List[MeshInstance]
-    __properties: ClassVar[List[str]] = ["id", "name", "importerGeometryElementId", "density", "quality", "maxRunTimeMinutes", "nodeType", "parameters", "supportData", "instances"]
+    __properties: ClassVar[List[str]] = ["id", "name", "importerGeometryElementId", "density", "maxRunTimeMinutes", "nodeType", "parameters", "supportData", "instances"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -112,7 +111,6 @@ class Mesh(BaseModel):
             "name": obj.get("name"),
             "importerGeometryElementId": obj.get("importerGeometryElementId"),
             "density": obj.get("density"),
-            "quality": obj.get("quality"),
             "maxRunTimeMinutes": obj.get("maxRunTimeMinutes"),
             "nodeType": obj.get("nodeType"),
             "parameters": MeshParameters.from_dict(obj["parameters"]) if obj.get("parameters") is not None else None,

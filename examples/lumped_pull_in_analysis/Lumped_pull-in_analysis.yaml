@@ -250,7 +250,7 @@ materials:
 - name: Silicon dioxide
   description: Amorphous SiO2
   color: '#F1FCFF'
-  abbreviation: SiO₂
+  abbreviation: "SiO\u2082"
   target: Silicon dioxide target
   density: '2200'
   heatCapacity: '733'
@@ -261,66 +261,68 @@ materials:
   elasticityMatrix:
     youngsModulus: 70e9
     poissonsRatio: '0.17'
-physics:
-- type: solidMechanics
-  target: solid domain
-  interactions:
-  - type: clamp
-    name: Clamp
-    enabled: true
-    target: fixed bottom plate
-  - type: solidMechanicsConstraint
-    name: Constraint
-    enabled: true
-    target: movable top plate
-    solidMechanicsConstraint: '[1, 0; 1, 0; 0, 0]'
-  - type: solidMechanicsLump
-    name: Lump U/F
-    enabled: true
-    namespace: lump
-    target: bottom-surface of movable-top-plate
-    solidMechanicsLumpActuationMode: solidMechanicsLumpActuationModeCircuitCoupling
-    solidMechanicsLumpCircuitCoupling: '[0, 0; 0, 0; 1, lump.Fz - -(K*lump.Uz)]'
-  - type: solidMechanicsElectricForce
-    name: Electric force
-    enabled: true
-  - type: solidMechanicsLargeDisplacement
-    name: Large displacement
-    enabled: true
-  - type: solidMechanicsGeometricNonlinearity
-    name: Geometric nonlinearity
-    enabled: false
-- type: electrostatics
-  target: electric domain
-  interactions:
-  - type: electrostaticsLump
-    name: Lump V/Q
-    enabled: true
-    namespace: lump_2
-    target: top-surface of fixed-bottom-plate
-    electrostaticsLumpVoltage: Vdc
-  - type: electrostaticsLump
-    name: Lump V/Q 2
-    enabled: true
-    namespace: lump_3
-    target: bottom-surface of movable-top-plate
-    electrostaticsLumpVoltage: '0.0'
-  - type: electrostaticsLargeDisplacement
-    name: Large displacement
-    enabled: true
-- type: meshDeformation
-  target: electric domain
-  interactions:
-  - type: meshDeformationConstraint
-    name: Constraint
-    enabled: true
+physicsSets:
+- name: Physics 1
+  physics:
+  - type: solidMechanics
     target: solid domain
-    meshDeformationConstraint: '[1, compx(u); 1, compy(u); 1, compz(u)]'
-  - type: meshDeformationConstraint
-    name: Constraint 2
-    enabled: true
-    target: Vacuum target
-    meshDeformationConstraint: '[1, 0; 1, 0; 0, 0]'
+    interactions:
+    - type: clamp
+      name: Clamp
+      enabled: true
+      target: fixed bottom plate
+    - type: solidMechanicsConstraint
+      name: Constraint
+      enabled: true
+      target: movable top plate
+      solidMechanicsConstraint: '[1, 0; 1, 0; 0, 0]'
+    - type: solidMechanicsLump
+      name: Lump U/F
+      enabled: true
+      namespace: lump
+      target: bottom-surface of movable-top-plate
+      solidMechanicsLumpActuationMode: solidMechanicsLumpActuationModeCircuitCoupling
+      solidMechanicsLumpCircuitCoupling: '[0, 0; 0, 0; 1, lump.Fz - -(K*lump.Uz)]'
+    - type: solidMechanicsElectricForce
+      name: Electric force
+      enabled: true
+    - type: solidMechanicsLargeDisplacement
+      name: Large displacement
+      enabled: true
+    - type: solidMechanicsGeometricNonlinearity
+      name: Geometric nonlinearity
+      enabled: false
+  - type: electrostatics
+    target: electric domain
+    interactions:
+    - type: electrostaticsLump
+      name: Lump V/Q
+      enabled: true
+      namespace: lump_2
+      target: top-surface of fixed-bottom-plate
+      electrostaticsLumpVoltage: Vdc
+    - type: electrostaticsLump
+      name: Lump V/Q 2
+      enabled: true
+      namespace: lump_3
+      target: bottom-surface of movable-top-plate
+      electrostaticsLumpVoltage: '0.0'
+    - type: electrostaticsLargeDisplacement
+      name: Large displacement
+      enabled: true
+  - type: meshDeformation
+    target: electric domain
+    interactions:
+    - type: meshDeformationConstraint
+      name: Constraint
+      enabled: true
+      target: solid domain
+      meshDeformationConstraint: '[1, compx(u); 1, compy(u); 1, compz(u)]'
+    - type: meshDeformationConstraint
+      name: Constraint 2
+      enabled: true
+      target: Vacuum target
+      meshDeformationConstraint: '[1, 0; 1, 0; 0, 0]'
 variableOverrides:
 - name: Sweep 1
   overrides:
@@ -351,10 +353,7 @@ simulations:
   - 1
   mesh: Mesh 1
   variableOverride: Sweep 1
-  physics:
-  - solidMechanics
-  - electrostatics
-  - meshDeformation
+  physicsSet: Physics 1
   eigenmodePortAnalysis: false
   numericalJacobian: false
   disabledScriptSections: []
@@ -386,10 +385,7 @@ simulations:
   - 1
   mesh: Mesh 1
   variableOverride: Sweep 1
-  physics:
-  - solidMechanics
-  - electrostatics
-  - meshDeformation
+  physicsSet: Physics 1
   eigenmodePortAnalysis: false
   numericalJacobian: false
   disabledScriptSections: []

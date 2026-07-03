@@ -125,6 +125,13 @@ class SharedExpression:
                 for shared_expression in shared_expressions
             ]
 
+    @classmethod
+    def _fetch_library_expressions(cls) -> List[rawapi.SharedExpression]:
+        with get_api() as api:
+            return api.get_library_shared_expressions(
+                authorization=get_auth(),
+            )
+
     def __init__(
         self, project_id: str, shared_expression: rawapi.SharedExpression
     ) -> None:
@@ -423,6 +430,54 @@ class Variable(SharedExpression):
             raise ValueError(f"Multiple variables found with name {name}")
         return matching_variables[0]
 
+    @classmethod
+    def get_all_from_library(cls) -> List[rawapi.SharedExpression]:
+        """
+        Get all library variables.
+
+        Returns:
+            List of library rawapi.SharedExpression objects with type EXPRESSION.
+        """
+        return [
+            expr
+            for expr in cls._fetch_library_expressions()
+            if expr.type == ExpressionType.EXPRESSION.value
+        ]
+
+    @classmethod
+    def create_from_library(
+        cls,
+        name: str,
+        project_id: str | None = None,
+    ) -> Self:
+        """
+        Create a new variable from a library variable by name.
+
+        Parameters:
+            name: The name of the library variable to copy.
+            project_id: The ID of the project.
+
+        Returns:
+            The created variable.
+
+        Raises:
+            ValueError: If no library variable with the given name is found.
+        """
+        library_variables = cls.get_all_from_library()
+        library_variable = next(
+            (v for v in library_variables if v.name == name),
+            None,
+        )
+        if library_variable is None:
+            raise ValueError(f"Library variable '{name}' not found")
+
+        return cls.create(
+            name=library_variable.name,
+            expression=library_variable.expression or "",
+            description=library_variable.description,
+            project_id=project_id,
+        )
+
 
 class Function(SharedExpression):
     """
@@ -494,6 +549,58 @@ class Function(SharedExpression):
         if len(matching_functions) > 1:
             raise ValueError(f"Multiple functions found with name {name}")
         return matching_functions[0]
+
+    @classmethod
+    def get_all_from_library(cls) -> List[rawapi.SharedExpression]:
+        """
+        Get all library functions.
+
+        Returns:
+            List of library rawapi.SharedExpression objects with type FUNCTION.
+        """
+        return [
+            expr
+            for expr in cls._fetch_library_expressions()
+            if expr.type == ExpressionType.FUNCTION.value
+        ]
+
+    @classmethod
+    def create_from_library(
+        cls,
+        name: str,
+        project_id: str | None = None,
+    ) -> Self:
+        """
+        Create a new function from a library function by name.
+
+        Parameters:
+            name: The name of the library function to copy.
+            project_id: The ID of the project.
+
+        Returns:
+            The created function.
+
+        Raises:
+            ValueError: If no library function with the given name is found.
+        """
+        library_functions = cls.get_all_from_library()
+        library_function = next(
+            (f for f in library_functions if f.name == name),
+            None,
+        )
+        if library_function is None:
+            raise ValueError(f"Library function '{name}' not found")
+
+        if library_function.args is None:
+            raise ValueError(f"Library function '{name}' has no arguments defined")
+
+        return cls.create(
+            name=library_function.name,
+            args=[arg.name for arg in library_function.args],
+            expression=library_function.expression or "",
+            description=library_function.description,
+            project_id=project_id,
+        )
 
 
 class InterpolatedFunction(SharedExpression):
@@ -574,3 +681,65 @@ class InterpolatedFunction(SharedExpression):
         if len(matching_interpolated_functions) > 1:
             raise ValueError(f"Multiple interpolated functions found with name {name}")
         return matching_interpolated_functions[0]
+
+    @classmethod
+    def get_all_from_library(cls) -> List[rawapi.SharedExpression]:
+        """
+        Get all library interpolated functions.
+
+        Returns:
+            List of library rawapi.SharedExpression objects with type
+            INTERPOLATED_FUNCTION.
+        """
+        return [
+            expr
+            for expr in cls._fetch_library_expressions()
+            if expr.type == ExpressionType.INTERPOLATED_FUNCTION.value
+        ]
+
+    @classmethod
+    def create_from_library(
+        cls,
+        name: str,
+        project_id: str | None = None,
+    ) -> Self:
+        """
+        Create a new interpolated function from a library interpolated function
+        by name.
+
+        Parameters:
+            name: The name of the library interpolated function to copy.
+            project_id: The ID of the project.
+
+        Returns:
+            The created interpolated function.
+
+        Raises:
+            ValueError: If no library interpolated function with the given name
+                is found.
+        """
+        library_functions = cls.get_all_from_library()
+        library_function = next(
+            (f for f in library_functions if f.name == name),
+            None,
+        )
+        if library_function is None:
+            raise ValueError(f"Library interpolated function '{name}' not found")
+
+        if library_function.args is None:
+            raise ValueError(
+                f"Library interpolated function '{name}' has no arguments defined"
+            )
+        if library_function.values is None:
+            raise ValueError(
+                f"Library interpolated function '{name}' has no values defined"
+            )
+
+        return cls.create(
+            name=library_function.name,
+            args=[(arg.name, arg.values or []) for arg in library_function.args],
+            values=library_function.values,
+            description=library_function.description,
+            cubic_interpolation=library_function.cubic_interpolation,
+            project_id=project_id,
+        )

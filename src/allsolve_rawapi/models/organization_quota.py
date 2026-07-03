@@ -17,8 +17,9 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, StrictInt
 from typing import Any, ClassVar, Dict, List, Union
+from allsolve_rawapi.models.team_quota import TeamQuota
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -32,7 +33,9 @@ class OrganizationQuota(BaseModel):
     total_running_cores: StrictInt = Field(alias="totalRunningCores")
     total_reserved_cores: StrictInt = Field(alias="totalReservedCores")
     max_concurrent_cores: StrictInt = Field(alias="maxConcurrentCores")
-    __properties: ClassVar[List[str]] = ["totalCredits", "usedCredits", "totalRunningCores", "totalReservedCores", "maxConcurrentCores"]
+    team_quota_enforcement_active: StrictBool = Field(description="Whether team credits enforcement is active. When active, projects and reservations may require a team assignment. ", alias="teamQuotaEnforcementActive")
+    teams: List[TeamQuota] = Field(description="Per-team quota for teams the API user belongs to with active team credits. ")
+    __properties: ClassVar[List[str]] = ["totalCredits", "usedCredits", "totalRunningCores", "totalReservedCores", "maxConcurrentCores", "teamQuotaEnforcementActive", "teams"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -73,6 +76,13 @@ class OrganizationQuota(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in teams (list)
+        _items = []
+        if self.teams:
+            for _item_teams in self.teams:
+                if _item_teams:
+                    _items.append(_item_teams.to_dict())
+            _dict['teams'] = _items
         return _dict
 
     @classmethod
@@ -89,7 +99,9 @@ class OrganizationQuota(BaseModel):
             "usedCredits": obj.get("usedCredits"),
             "totalRunningCores": obj.get("totalRunningCores"),
             "totalReservedCores": obj.get("totalReservedCores"),
-            "maxConcurrentCores": obj.get("maxConcurrentCores")
+            "maxConcurrentCores": obj.get("maxConcurrentCores"),
+            "teamQuotaEnforcementActive": obj.get("teamQuotaEnforcementActive"),
+            "teams": [TeamQuota.from_dict(_item) for _item in obj["teams"]] if obj.get("teams") is not None else None
         })
         return _obj
 

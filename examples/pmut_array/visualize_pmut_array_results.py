@@ -59,44 +59,52 @@ def main() -> None:
         )
     print(f"Project: {project.name} (id: {project.id})")
 
-    sim = project.get_simulations()[0]
-    print(f"Simulation: {sim.name} (id: {sim.id})")
+    try:
+        sim = project.get_simulations()[0]
+        print(f"Simulation: {sim.name} (id: {sim.id})")
 
-    output_data = sim.get_output_data()
+        output_data = sim.get_output_data()
 
-    plot_frequency_response(output_data)
+        plot_frequency_response(output_data)
 
-    sweep_step = _resolve_sweep_step(output_data)
-    freq_hz = _get_frequency(output_data, sweep_step)
-    print(f"Animating sweep step {sweep_step}  (f = {freq_hz / 1e3:.1f} kHz)")
+        sweep_step = _resolve_sweep_step(output_data)
+        freq_hz = _get_frequency(output_data, sweep_step)
+        print(f"Animating sweep step {sweep_step}  (f = {freq_hz / 1e3:.1f} kHz)")
 
-    # 1. Download VTU files for the chosen sweep step
-    harm2_path, harm3_path = download_vtu_pair(sim, sweep_step)
+        # 1. Download VTU files for the chosen sweep step
+        harm2_path, harm3_path = download_vtu_pair(sim, sweep_step)
 
-    # 2. Load meshes and extract scalar arrays
-    mesh_harm2: pv.DataSet = pv.read(harm2_path)  # type: ignore[assignment]
-    mesh_harm3: pv.DataSet = pv.read(harm3_path)  # type: ignore[assignment]
+        # 2. Load meshes and extract scalar arrays
+        mesh_harm2: pv.DataSet = pv.read(harm2_path)  # type: ignore[assignment]
+        mesh_harm3: pv.DataSet = pv.read(harm3_path)  # type: ignore[assignment]
 
-    harm2_name = _find_scalar_field(mesh_harm2)
-    harm3_name = _find_scalar_field(mesh_harm3)
-    if harm2_name is None or harm3_name is None:
-        raise RuntimeError("Could not find scalar fields in VTU files")
+        harm2_name = _find_scalar_field(mesh_harm2)
+        harm3_name = _find_scalar_field(mesh_harm3)
+        if harm2_name is None or harm3_name is None:
+            raise RuntimeError("Could not find scalar fields in VTU files")
 
-    harm2_arr = np.asarray(mesh_harm2.point_data[harm2_name]).ravel()
-    harm3_arr = np.asarray(mesh_harm3.point_data[harm3_name]).ravel()
+        harm2_arr = np.asarray(mesh_harm2.point_data[harm2_name]).ravel()
+        harm3_arr = np.asarray(mesh_harm3.point_data[harm3_name]).ravel()
 
-    magnitude = np.sqrt(harm2_arr**2 + harm3_arr**2)
-    max_mag = float(magnitude.max())
-    clim = [-max_mag, max_mag]
-    print(f"Pressure magnitude range: [0, {max_mag:.4g}]")
+        magnitude = np.sqrt(harm2_arr**2 + harm3_arr**2)
+        max_mag = float(magnitude.max())
+        clim = [-max_mag, max_mag]
+        print(f"Pressure magnitude range: [0, {max_mag:.4g}]")
 
-    # 3. Render time-domain frames
-    png_paths = render_time_frames(mesh_harm2, harm2_arr, harm3_arr, freq_hz, clim)
+        # 3. Render time-domain frames
+        png_paths = render_time_frames(mesh_harm2, harm2_arr, harm3_arr, freq_hz, clim)
 
-    # 4. Stitch into MP4
-    create_mp4(png_paths, freq_hz)
+        # 4. Stitch into MP4
+        create_mp4(png_paths, freq_hz)
 
-    output_data.clean_cache()
+        output_data.clean_cache()
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        client.set_current_project(None)
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            project.delete()
+            print("Project deleted.")
 
 
 def plot_frequency_response(output_data: allsolve.SimulationOutputData) -> None:
@@ -362,4 +370,7 @@ def create_mp4(
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"Error: {e}")

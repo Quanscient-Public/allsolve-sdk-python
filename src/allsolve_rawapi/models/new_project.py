@@ -38,7 +38,8 @@ class NewProject(BaseModel):
     dimension: Optional[Annotated[int, Field(le=3, strict=True, ge=1)]] = None
     geometry_no_implicit_fragment: Optional[StrictBool] = Field(default=None, alias="geometryNoImplicitFragment")
     pml_settings: Optional[PMLSettings] = Field(default=None, alias="pmlSettings")
-    __properties: ClassVar[List[str]] = ["name", "description", "organizationWriteAccess", "labels", "geometryPipelineVersion", "dimension", "geometryNoImplicitFragment", "pmlSettings"]
+    team_id: Optional[Annotated[str, Field(min_length=1, strict=True)]] = Field(default=None, alias="teamId")
+    __properties: ClassVar[List[str]] = ["name", "description", "organizationWriteAccess", "labels", "geometryPipelineVersion", "dimension", "geometryNoImplicitFragment", "pmlSettings", "teamId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -101,7 +102,8 @@ class NewProject(BaseModel):
             "geometryPipelineVersion": obj.get("geometryPipelineVersion"),
             "dimension": obj.get("dimension"),
             "geometryNoImplicitFragment": obj.get("geometryNoImplicitFragment"),
-            "pmlSettings": PMLSettings.from_dict(obj["pmlSettings"]) if obj.get("pmlSettings") is not None else None
+            "pmlSettings": PMLSettings.from_dict(obj["pmlSettings"]) if obj.get("pmlSettings") is not None else None,
+            "teamId": obj.get("teamId")
         })
         return _obj
 

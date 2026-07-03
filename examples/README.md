@@ -48,15 +48,16 @@ These examples define simulations entirely through the SDK.
 The client handles project creation, geometry, physics setup, meshing,
 and result retrieval without writing separate simulation scripts.
 
-| Example                    | Description                                                                     |
-| -------------------------- | ------------------------------------------------------------------------------- |
-| `hello_world/`             | Authentication and project creation                                             |
-| `bending_beam/`            | Structural simulation, parameter sweeps, YAML-based setup, result visualization |
-| `combdrive_eigenmodes/`    | MEMS eigenmode analysis with GDSII geometry import                              |
-| `pin_fin_heat_sink/`       | Conjugate heat transfer simulation                                              |
-| `pmut_array/`              | Piezoelectric MEMS array simulation                                             |
-| `lumped_pull_in_analysis/` | Lumped parallel-plate electrostatic-mechanical pull-in (voltage sweep, plots)   |
-| `geometric_sweep/`         | Microstrip stub filter with Cartesian product sweep over geometry and frequency |
+| Example                          | Description                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------------- |
+| `hello_world/`                   | Authentication and project creation                                             |
+| `bending_beam/`                  | Structural simulation, parameter sweeps, YAML-based setup, result visualization |
+| `combdrive_eigenmodes/`          | MEMS eigenmode analysis with GDSII geometry import                              |
+| `pin_fin_heat_sink/`             | Conjugate heat transfer simulation                                              |
+| `pmut_array/`                    | Piezoelectric MEMS array simulation                                             |
+| `lumped_pull_in_analysis/`       | Lumped parallel-plate electrostatic-mechanical pull-in (voltage sweep, plots)   |
+| `geometric_sweep/`               | Microstrip stub filter with Cartesian product sweep over geometry and frequency |
+| `twisted_superconductor_acloss/` | AC loss in twisted HTS wire (H-φ formulation, custom YBCO Newton linearization) |
 
 Run example:
 
@@ -66,6 +67,8 @@ Run example:
 
 The script bending_beam_sweep.py creates a new project to Allsolve and runs the simulation.
 You can then view the project and the simulation results in Allsolve GUI.
+When it finishes, answer **`n`** at the `Delete project? [Y/n]` prompt if you want to
+keep the project and visualize results with the SDK script below.
 The result visualization via SDK requires installing some dependency libraries.
 To install the dependencies and visualize results, run:
 
@@ -100,7 +103,8 @@ uploaded to the simulation worker and control the solver directly.
 
 ## Other examples
 
-| Example            | Description                                                   |
-| ------------------ | ------------------------------------------------------------- |
-| `surrogate_model/` | Neural-network surrogate training workflow for a simulation   |
-| `edit_project/`    | Modify a project using YAML files while viewing it in the GUI |
+| Example                 | Description                                                             |
+| ----------------------- | ----------------------------------------------------------------------- |
+| `surrogate_model/`      | Neural-network surrogate training workflow for a simulation             |
+| `edit_project/`         | Modify a project using YAML files while viewing it in the GUI           |
+| `resource_reservation/` | Reserve cloud compute up front and reuse it across mesh/simulation jobs |

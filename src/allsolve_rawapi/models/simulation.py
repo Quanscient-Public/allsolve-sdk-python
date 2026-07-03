@@ -54,6 +54,7 @@ class Simulation(BaseModel):
     max_run_time_minutes: StrictInt = Field(alias="maxRunTimeMinutes")
     output_interactions: Optional[List[Interaction]] = Field(default=None, alias="outputInteractions")
     override_set: Optional[Annotated[str, Field(min_length=1, strict=True)]] = Field(default=None, alias="overrideSet")
+    physics_set: Optional[Annotated[str, Field(min_length=1, strict=True)]] = Field(default=None, alias="physicsSet")
     input_files: List[SimulationInputFile] = Field(alias="inputFiles")
     solver_mode: DistributedSolverMode = Field(alias="solverMode")
     solver_precision: Optional[SolverPrecision] = Field(default=None, alias="solverPrecision")
@@ -76,7 +77,7 @@ class Simulation(BaseModel):
     target_frequency: Optional[Annotated[str, Field(strict=True, max_length=5000)]] = Field(default=None, alias="targetFrequency")
     numerical_jacobian: Optional[StrictBool] = Field(default=None, alias="numericalJacobian")
     field_initializations: Optional[List[FieldInitialization]] = Field(default=None, alias="fieldInitializations")
-    __properties: ClassVar[List[str]] = ["id", "name", "description", "scripts", "analysisType", "harmonics", "simulationJob", "mesh", "nodeCount", "nodeType", "mainNodeType", "startTime", "maxRunTimeMinutes", "outputInteractions", "overrideSet", "inputFiles", "solverMode", "solverPrecision", "disabledScriptSections", "physics", "internalStartTime", "internalEndTime", "internalTimestepSize", "timestepAlgorithm", "fundamentalFrequency", "numFFTSamples", "numRequestedEigenmodes", "targetEigenfrequency", "eigenmodePortAnalysis", "solverTolerance", "nonlinearSolverTolerance", "nonlinearSolverMaxIterations", "eigenmodeSolverTolerance", "eigenmodeSolverMaxIterations", "targetFrequency", "numericalJacobian", "fieldInitializations"]
+    __properties: ClassVar[List[str]] = ["id", "name", "description", "scripts", "analysisType", "harmonics", "simulationJob", "mesh", "nodeCount", "nodeType", "mainNodeType", "startTime", "maxRunTimeMinutes", "outputInteractions", "overrideSet", "physicsSet", "inputFiles", "solverMode", "solverPrecision", "disabledScriptSections", "physics", "internalStartTime", "internalEndTime", "internalTimestepSize", "timestepAlgorithm", "fundamentalFrequency", "numFFTSamples", "numRequestedEigenmodes", "targetEigenfrequency", "eigenmodePortAnalysis", "solverTolerance", "nonlinearSolverTolerance", "nonlinearSolverMaxIterations", "eigenmodeSolverTolerance", "eigenmodeSolverMaxIterations", "targetFrequency", "numericalJacobian", "fieldInitializations"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -175,6 +176,7 @@ class Simulation(BaseModel):
             "maxRunTimeMinutes": obj.get("maxRunTimeMinutes"),
             "outputInteractions": [Interaction.from_dict(_item) for _item in obj["outputInteractions"]] if obj.get("outputInteractions") is not None else None,
             "overrideSet": obj.get("overrideSet"),
+            "physicsSet": obj.get("physicsSet"),
             "inputFiles": [SimulationInputFile.from_dict(_item) for _item in obj["inputFiles"]] if obj.get("inputFiles") is not None else None,
             "solverMode": obj.get("solverMode"),
             "solverPrecision": obj.get("solverPrecision"),

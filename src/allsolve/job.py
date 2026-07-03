@@ -1,6 +1,10 @@
 # Copyright 2026 Quanscient Oy
 # SPDX-License-Identifier: Apache-2.0
 
+from __future__ import annotations
+
+from collections import defaultdict
+from collections.abc import Iterable
 from enum import Enum
 from typing import List, TextIO
 import sys
@@ -10,6 +14,21 @@ from .api import get_api, get_auth
 
 LOG_MAX_LIMIT = 25000
 DEFAULT_DELAY_S = 1
+MAX_JOB_IDS_PER_REQUEST = 10_000
+
+
+def _dedupe_job_ids(job_ids: list[str]) -> list[str]:
+    seen: set[str] = set()
+    result: list[str] = []
+    for job_id in job_ids:
+        if job_id not in seen:
+            seen.add(job_id)
+            result.append(job_id)
+    return result
+
+
+def _chunk_list(items: list[str], chunk_size: int) -> list[list[str]]:
+    return [items[i : i + chunk_size] for i in range(0, len(items), chunk_size)]
 
 
 class OnError(Enum):
@@ -63,6 +82,41 @@ class Job:
     PARTIAL_SUCCESS = rawapi.JobStatusType.PARTIAL_SUCCESS
     STARTING = rawapi.JobStatusType.STARTING
     NOT_STARTED = None
+
+    @classmethod
+    def refresh_statuses(
+        cls,
+        jobs: Iterable[Job],
+        *,
+        delay_s: float = 0,
+    ) -> None:
+        """
+        Refresh cached status on multiple :class:`Job` instances.
+
+        Prefer this over calling :meth:`refresh_status` on each job when polling
+        several jobs in the same loop iteration.
+
+        Jobs whose IDs are omitted from the server response keep their previous
+        :attr:`_job_status` (or :attr:`NOT_STARTED` via :meth:`get_status` if never
+        refreshed).
+        """
+        job_list = list(jobs)
+        if not job_list:
+            return
+        if delay_s > 0:
+            time.sleep(delay_s)
+
+        by_project: dict[str, list[Job]] = defaultdict(list)
+        for job in job_list:
+            if job.id:
+                by_project[job._project_id].append(job)
+
+        for project_id, project_jobs in by_project.items():
+            unique_ids = _dedupe_job_ids([j.id for j in project_jobs])
+            statuses = cls._fetch_statuses(project_id, unique_ids)
+            for job in project_jobs:
+                if job.id in statuses:
+                    job._job_status = statuses[job.id]
 
     def abort(self) -> None:
         with get_api() as api:
@@ -249,3 +303,23 @@ class Job:
 
     def __str__(self) -> str:
         return f"Job(id={self.id})"
+
+    @classmethod
+    def _fetch_statuses(
+        cls, project_id: str, job_ids: list[str]
+    ) -> dict[str, rawapi.JobStatus]:
+        unique_ids = _dedupe_job_ids(job_ids)
+        if not unique_ids:
+            return {}
+
+        result: dict[str, rawapi.JobStatus] = {}
+        with get_api() as api:
+            for chunk in _chunk_list(unique_ids, MAX_JOB_IDS_PER_REQUEST):
+                response = api.get_job_statuses(
+                    authorization=get_auth(),
+                    project_id=project_id,
+                    get_job_statuses_request=rawapi.GetJobStatusesRequest(jobIds=chunk),
+                )
+                for status in response.statuses:
+                    result[status.job_id] = status
+        return result

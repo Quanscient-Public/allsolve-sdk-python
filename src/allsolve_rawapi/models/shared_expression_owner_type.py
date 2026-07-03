@@ -27,6 +27,7 @@ class SharedExpressionOwnerType(str, Enum):
     allowed enum values
     """
     PROJECT = 'project'
+    USER = 'user'
     GLOBAL = 'global'
     ORGANIZATION = 'organization'
 

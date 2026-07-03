@@ -1,16 +1,8 @@
-import os
 import pathlib
 import matplotlib.pyplot as plt
 import allsolve
 
-
-api_key = os.environ["QS_ACCESS_KEY"]
-api_secret = os.environ["QS_SECRET_KEY"]
-allsolve.setup(
-    api_key=api_key,
-    api_secret=api_secret,
-    host="https://testing-eu-west-1.quanscient.com",
-)
+allsolve.setup()
 
 project = allsolve.Project.from_token()
 

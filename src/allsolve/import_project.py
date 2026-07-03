@@ -6,6 +6,7 @@ Contains a PoC of a convenience import format parser.
 """
 
 import json
+import warnings
 import yaml
 import csv
 from typing import Any
@@ -88,6 +89,7 @@ from .simulation import (
     CustomSection,
 )
 from .physics import Physic
+from .physics_set import DEFAULT_PHYSICS_SET_NAME, PhysicsSet
 from allsolve.export_format import (
     OUTPUT_TYPE_ALIASES as _OUTPUT_TYPE_ALIASES,
     OUTPUT_PARAM_ALIASES as _OUTPUT_PARAM_ALIASES,
@@ -282,6 +284,7 @@ def import_project(
                 geometry_no_implicit_fragment=import_data.get(
                     "geometryNoImplicitFragment", False
                 ),
+                team_id=import_data.get("teamId"),
             )
 
         pml_settings = import_data.get("pmlSettings")
@@ -337,12 +340,42 @@ def import_project(
             verbose=effective_verbose,
         )
 
-        import_physics_and_interactions(
-            project,
-            import_data.get("physics", []),
-            regions,
-            verbose=effective_verbose,
+        physics_sets_data = import_data.get("physicsSets", [])
+        root_physics_data = import_data.get("physics", [])
+
+        has_nested_physics = any(
+            isinstance(ps, dict) and ps.get("physics")
+            for ps in (physics_sets_data or [])
         )
+
+        if has_nested_physics and root_physics_data:
+            raise ValueError(
+                "Cannot specify both nested physics in 'physicsSets' "
+                "and a root-level 'physics' list"
+            )
+
+        default_physics_set: PhysicsSet | None = None
+        if has_nested_physics:
+            physics_sets = import_physics_sets_with_physics(
+                project,
+                physics_sets_data,
+                regions,
+                verbose=effective_verbose,
+            )
+        else:
+            physics_sets, default_physics_set = import_physics_sets(
+                project,
+                physics_sets_data,
+                verbose=effective_verbose,
+            )
+            import_physics_and_interactions(
+                project,
+                root_physics_data,
+                regions,
+                physics_sets=physics_sets,
+                default_physics_set=default_physics_set,
+                verbose=effective_verbose,
+            )
 
         variables_overrides = import_variable_overrides(
             project,
@@ -364,6 +397,8 @@ def import_project(
             import_data.get("simulations", []),
             imported_meshes,
             variables_overrides,
+            physics_sets=physics_sets,
+            default_physics_set=default_physics_set,
             yaml_file_path=yaml_file_path,
             regions=regions,
             verbose=effective_verbose,
@@ -757,10 +792,169 @@ def _resolve_interaction_targets(
     return {}, consumed_keys
 
 
+def _register_physics_set_by_name(
+    result: dict[str, PhysicsSet],
+    name: str,
+    physics_set: PhysicsSet,
+) -> None:
+    """Register a physics set by name, keeping the first entry on duplicates."""
+    if name in result:
+        if result[name].id != physics_set.id:
+            warnings.warn(
+                f"Multiple physics sets share the name '{name}'; "
+                f"using the first (id={result[name].id}), "
+                f"ignoring id={physics_set.id}.",
+                stacklevel=3,
+            )
+        return
+    result[name] = physics_set
+
+
+def import_physics_sets(
+    project: Project,
+    physics_sets: list[dict] | None,
+    verbose: bool = False,
+) -> tuple[dict[str, PhysicsSet], PhysicsSet]:
+    """
+    Import physics sets from YAML data.
+
+    Returns:
+        Tuple of (name -> PhysicsSet mapping, default PhysicsSet)
+    """
+    if verbose:
+        print("Importing physics sets...")
+
+    if project.id is None:
+        raise ValueError("Project must have an id before importing physics sets")
+
+    default_physics_set = PhysicsSet.get_default(project_id=project.id)
+    result: dict[str, PhysicsSet] = {}
+
+    if not physics_sets:
+        default_name = default_physics_set.name
+        if default_name is not None:
+            _register_physics_set_by_name(result, default_name, default_physics_set)
+        return result, default_physics_set
+
+    if not isinstance(physics_sets, list):
+        raise ValueError(
+            f"'physicsSets' must be a list, got {type(physics_sets).__name__}"
+        )
+
+    for physics_set_data in physics_sets:
+        if not isinstance(physics_set_data, dict):
+            raise ValueError(
+                "Each physics set entry must be an object, "
+                f"got {type(physics_set_data).__name__}: {physics_set_data}"
+            )
+        name = physics_set_data.get("name")
+        if not name:
+            raise ValueError(f"Physics set entry missing 'name': {physics_set_data}")
+        if name in result:
+            warnings.warn(
+                f"Multiple physics sets share the name '{name}'; "
+                f"using the first (id={result[name].id}).",
+                stacklevel=2,
+            )
+            continue
+        if name == DEFAULT_PHYSICS_SET_NAME:
+            physics_set = default_physics_set
+        else:
+            physics_set = project.create_physics_set(
+                name=name,
+                description=physics_set_data.get("description", ""),
+            )
+        _register_physics_set_by_name(result, name, physics_set)
+
+    default_name = default_physics_set.name
+    if default_name is not None:
+        _register_physics_set_by_name(result, default_name, default_physics_set)
+
+    return result, default_physics_set
+
+
+def import_physics_sets_with_physics(
+    project: Project,
+    physics_sets_data: list[dict],
+    regions: dict[str, Region],
+    verbose: bool = False,
+) -> dict[str, PhysicsSet]:
+    """
+    Import physics sets that carry nested physics definitions.
+
+    Each entry in physics_sets_data may have a 'physics' key containing a list
+    of physics definitions to import under that set.  An entry without a 'name'
+    key is treated as the project's default physics set.
+
+    Returns:
+        name -> PhysicsSet mapping (non-default sets only)
+    """
+    if verbose:
+        print("Importing physics sets with nested physics...")
+
+    if project.id is None:
+        raise ValueError("Project must have an id before importing physics sets")
+
+    if not isinstance(physics_sets_data, list):
+        raise ValueError(
+            f"'physicsSets' must be a list, got {type(physics_sets_data).__name__}"
+        )
+
+    default_physics_set = PhysicsSet.get_default(project_id=project.id)
+    result: dict[str, PhysicsSet] = {}
+
+    for ps_data in physics_sets_data:
+        if not isinstance(ps_data, dict):
+            raise ValueError(
+                "Each physics set entry must be an object, "
+                f"got {type(ps_data).__name__}: {ps_data}"
+            )
+
+        name = ps_data.get("name")
+        nested_physics = ps_data.get("physics", [])
+
+        if name:
+            if name in result:
+                warnings.warn(
+                    f"Multiple physics sets share the name '{name}'; "
+                    f"using the first (id={result[name].id}).",
+                    stacklevel=2,
+                )
+                physics_set = result[name]
+            elif name == DEFAULT_PHYSICS_SET_NAME:
+                physics_set = default_physics_set
+                _register_physics_set_by_name(result, name, physics_set)
+            else:
+                physics_set = project.create_physics_set(
+                    name=name,
+                    description=ps_data.get("description", ""),
+                )
+                _register_physics_set_by_name(result, name, physics_set)
+        else:
+            physics_set = default_physics_set
+
+        if nested_physics:
+            import_physics_and_interactions(
+                project,
+                nested_physics,
+                regions,
+                default_physics_set=physics_set,
+                verbose=verbose,
+            )
+
+    default_name = default_physics_set.name
+    if default_name is not None:
+        _register_physics_set_by_name(result, default_name, default_physics_set)
+
+    return result
+
+
 def import_physics_and_interactions(
     project: Project,
     physics_list: list[dict] | None,
     regions: dict[str, Region],
+    physics_sets: dict[str, PhysicsSet] | None = None,
+    default_physics_set: PhysicsSet | None = None,
     verbose: bool = False,
 ):
     """
@@ -806,7 +1000,20 @@ def import_physics_and_interactions(
             )
         target = p.get("target")
         target_id = _resolve_region_id(str(target), regions) if target else None
-        physic = project.add_physics(physics_class(target=target_id))
+
+        physics_set_name = p.get("physicsSet")
+        if physics_set_name is not None:
+            if physics_sets is None or physics_set_name not in physics_sets:
+                raise ValueError(
+                    f"Physics set with name '{physics_set_name}' not found"
+                )
+            physics_set = physics_sets[physics_set_name]
+        else:
+            if default_physics_set is None:
+                default_physics_set = PhysicsSet.get_default(project_id=project.id)
+            physics_set = default_physics_set
+
+        physic = physics_set.add_physics(physics_class(target=target_id))
 
         interactions = p.get("interactions", [])
         if interactions is None:
@@ -1779,6 +1986,13 @@ def import_materials(
         speedOfSound = None
         stiffnessDampingCoefficient = None
         thermalConductivity = None
+        longitudinalAttenuation = None
+        shearAttenuation = None
+        viscousDamping: (
+            MaterialProperty.ViscousDampingBulkViscosityShearViscosity
+            | MaterialProperty.ViscousDampingLongitudinalAttenuationShearAttenuation
+            | None
+        ) = None
 
         # Set values from material dict if they exist
         name = material["name"]
@@ -1835,6 +2049,32 @@ def import_materials(
         speedOfSound = material.get("speedOfSound")
         stiffnessDampingCoefficient = material.get("stiffnessDampingCoefficient")
         thermalConductivity = material.get("thermalConductivity")
+        longitudinalAttenuation = material.get("longitudinalAttenuation")
+        shearAttenuation = material.get("shearAttenuation")
+
+        viscousDampingRaw = material.get("viscousDamping")
+        if isinstance(viscousDampingRaw, dict):
+            bulk_viscosity = viscousDampingRaw.get("bulkViscosity")
+            shear_viscosity = viscousDampingRaw.get("shearViscosity")
+            viscous_longitudinal = viscousDampingRaw.get("longitudinalAttenuation")
+            viscous_shear = viscousDampingRaw.get("shearAttenuation")
+            if bulk_viscosity is not None and shear_viscosity is not None:
+                viscousDamping = (
+                    MaterialProperty.ViscousDampingBulkViscosityShearViscosity(
+                        bulk_viscosity,
+                        shear_viscosity,
+                    )
+                )
+            elif viscous_longitudinal is not None and viscous_shear is not None:
+                viscousDamping = MaterialProperty.ViscousDampingLongitudinalAttenuationShearAttenuation(
+                    viscous_longitudinal,
+                    viscous_shear,
+                )
+            else:
+                raise ValueError(
+                    "viscousDamping must provide bulkViscosity and shearViscosity, "
+                    "or longitudinalAttenuation and shearAttenuation"
+                )
 
         project.create_material(
             name=name,
@@ -1856,6 +2096,9 @@ def import_materials(
             speed_of_sound=speedOfSound,
             stiffness_damping_coefficient=stiffnessDampingCoefficient,
             thermal_conductivity=thermalConductivity,
+            longitudinal_attenuation=longitudinalAttenuation,
+            shear_attenuation=shearAttenuation,
+            viscous_damping=viscousDamping,
             orientation=orientation,
             enabled=enabled,
         )
@@ -2108,6 +2351,8 @@ def import_meshes(
                 name=mesh_data["name"],
                 use_mesh_refiner=mesh_data.get("useMeshRefiner", True),
                 scale_factor=mesh_data.get("scaleFactor", 1),
+                min_size_factor=mesh_data.get("minSizeFactor"),
+                max_size_factor=mesh_data.get("maxSizeFactor"),
                 curvature_enhancement=mesh_data.get("curvatureEnhancement", 6),
                 curved_mesh=mesh_data.get("curvedMesh", False),
                 target_width_to_height_ratio=mesh_data.get("targetWidthToHeightRatio"),
@@ -2185,6 +2430,8 @@ def import_simulations(
     simulations: list[dict],
     meshes: dict,
     variables_overrides: dict,
+    physics_sets: dict[str, PhysicsSet] | None = None,
+    default_physics_set: PhysicsSet | None = None,
     yaml_file_path: Path | None = None,
     regions: dict[str, "Region"] | None = None,
     verbose: bool = False,
@@ -2282,6 +2529,15 @@ def import_simulations(
                         f"Available physics in project: {list(definition_to_id.keys())}"
                     )
 
+        physics_set = None
+        if "physicsSet" in simulation_data:
+            physics_set_name = simulation_data["physicsSet"]
+            if physics_sets is None or physics_set_name not in physics_sets:
+                raise ValueError(
+                    f"Physics set with name '{physics_set_name}' not found"
+                )
+            physics_set = physics_sets[physics_set_name]
+
         sim = project.create_simulation(
             name=simulation_data["name"],
             description=simulation_data.get("description", ""),
@@ -2290,6 +2546,7 @@ def import_simulations(
             mesh_id=mesh_id,
             analysis_type=analysis_type,
             harmonics=simulation_data.get("harmonics"),
+            physics_set=physics_set,
             physics=physics,
             transient_start_time=simulation_data.get("transientStartTime"),
             transient_end_time=simulation_data.get("transientEndTime"),

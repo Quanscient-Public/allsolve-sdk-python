@@ -31,7 +31,7 @@ class GDSImportConfig(BaseModel):
     """ # noqa: E501
     layers: Annotated[List[GDSLayer], Field(min_length=1)] = Field(description="Layer definitions for the GDS2 extrusion")
     included_top_level_cells: Optional[List[StrictStr]] = Field(default=None, description="List of included top-level cell names in the GDS2 file. Leave it out or empty to include all.", alias="includedTopLevelCells")
-    z_offset: Optional[Annotated[str, Field(strict=True)]] = Field(default=None, description="Z-coordinate field for accurate coordinates. The field can contain a raw double value with no unit (in which case the unit is considered to be millimeters) or a value with a unit suffix of either m, mm, um or nm for meters, millimeters, micrometers or nanometers, respectively. ", alias="zOffset")
+    z_offset: Optional[Annotated[str, Field(strict=True)]] = Field(default=None, description="Z-coordinate field for accurate coordinates. The field can contain a raw double value with no unit (in which case the unit is considered to be millimeters) or a value with a unit suffix of either m, mm, um or nm for meters, millimeters, micrometers or nanometers, respectively. ", alias="zOffset", json_schema_extra={"examples": ["[\"1.22mm\",\"0.99\",\"1e-6\",\"200nm\",\"1.2E3nm\"]"]})
     __properties: ClassVar[List[str]] = ["layers", "includedTopLevelCells", "zOffset"]
 
     @field_validator('z_offset')

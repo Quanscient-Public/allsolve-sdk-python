@@ -2359,35 +2359,124 @@ class ElectromagneticWavesAbsorbingBoundary(Interaction):
         )
 
 
-class ElectromagneticWavesBoundaryImpedance(Interaction):
-    """Boundary impedance interaction."""
+class ElectromagneticWavesBoundaryAdmittance(Interaction):
+    """Boundary admittance interaction."""
 
-    definition_id = "electromagneticWavesBoundaryImpedance"
+    definition_id = "electromagneticWavesBoundaryAdmittance"
     physics_definition_id = "electromagneticWaves"
-    target_definition_ids = {"target": "electromagneticWavesBoundaryImpedanceTarget"}
+    target_definition_ids = {"target": "electromagneticWavesBoundaryAdmittanceTarget"}
 
     def __init__(
         self,
         name: str,
-        electromagnetic_waves_boundary_impedance: ScalarValue,
         target: "Region | str",
         enabled: BooleanValue | None = None,
+        *,
+        electromagnetic_waves_boundary_admittance_type: (
+            ElectromagneticWavesBoundaryAdmittanceType | str
+        ) = ElectromagneticWavesBoundaryAdmittanceType.ADMITTANCE,
+        electromagnetic_waves_boundary_admittance_yr: ScalarValue | None = None,
+        electromagnetic_waves_boundary_admittance_yi: ScalarValue | None = None,
+        electromagnetic_waves_boundary_admittance_conductivity: (
+            ScalarValue | None
+        ) = None,
+        electromagnetic_waves_boundary_admittance_magnetic_permeability: (
+            ScalarValue | None
+        ) = None,
     ) -> None:
-        """Create a boundary impedance interaction.
+        """Create a boundary admittance interaction.
 
         Parameters:
             name: Name of the interaction.
-            electromagnetic_waves_boundary_impedance: electromagnetic waves boundary impedance
             target: Target region.
             enabled: Whether the interaction is enabled.
+            electromagnetic_waves_boundary_admittance_type: electromagnetic waves boundary admittance type
+            electromagnetic_waves_boundary_admittance_yr: electromagnetic waves boundary admittance yr
+            electromagnetic_waves_boundary_admittance_yi: electromagnetic waves boundary admittance yi
+            electromagnetic_waves_boundary_admittance_conductivity: electromagnetic waves boundary admittance conductivity
+            electromagnetic_waves_boundary_admittance_magnetic_permeability: electromagnetic waves boundary admittance magnetic permeability
         """
+        _ebo_ctrl_0 = (
+            electromagnetic_waves_boundary_admittance_type.value
+            if isinstance(electromagnetic_waves_boundary_admittance_type, Enum)
+            else electromagnetic_waves_boundary_admittance_type
+        )
+        if _ebo_ctrl_0 == "electromagneticWavesBoundaryAdmittanceTypeAdmittance":
+            if electromagnetic_waves_boundary_admittance_yr is None:
+                raise ValueError(
+                    "ElectromagneticWavesBoundaryAdmittance: when electromagnetic_waves_boundary_admittance_type selects option 'electromagneticWavesBoundaryAdmittanceTypeAdmittance', electromagnetic_waves_boundary_admittance_yr must not be None"
+                )
+        _ebo_ctrl_1 = (
+            electromagnetic_waves_boundary_admittance_type.value
+            if isinstance(electromagnetic_waves_boundary_admittance_type, Enum)
+            else electromagnetic_waves_boundary_admittance_type
+        )
+        if _ebo_ctrl_1 == "electromagneticWavesBoundaryAdmittanceTypeAdmittance":
+            if electromagnetic_waves_boundary_admittance_yi is None:
+                raise ValueError(
+                    "ElectromagneticWavesBoundaryAdmittance: when electromagnetic_waves_boundary_admittance_type selects option 'electromagneticWavesBoundaryAdmittanceTypeAdmittance', electromagnetic_waves_boundary_admittance_yi must not be None"
+                )
+        _ebo_ctrl_2 = (
+            electromagnetic_waves_boundary_admittance_type.value
+            if isinstance(electromagnetic_waves_boundary_admittance_type, Enum)
+            else electromagnetic_waves_boundary_admittance_type
+        )
+        if _ebo_ctrl_2 == "electromagneticWavesBoundaryAdmittanceTypeGoodConductor":
+            if electromagnetic_waves_boundary_admittance_conductivity is None:
+                raise ValueError(
+                    "ElectromagneticWavesBoundaryAdmittance: when electromagnetic_waves_boundary_admittance_type selects option 'electromagneticWavesBoundaryAdmittanceTypeGoodConductor', electromagnetic_waves_boundary_admittance_conductivity must not be None"
+                )
+        _ebo_ctrl_3 = (
+            electromagnetic_waves_boundary_admittance_type.value
+            if isinstance(electromagnetic_waves_boundary_admittance_type, Enum)
+            else electromagnetic_waves_boundary_admittance_type
+        )
+        if _ebo_ctrl_3 == "electromagneticWavesBoundaryAdmittanceTypeGoodConductor":
+            if electromagnetic_waves_boundary_admittance_magnetic_permeability is None:
+                raise ValueError(
+                    "ElectromagneticWavesBoundaryAdmittance: when electromagnetic_waves_boundary_admittance_type selects option 'electromagneticWavesBoundaryAdmittanceTypeGoodConductor', electromagnetic_waves_boundary_admittance_magnetic_permeability must not be None"
+                )
         parameters: List[InteractionParameter] = []
         parameters.append(
             InteractionParameter(
-                definition="electromagneticWavesBoundaryImpedance",
-                value=str(electromagnetic_waves_boundary_impedance),
+                definition="electromagneticWavesBoundaryAdmittanceType",
+                ascii_value=(
+                    electromagnetic_waves_boundary_admittance_type.value
+                    if isinstance(electromagnetic_waves_boundary_admittance_type, Enum)
+                    else electromagnetic_waves_boundary_admittance_type
+                ),
             )
         )
+        if electromagnetic_waves_boundary_admittance_yr is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="electromagneticWavesBoundaryAdmittanceYr",
+                    value=str(electromagnetic_waves_boundary_admittance_yr),
+                )
+            )
+        if electromagnetic_waves_boundary_admittance_yi is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="electromagneticWavesBoundaryAdmittanceYi",
+                    value=str(electromagnetic_waves_boundary_admittance_yi),
+                )
+            )
+        if electromagnetic_waves_boundary_admittance_conductivity is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="electromagneticWavesBoundaryAdmittanceConductivity",
+                    value=str(electromagnetic_waves_boundary_admittance_conductivity),
+                )
+            )
+        if electromagnetic_waves_boundary_admittance_magnetic_permeability is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="electromagneticWavesBoundaryAdmittanceMagneticPermeability",
+                    value=str(
+                        electromagnetic_waves_boundary_admittance_magnetic_permeability
+                    ),
+                )
+            )
         super().__init__(
             name=name,
             targets={"target": target},

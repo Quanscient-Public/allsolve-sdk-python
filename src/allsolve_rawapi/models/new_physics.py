@@ -30,7 +30,8 @@ class NewPhysics(BaseModel):
     """ # noqa: E501
     definition: Annotated[str, Field(min_length=1, strict=True)]
     target: Optional[StrictStr] = None
-    __properties: ClassVar[List[str]] = ["definition", "target"]
+    physics_set_id: Optional[Annotated[str, Field(min_length=1, strict=True)]] = Field(default=None, alias="physicsSetId")
+    __properties: ClassVar[List[str]] = ["definition", "target", "physicsSetId"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -84,7 +85,8 @@ class NewPhysics(BaseModel):
 
         _obj = cls.model_validate({
             "definition": obj.get("definition"),
-            "target": obj.get("target")
+            "target": obj.get("target"),
+            "physicsSetId": obj.get("physicsSetId")
         })
         return _obj
 

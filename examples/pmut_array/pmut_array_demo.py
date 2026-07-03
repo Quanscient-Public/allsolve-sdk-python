@@ -57,18 +57,25 @@ def main():
     )
     print(f"Created project: {project.name} (id: {project.id})")
 
-    create_variables(project)
-    build_geometry(project, verbose=verbose)
-    regions = create_regions(project)
-    create_materials(project, regions)
-    create_physics(project, regions)
-    sweep = create_sweep(project)
-    mesh = create_mesh(project)
-    sim = create_simulation(project, mesh, sweep)
-    run_mesh_and_simulation(mesh, sim, verbose=verbose)
-    save_results(sim)
-
-    client.set_current_project(project)
+    try:
+        create_variables(project)
+        build_geometry(project, verbose=verbose)
+        regions = create_regions(project)
+        create_materials(project, regions)
+        physics_set = create_physics(project, regions)
+        sweep = create_sweep(project)
+        mesh = create_mesh(project)
+        sim = create_simulation(project, mesh, sweep, physics_set)
+        run_mesh_and_simulation(mesh, sim, verbose=verbose)
+        save_results(sim)
+        client.set_current_project(project)
+    except Exception as e:
+        print(f"Error running project: {e}")
+    finally:
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            client.set_current_project(None)
+            project.delete()
+            print("Project deleted.")
 
 
 def create_variables(project: allsolve.Project) -> None:
@@ -313,14 +320,17 @@ def create_materials(project: allsolve.Project, regions: SimpleNamespace) -> Non
     )
 
 
-def create_physics(project: allsolve.Project, regions: SimpleNamespace) -> None:
-    elastic_waves_physics = project.add_physics(
+def create_physics(
+    project: allsolve.Project, regions: SimpleNamespace
+) -> allsolve.PhysicsSet:
+    physics_set = project.get_default_physics_set()
+    elastic_waves_physics = physics_set.add_physics(
         allsolve.Physics.ElasticWaves(target=regions.solid_volumes)
     )
-    acoustic_waves_physics = project.add_physics(
+    acoustic_waves_physics = physics_set.add_physics(
         allsolve.Physics.AcousticWaves(target=regions.air_bubble)
     )
-    electrostatics_physics = project.add_physics(
+    electrostatics_physics = physics_set.add_physics(
         allsolve.Physics.Electrostatics(target=regions.pzt)
     )
 
@@ -367,6 +377,7 @@ def create_physics(project: allsolve.Project, regions: SimpleNamespace) -> None:
 
     project.pml_num_layers = 2
     project.save()
+    return physics_set
 
 
 def create_sweep(project: allsolve.Project) -> allsolve.VariableOverrides:
@@ -399,7 +410,10 @@ def create_mesh(project: allsolve.Project) -> allsolve.Mesh:
 
 
 def create_simulation(
-    project: allsolve.Project, mesh: allsolve.Mesh, sweep: allsolve.VariableOverrides
+    project: allsolve.Project,
+    mesh: allsolve.Mesh,
+    sweep: allsolve.VariableOverrides,
+    physics_set: allsolve.PhysicsSet,
 ) -> allsolve.Simulation:
     sim = project.create_simulation_harmonic(
         name="Simulation 1",
@@ -410,6 +424,7 @@ def create_simulation(
         fundamental_frequency="freq",
         num_fft_samples=3,
         variable_overrides=sweep.id,
+        physics_set=physics_set,
     )
     sim.add_outputs(
         [
@@ -485,4 +500,7 @@ def save_results(sim: allsolve.Simulation) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"Error: {e}")

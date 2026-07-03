@@ -5,7 +5,6 @@ import copy
 from enum import Enum
 import pathlib
 import sys
-import warnings
 from typing import List, TextIO
 from typing_extensions import Self
 
@@ -14,6 +13,11 @@ from allsolve_rawapi.models.expression_vector import ExpressionVector
 from allsolve_rawapi.models.extrusion_overlap_mode import ExtrusionOverlapMode
 from allsolve_rawapi.models.mesh_extrusion_type import MeshExtrusionType
 
+from .resource_reservation import (
+    ResourceReservation,
+    build_start_job_request,
+    keep_reservation_alive,
+)
 from .util import prevent_deleted, JobError
 from .job_mixin import JobMixin
 import allsolve_rawapi as rawapi
@@ -305,18 +309,6 @@ class MeshDensity(Enum):
     """Custom element sizes defined via mesh settings."""
 
 
-class MeshQuality(Enum):
-    """
-    Enum for the quality of a mesh.
-    @deprecated: Use MeshDensity instead.
-    """
-
-    DEFAULT = rawapi.MeshDensity.DEFAULT
-    COARSE = rawapi.MeshDensity.COARSE
-    FINE = rawapi.MeshDensity.FINE
-    USERDEFINED = rawapi.MeshDensity.USERDEFINED
-
-
 class MeshSettings:
     """
     Container for settings that can be configured when creating a mesh.
@@ -326,13 +318,13 @@ class MeshSettings:
         self,
         name: str | None = None,
         density: MeshDensity | None = None,
-        # Mesh quality is deprecated, use density instead
-        quality: MeshQuality | None = None,
         node_type: str | None = None,
         max_run_time_minutes: int | None = None,
         use_mesh_refiner: bool = False,
         mesh_size_min: float | int | str | None = None,
         mesh_size_max: float | int | str | None = None,
+        min_size_factor: float | int | str | None = None,
+        max_size_factor: float | int | str | None = None,
         scale_factor: float | int | str | None = None,
         curvature_enhancement: float | int | str | None = None,
         curved_mesh: bool = False,
@@ -346,11 +338,8 @@ class MeshSettings:
         auto_transfinite: List[AutoTransfiniteGroup] | None = None,
     ):
         self.name: str | None = name
-        self.quality: rawapi.MeshDensity = (
-            quality.value if quality is not None else rawapi.MeshDensity.DEFAULT
-        )
         self.density: rawapi.MeshDensity = (
-            density.value if density is not None else self.quality
+            density.value if density is not None else rawapi.MeshDensity.DEFAULT
         )
         self.max_run_time_minutes: int | None = max_run_time_minutes
         self.node_type: str | None = node_type
@@ -366,10 +355,20 @@ class MeshSettings:
         )
         self.auto_transfinite: List[AutoTransfiniteGroup] | None = auto_transfinite
 
+        has_size_factors = min_size_factor is not None or max_size_factor is not None
+        has_mesh_sizes = mesh_size_min is not None or mesh_size_max is not None
+        if has_size_factors and has_mesh_sizes:
+            raise ValueError(
+                "min_size_factor/max_size_factor cannot be used together with "
+                "mesh_size_min/mesh_size_max"
+            )
+
         if (
             use_mesh_refiner is True
             or mesh_size_min is not None
             or mesh_size_max is not None
+            or min_size_factor is not None
+            or max_size_factor is not None
             or scale_factor is not None
             or curvature_enhancement is not None
             or curved_mesh is True
@@ -388,8 +387,12 @@ class MeshSettings:
                     if use_mesh_refiner
                     else rawapi.MeshAlgorithm.GMSH
                 ),
-                minSizeFactor=None,
-                maxSizeFactor=None,
+                minSizeFactor=(
+                    str(min_size_factor) if min_size_factor is not None else None
+                ),
+                maxSizeFactor=(
+                    str(max_size_factor) if max_size_factor is not None else None
+                ),
                 scaleFactor=str(scale_factor) if scale_factor is not None else None,
                 curvatureEnhancement=(
                     str(curvature_enhancement)
@@ -672,6 +675,55 @@ class _MockJob(Job):
         return self._static_status_reason
 
 
+def _resolve_mesh_file(
+    files: list[rawapi.MeshInstanceFile] | None,
+    sweep_index: int,
+) -> rawapi.MeshInstanceFile:
+    """Return the mesh instance file matching *sweep_index*."""
+    if files is None or len(files) == 0:
+        raise ValueError(
+            f"No mesh files available (requested sweep_index={sweep_index})"
+        )
+    for mesh_file in files:
+        if mesh_file.index == sweep_index:
+            return mesh_file
+    available = sorted(mesh_file.index for mesh_file in files)
+    raise ValueError(
+        f"No mesh file with sweep_index={sweep_index}; "
+        f"available indices: {available}"
+    )
+
+
+def _find_raw_instance(
+    mesh: rawapi.Mesh,
+    *,
+    variable_overrides_id: str | None = None,
+    instance_id: str | None = None,
+) -> rawapi.MeshInstance:
+    """Return a backend mesh instance by id or variable-override set."""
+    instances = mesh.instances
+    if instances is None:
+        raise ValueError("Mesh has no instances")
+    if instance_id is not None:
+        for inst in instances:
+            if inst.id == instance_id:
+                return inst
+        raise ValueError(f"Mesh instance {instance_id!r} not found")
+    for inst in instances:
+        if variable_overrides_id is None and inst.override_set is None:
+            return inst
+        if (
+            variable_overrides_id is not None
+            and inst.override_set == variable_overrides_id
+        ):
+            return inst
+    if variable_overrides_id is None:
+        raise ValueError("Mesh has no default instance")
+    raise ValueError(
+        f"No mesh instance found for variable override {variable_overrides_id!r}"
+    )
+
+
 class MeshInstance(JobMixin):
     """A single mesh instance bound to one variable override set.
 
@@ -717,10 +769,69 @@ class MeshInstance(JobMixin):
         """The variable-overrides set ID, or ``None`` for the default instance."""
         return self._raw_instance.override_set
 
-    def start(self) -> None:
-        """Start meshing for this instance."""
+    def refresh(self) -> None:
+        """Re-fetch mesh data from the server and sync this instance."""
+        self._mesh.refresh()
+        self._raw_instance = _find_raw_instance(
+            self._mesh._mesh,
+            instance_id=self.id,
+        )
+        self._sync_job_from_raw_instance()
+
+    def get_sweep_status(
+        self,
+        sweep_index: int = 0,
+        *,
+        refresh: bool = True,
+    ) -> str | None:
+        """Return the meshing job status for one sweep step.
+
+        Parameters:
+            sweep_index: The sweep step index (matches :attr:`MeshInstanceFile.index`).
+            refresh: If True, refresh mesh data from the server before reading.
+
+        Returns:
+            The per-file job status (e.g. ``Job.SUCCESS``), or ``None`` if the
+            backend omitted ``job_status`` for that file.
+
+        Raises:
+            ValueError: If no file exists for *sweep_index*.
+        """
+        if refresh:
+            self.refresh()
+        mesh_file = _resolve_mesh_file(self._raw_instance.files, sweep_index)
+        return mesh_file.job_status
+
+    def get_sweep_count(self, *, refresh: bool = False) -> int:
+        """Return the number of mesh files (sweep steps) on this instance.
+
+        Parameters:
+            refresh: If True, refresh mesh data from the server before counting.
+        """
+        if refresh:
+            self.refresh()
+        files = self._raw_instance.files
+        if files is None:
+            return 0
+        return len(files)
+
+    def start(
+        self,
+        *,
+        resource_reservation: ResourceReservation | str | None = None,
+    ) -> None:
+        """Start meshing for this instance.
+
+        Parameters:
+            resource_reservation: Optional reservation for the job
+                (:class:`~allsolve.resource_reservation.ResourceReservation` or id
+                string). Assigns reserved compute to the job start request. Does not
+                renew the lease while the job runs; use :meth:`run` or wrap manual
+                polling in :func:`~allsolve.resource_reservation.keep_reservation_alive`.
+        """
         self._mesh.save()
         project_id = check_for_project_api_key(self._mesh._project_id)
+        start_body = build_start_job_request(resource_reservation)
 
         with get_api() as api:
             try:
@@ -729,7 +840,7 @@ class MeshInstance(JobMixin):
                     project_id=project_id,
                     mesh_id=self._mesh._mesh.id,
                     mesh_instance_id=self._raw_instance.id,
-                    body={},
+                    start_job_request=start_body,
                 )
             except Exception as e:
                 if getattr(e, "status", None) == 304:
@@ -754,6 +865,8 @@ class MeshInstance(JobMixin):
         print_logs: bool = False,
         refresh_delay_s: float = 1,
         on_error: OnError = OnError.IGNORE,
+        *,
+        resource_reservation: ResourceReservation | str | None = None,
     ) -> None:
         """Process the mesh instance and return when the processing is complete.
 
@@ -765,43 +878,69 @@ class MeshInstance(JobMixin):
                 ``OnError.RAISE`` — raises :exc:`JobError` unless status is ``SUCCESS`` or
                 ``PARTIAL_SUCCESS``.
                 ``OnError.STRICT`` — raises :exc:`JobError` unless status is exactly ``SUCCESS``.
+            resource_reservation: Optional reservation for the job
+                (:class:`~allsolve.resource_reservation.ResourceReservation` or id
+                string). Renews the reservation lease for the full duration of this call.
         """
-        self.start()
-        while self.is_running(refresh_delay_s=refresh_delay_s):
+        with keep_reservation_alive(resource_reservation):
+            self.start(resource_reservation=resource_reservation)
+            while self.is_running(refresh_delay_s=refresh_delay_s):
+                if print_logs:
+                    self.print_new_loglines()
             if print_logs:
                 self.print_new_loglines()
-        if print_logs:
-            self.print_new_loglines()
-        status = self.get_status()
-        if on_error is OnError.STRICT and status != Job.SUCCESS:
-            raise JobError(
-                f"Mesh '{self._mesh.name}' instance {self.id} "
-                f"processing failed with status: {status}",
-                status=status,
-            )
-        elif on_error is OnError.RAISE and status not in (
-            Job.SUCCESS,
-            Job.PARTIAL_SUCCESS,
-        ):
-            raise JobError(
-                f"Mesh '{self._mesh.name}' instance {self.id} "
-                f"processing failed with status: {status}",
-                status=status,
-            )
+            status = self.get_status()
+            if on_error is OnError.STRICT and status != Job.SUCCESS:
+                raise JobError(
+                    f"Mesh '{self._mesh.name}' instance {self.id} "
+                    f"processing failed with status: {status}",
+                    status=status,
+                )
+            elif on_error is OnError.RAISE and status not in (
+                Job.SUCCESS,
+                Job.PARTIAL_SUCCESS,
+            ):
+                raise JobError(
+                    f"Mesh '{self._mesh.name}' instance {self.id} "
+                    f"processing failed with status: {status}",
+                    status=status,
+                )
+            self.refresh()
 
     def save_mesh_file(
-        self, output_dir: str = "./", filename: str = "mesh.msh"
+        self,
+        output_dir: str = "./",
+        filename: str = "mesh.msh",
+        *,
+        sweep_index: int = 0,
     ) -> None:
         """Save this instance's mesh file to local disk.
 
         Parameters:
             output_dir: Directory to save to.
             filename: File name to save as.
+            sweep_index: Sweep step index (matches :attr:`MeshInstanceFile.index`).
         """
         self._mesh._save_mesh_file_for_instance(
             variable_overrides_id=self.variable_override_id,
             output_dir=output_dir,
             filename=filename,
+            sweep_index=sweep_index,
+        )
+
+    def _sync_job_from_raw_instance(self) -> None:
+        """Update ``_job`` from the current ``_raw_instance.meshing_job``."""
+        raw_instance = self._raw_instance
+        if raw_instance.meshing_job is None:
+            return
+        raw_job = raw_instance.meshing_job
+        if self._job is None or self._job.id != raw_job.id:
+            self._job = Job(self._mesh._project_id, raw_job.id)
+        self._job._job_status = rawapi.JobStatus(
+            jobId=raw_job.id,
+            status=raw_job.status,
+            statusReason=raw_job.status_reason,
+            progress=raw_job.progress,
         )
 
 
@@ -893,9 +1032,6 @@ class Mesh(JobMixin):
             mesh_update = mesh._current_uncommitted_update()
             if mesh_settings.name is not None:
                 mesh_update.name = mesh_settings.name
-            # TODO: Quality is deprecated, use density instead
-            if mesh_settings.quality is not None:
-                mesh_update.density = mesh_settings.quality
             if mesh_settings.density is not None:
                 mesh_update.density = mesh_settings.density
             if mesh_settings.max_run_time_minutes is not None:
@@ -999,32 +1135,6 @@ class Mesh(JobMixin):
 
     @property
     @prevent_deleted
-    def quality(self) -> MeshQuality:
-        """Get the quality of the mesh."""
-        warnings.simplefilter("always", DeprecationWarning)
-        warnings.warn(
-            "Call to deprecated function quality (Use density instead).",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        warnings.simplefilter("default", DeprecationWarning)
-        return MeshQuality(self._mesh.quality)
-
-    @quality.setter
-    @prevent_deleted
-    def quality(self, quality: MeshQuality) -> None:
-        """Set the quality of the mesh. Use save() to commit the change."""
-        warnings.simplefilter("always", DeprecationWarning)
-        warnings.warn(
-            "Call to deprecated function quality (Use density instead).",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        warnings.simplefilter("default", DeprecationWarning)
-        self._current_uncommitted_update().quality = quality.value
-
-    @property
-    @prevent_deleted
     def density(self) -> MeshDensity:
         """Get the density of the mesh."""
         return MeshDensity(self._mesh.density)
@@ -1084,7 +1194,7 @@ class Mesh(JobMixin):
     @property
     @prevent_deleted
     def mesh_size_min(self) -> str | None:
-        """Get the minimum mesh size of the mesh."""
+        """Get the absolute minimum element size (in geometry units)."""
         if self._mesh.parameters is None or self._mesh.parameters.mesh_size_min is None:
             return None
         return self._mesh.parameters.mesh_size_min
@@ -1092,7 +1202,11 @@ class Mesh(JobMixin):
     @mesh_size_min.setter
     @prevent_deleted
     def mesh_size_min(self, mesh_size_min: float | int | str) -> None:
-        """Set the minimum mesh size of the mesh. Use save() to commit the change."""
+        """
+        Set the absolute minimum element size. Use save() to commit the change.
+
+        Cannot be used together with :attr:`min_size_factor` / :attr:`max_size_factor`.
+        """
         self._on_set_parameter(set_user_defined=mesh_size_min is not None)
         self._current_uncommitted_update().parameters.mesh_size_min = (
             str(mesh_size_min) if mesh_size_min is not None else None
@@ -1101,7 +1215,7 @@ class Mesh(JobMixin):
     @property
     @prevent_deleted
     def mesh_size_max(self) -> str | None:
-        """Get the maximum mesh size of the mesh."""
+        """Get the absolute maximum element size (in geometry units)."""
         if self._mesh.parameters is None or self._mesh.parameters.mesh_size_max is None:
             return None
         return self._mesh.parameters.mesh_size_max
@@ -1109,7 +1223,11 @@ class Mesh(JobMixin):
     @mesh_size_max.setter
     @prevent_deleted
     def mesh_size_max(self, mesh_size_max: float | int | str) -> None:
-        """Set the maximum mesh size of the mesh. Use save() to commit the change."""
+        """
+        Set the absolute maximum element size. Use save() to commit the change.
+
+        Cannot be used together with :attr:`min_size_factor` / :attr:`max_size_factor`.
+        """
         self._on_set_parameter(set_user_defined=mesh_size_max is not None)
         self._current_uncommitted_update().parameters.mesh_size_max = (
             str(mesh_size_max) if mesh_size_max is not None else None
@@ -1130,6 +1248,66 @@ class Mesh(JobMixin):
         self._on_set_parameter(set_user_defined=scale_factor is not None)
         self._current_uncommitted_update().parameters.scale_factor = (
             str(scale_factor) if scale_factor is not None else None
+        )
+
+    @property
+    @prevent_deleted
+    def min_size_factor(self) -> str | None:
+        """
+        Get the minimum element size relative to element size (0 to 1).
+
+        For example, ``0.1`` represents 10% of the total geometry size.
+        """
+        if (
+            self._mesh.parameters is None
+            or self._mesh.parameters.min_size_factor is None
+        ):
+            return None
+        return self._mesh.parameters.min_size_factor
+
+    @min_size_factor.setter
+    @prevent_deleted
+    def min_size_factor(self, min_size_factor: float | int | str) -> None:
+        """
+        Set the minimum element size relative to element size (0 to 1).
+
+        For example, ``0.1`` represents 10% of the total geometry size.
+        Cannot be used together with :attr:`mesh_size_min` / :attr:`mesh_size_max`,
+        which specify absolute sizes instead. Use save() to commit the change.
+        """
+        self._on_set_parameter(set_user_defined=min_size_factor is not None)
+        self._current_uncommitted_update().parameters.min_size_factor = (
+            str(min_size_factor) if min_size_factor is not None else None
+        )
+
+    @property
+    @prevent_deleted
+    def max_size_factor(self) -> str | None:
+        """
+        Get the maximum element size relative to element size (0 to 1).
+
+        For example, ``0.1`` represents 10% of the total geometry size.
+        """
+        if (
+            self._mesh.parameters is None
+            or self._mesh.parameters.max_size_factor is None
+        ):
+            return None
+        return self._mesh.parameters.max_size_factor
+
+    @max_size_factor.setter
+    @prevent_deleted
+    def max_size_factor(self, max_size_factor: float | int | str) -> None:
+        """
+        Set the maximum element size relative to element size (0 to 1).
+
+        For example, ``0.1`` represents 10% of the total geometry size.
+        Cannot be used together with :attr:`mesh_size_min` / :attr:`mesh_size_max`,
+        which specify absolute sizes instead. Use save() to commit the change.
+        """
+        self._on_set_parameter(set_user_defined=max_size_factor is not None)
+        self._current_uncommitted_update().parameters.max_size_factor = (
+            str(max_size_factor) if max_size_factor is not None else None
         )
 
     @property
@@ -1712,8 +1890,9 @@ class Mesh(JobMixin):
     def save(self) -> None:
         """
         Explicitly save the changes to the cloud made by
-        setting properties `name`, `quality`, `node_type`, `max_run_time_minutes`,
-        `mesh_size_min`, `mesh_size_max`, `scale_factor`, `curvature_enhancement`,
+        setting properties `name`, `density`, `node_type`, `max_run_time_minutes`,
+        `mesh_size_min`, `mesh_size_max`, `min_size_factor`, `max_size_factor`,
+        `scale_factor`, `curvature_enhancement`,
         `curved_mesh`, `refinements` and `variable_overrides`.
         """
         if self._uncommitted_update is None:
@@ -1721,10 +1900,6 @@ class Mesh(JobMixin):
 
         project_id = check_for_project_api_key(self._project_id)
         mesh_update = self._current_uncommitted_update()
-
-        # TODO: Quality is deprecated, use density instead
-        if mesh_update.density is None:
-            mesh_update.density = mesh_update.quality
 
         with get_api() as api:
             api.update_mesh(
@@ -1743,8 +1918,20 @@ class Mesh(JobMixin):
             )
 
     @prevent_deleted
-    def start(self) -> None:
-        """Start processing the default mesh instance."""
+    def start(
+        self,
+        *,
+        resource_reservation: ResourceReservation | str | None = None,
+    ) -> None:
+        """Start processing the default mesh instance.
+
+        Parameters:
+            resource_reservation: Optional reservation for the job
+                (:class:`~allsolve.resource_reservation.ResourceReservation` or id
+                string). Assigns reserved compute to the job start request. Does not
+                renew the lease while the job runs; use :meth:`run` or wrap manual
+                polling in :func:`~allsolve.resource_reservation.keep_reservation_alive`.
+        """
         project_id = check_for_project_api_key(self._project_id)
 
         self.save()
@@ -1753,6 +1940,8 @@ class Mesh(JobMixin):
         if default_instance is None:
             raise ValueError("Mesh has no default instance")
 
+        start_body = build_start_job_request(resource_reservation)
+
         with get_api() as api:
             try:
                 response = api.start_meshing(
@@ -1760,7 +1949,7 @@ class Mesh(JobMixin):
                     project_id=project_id,
                     mesh_id=self._mesh.id,
                     mesh_instance_id=default_instance.id,
-                    body={},
+                    start_job_request=start_body,
                 )
             except Exception as e:
                 if getattr(e, "status", None) == 304:
@@ -1786,6 +1975,8 @@ class Mesh(JobMixin):
         print_logs: bool = False,
         refresh_delay_s: float = 1,
         on_error: OnError = OnError.IGNORE,
+        *,
+        resource_reservation: ResourceReservation | str | None = None,
     ) -> None:
         """Process the default mesh instance and return when the processing is complete.
 
@@ -1797,27 +1988,43 @@ class Mesh(JobMixin):
                 ``OnError.RAISE`` — raises :exc:`JobError` unless status is ``SUCCESS`` or
                 ``PARTIAL_SUCCESS``.
                 ``OnError.STRICT`` — raises :exc:`JobError` unless status is exactly ``SUCCESS``.
+            resource_reservation: Optional reservation for the job
+                (:class:`~allsolve.resource_reservation.ResourceReservation` or id
+                string). Renews the reservation lease for the full duration of this call.
         """
-        self.start()
-        while self.is_running(refresh_delay_s=refresh_delay_s):
+        with keep_reservation_alive(resource_reservation):
+            self.start(resource_reservation=resource_reservation)
+            while self.is_running(refresh_delay_s=refresh_delay_s):
+                if print_logs:
+                    self.print_new_loglines()
             if print_logs:
                 self.print_new_loglines()
-        if print_logs:
-            self.print_new_loglines()
-        status = self.get_status()
-        if on_error is OnError.STRICT and status != Job.SUCCESS:
-            raise JobError(
-                f"Mesh '{self.name}' (id={self.id}) processing failed with status: {status}",
-                status=status,
+            status = self.get_status()
+            if on_error is OnError.STRICT and status != Job.SUCCESS:
+                raise JobError(
+                    f"Mesh '{self.name}' (id={self.id}) processing failed with status: {status}",
+                    status=status,
+                )
+            elif on_error is OnError.RAISE and status not in (
+                Job.SUCCESS,
+                Job.PARTIAL_SUCCESS,
+            ):
+                raise JobError(
+                    f"Mesh '{self.name}' (id={self.id}) processing failed with status: {status}",
+                    status=status,
+                )
+            self.refresh()
+
+    @prevent_deleted
+    def refresh(self) -> None:
+        """Re-fetch mesh data from the server."""
+        with get_api() as api:
+            self._mesh = api.get_mesh(
+                authorization=get_auth(),
+                project_id=self._project_id,
+                mesh_id=self._mesh.id,
             )
-        elif on_error is OnError.RAISE and status not in (
-            Job.SUCCESS,
-            Job.PARTIAL_SUCCESS,
-        ):
-            raise JobError(
-                f"Mesh '{self.name}' (id={self.id}) processing failed with status: {status}",
-                status=status,
-            )
+        self._populate_default_job()
 
     @prevent_deleted
     def abort(self) -> None:
@@ -1917,17 +2124,21 @@ class Mesh(JobMixin):
         self,
         output_dir: str = "./",
         filename: str = "mesh.msh",
+        *,
+        sweep_index: int = 0,
     ) -> None:
         """Save the default mesh instance's file to local disk.
 
         Parameters:
             output_dir: Directory to save to.
             filename: File name to save as.
+            sweep_index: Sweep step index (matches :attr:`MeshInstanceFile.index`).
         """
         self._save_mesh_file_for_instance(
             variable_overrides_id=None,
             output_dir=output_dir,
             filename=filename,
+            sweep_index=sweep_index,
         )
 
     def _save_mesh_file_for_instance(
@@ -1935,6 +2146,8 @@ class Mesh(JobMixin):
         variable_overrides_id: str | None,
         output_dir: str = "./",
         filename: str = "mesh.msh",
+        *,
+        sweep_index: int = 0,
     ) -> None:
         """Download a mesh file for a specific instance (default or override)."""
         filepath = self._get_filepath(output_dir, filename)
@@ -1947,21 +2160,12 @@ class Mesh(JobMixin):
             )
             self._mesh = mesh_data
 
-        mesh_file_id = None
-        for mesh_instance in self._mesh.instances:
-            if mesh_instance.files is None or len(mesh_instance.files) == 0:
-                continue
-            if variable_overrides_id is None and mesh_instance.override_set is None:
-                mesh_file_id = mesh_instance.files[0].id
-                break
-            if (
-                mesh_instance.override_set is not None
-                and mesh_instance.override_set == variable_overrides_id
-            ):
-                mesh_file_id = mesh_instance.files[0].id
-                break
-        if mesh_file_id is None:
-            raise ValueError("Mesh file not found")
+        mesh_instance = _find_raw_instance(
+            self._mesh,
+            variable_overrides_id=variable_overrides_id,
+        )
+        mesh_file = _resolve_mesh_file(mesh_instance.files, sweep_index)
+        mesh_file_id = mesh_file.id
 
         with get_api() as api:
             response = api.get_mesh_file_download_url(
@@ -2022,8 +2226,6 @@ class Mesh(JobMixin):
             self._uncommitted_update = rawapi.MeshUpdate(
                 name=self._mesh.name,
                 density=self._mesh.density,
-                # TODO: Quality is deprecated, use density instead
-                quality=self._mesh.quality,
                 maxRunTimeMinutes=self._mesh.max_run_time_minutes,
                 nodeType=self._mesh.node_type,
                 parameters=copy.deepcopy(self._mesh.parameters),

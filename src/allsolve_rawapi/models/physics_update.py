@@ -17,8 +17,9 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from typing_extensions import Annotated
 from allsolve_rawapi.models.physics_field import PhysicsField
 from typing import Optional, Set
 from typing_extensions import Self
@@ -29,8 +30,9 @@ class PhysicsUpdate(BaseModel):
     PhysicsUpdate
     """ # noqa: E501
     target: Optional[StrictStr] = None
+    physics_set_id: Optional[Annotated[str, Field(min_length=1, strict=True)]] = Field(default=None, alias="physicsSetId")
     fields: List[PhysicsField]
-    __properties: ClassVar[List[str]] = ["target", "fields"]
+    __properties: ClassVar[List[str]] = ["target", "physicsSetId", "fields"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -91,6 +93,7 @@ class PhysicsUpdate(BaseModel):
 
         _obj = cls.model_validate({
             "target": obj.get("target"),
+            "physicsSetId": obj.get("physicsSetId"),
             "fields": [PhysicsField.from_dict(_item) for _item in obj["fields"]] if obj.get("fields") is not None else None
         })
         return _obj

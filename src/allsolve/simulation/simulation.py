@@ -9,16 +9,23 @@ import pathlib
 import json
 import time
 import uuid
+import warnings
 from enum import Enum
 
 from allsolve.physics import OutputInteraction
 from allsolve.physics.physic import Field
 from allsolve.override import VariableOverrides
+from allsolve.physics_set import PhysicsSet, resolve_physics_set_id
 from allsolve.simulation.simulation_output_data import CsvExportFormat
 
 from . import SimulationOutputData
 import allsolve_rawapi as rawapi
 
+from ..resource_reservation import (
+    ResourceReservation,
+    build_start_job_request,
+    keep_reservation_alive,
+)
 from ..util import JobError, NotInitializedError, prevent_deleted
 from ..job_mixin import JobMixin
 from ..api import (
@@ -629,7 +636,10 @@ class Simulation(JobMixin):
         project_id = check_for_project_api_key(project_id)
         with get_api() as api:
             simulation = api.create_simulation(
-                authorization=get_auth(), project_id=project_id, template=by_id, body={}
+                authorization=get_auth(),
+                project_id=project_id,
+                template=by_id,
+                new_simulation=rawapi.NewSimulation(),
             )
 
         return cls(project_id, simulation)
@@ -653,7 +663,7 @@ class Simulation(JobMixin):
                 authorization=get_auth(),
                 project_id=project_id,
                 template=simulation_id,
-                body={},
+                new_simulation=rawapi.NewSimulation(),
             )
 
         return cls(project_id, simulation)
@@ -667,6 +677,7 @@ class Simulation(JobMixin):
         solver_mode: rawapi.DistributedSolverMode,
         mesh_id: str | None = None,
         variable_overrides_id: str | None = None,
+        physics_set: PhysicsSet | str | None = None,
         analysis_type: rawapi.AnalysisType | None = None,
         harmonics: List[int] | None = None,
         physics: List[str] | None = None,
@@ -698,9 +709,10 @@ class Simulation(JobMixin):
             solver_mode: The solver mode of the simulation.
             mesh_id: The ID of the mesh to use in the simulation.
             variable_overrides_id: The optional ID of the VariableOverrides to use in the simulation.
+            physics_set: The PhysicsSet to use (PhysicsSet object or ID string).
             analysis_type: The analysis type of the simulation. Defaults to STATIC.
             harmonics: The harmonics of the simulation.
-            physics: List of physics IDs to simulate.
+            physics: Deprecated. List of physics IDs to simulate. Use physics_set instead.
             transient_start_time: The transient start time expression (for transient simulations).
             transient_end_time: The transient end time expression (for transient simulations).
             transient_timestep_size: The transient timestep size expression (for transient simulations).
@@ -723,6 +735,18 @@ class Simulation(JobMixin):
         Returns:
             The created simulation.
         """
+        if physics_set is not None and physics is not None:
+            raise ValueError("Cannot specify both physics_set and physics")
+        if physics is not None and physics_set is None:
+            warnings.simplefilter("always", DeprecationWarning)
+            warnings.warn(
+                "The physics parameter is deprecated; use physics_set instead.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
+            warnings.simplefilter("default", DeprecationWarning)
+
+        physics_set_id = resolve_physics_set_id(physics_set)
         project_id = check_for_project_api_key(project_id)
 
         if analysis_type is None:
@@ -733,10 +757,22 @@ class Simulation(JobMixin):
             harmonics = [2, 3]
 
         with get_api() as api:
+            new_simulation: rawapi.NewSimulation | None = None
+            if (
+                mesh_id is not None
+                or physics_set_id is not None
+                or analysis_type is not None
+            ):
+                new_simulation = rawapi.NewSimulation(
+                    mesh=mesh_id,
+                    physicsSet=physics_set_id,
+                    analysisType=analysis_type,
+                )
+
             simulation = api.create_simulation(
                 authorization=get_auth(),
                 project_id=project_id,
-                body={},
+                new_simulation=new_simulation,
             )
 
             api.update_simulation(
@@ -752,6 +788,7 @@ class Simulation(JobMixin):
                     harmonics=harmonics,
                     mesh=mesh_id,
                     overrideSet=variable_overrides_id,
+                    physicsSet=physics_set_id,
                     physics=physics,
                     internalStartTime=transient_start_time,
                     internalEndTime=transient_end_time,
@@ -818,6 +855,28 @@ class Simulation(JobMixin):
     def id(self) -> str:
         """Get the ID of the simulation."""
         return self._simulation.id
+
+    @property
+    @prevent_deleted
+    def project_id(self) -> str:
+        """Get the ID of the project this simulation belongs to."""
+        return self._project_id
+
+    @property
+    @prevent_deleted
+    def variable_overrides_id(self) -> str | None:
+        """Get the ID of the variable overrides set, or ``None`` if unset."""
+        return self._simulation.override_set
+
+    @property
+    @prevent_deleted
+    def physics_set_id(self) -> str | None:
+        """Get the ID of the physics set, or ``None`` if unset."""
+        if self._uncommitted_update is not None:
+            update_set_id = self._uncommitted_update.physics_set
+            if update_set_id is not None:
+                return update_set_id
+        return self._simulation.physics_set
 
     @property
     @prevent_deleted
@@ -972,6 +1031,28 @@ class Simulation(JobMixin):
             return
 
         self._current_uncommitted_update().override_set = variable_overrides.id
+
+    @property
+    @prevent_deleted
+    def physics_set(self) -> PhysicsSet | None:
+        """Get the physics set of the simulation."""
+        physics_set_id = self.physics_set_id
+        if physics_set_id is None:
+            return None
+        return PhysicsSet.get(
+            physics_set_id=physics_set_id,
+            project_id=self._project_id,
+        )
+
+    @physics_set.setter
+    @prevent_deleted
+    def physics_set(self, physics_set: PhysicsSet | None) -> None:
+        """Set the physics set of the simulation."""
+        if physics_set is None:
+            self._current_uncommitted_update().physics_set = None
+            return
+
+        self._current_uncommitted_update().physics_set = physics_set.id
 
     @property
     @prevent_deleted
@@ -1345,6 +1426,7 @@ class Simulation(JobMixin):
                 nodeType=self.node_type.value,
                 solverMode=self.solver_mode,
                 overrideSet=self._simulation.override_set,
+                physicsSet=self._simulation.physics_set,
                 analysisType=self._simulation.analysis_type,
                 harmonics=self._simulation.harmonics,
                 mesh=self.mesh_id,
@@ -1501,6 +1583,12 @@ class Simulation(JobMixin):
         Returns:
             The status of the processing of the simulation.
         """
+        tracked = self._get_job()
+        if tracked is not None:
+            cached = tracked.get_status()
+            if cached is not Job.NOT_STARTED:
+                return cached
+
         job = self._simulation.simulation_job
         if job is None:
             return Job.NOT_STARTED
@@ -1868,6 +1956,8 @@ class Simulation(JobMixin):
         print_logs: bool = False,
         refresh_delay_s: float = 1,
         on_error: OnError = OnError.IGNORE,
+        *,
+        resource_reservation: ResourceReservation | str | None = None,
     ) -> None:
         """Runs the simulation and returns when the processing is complete.
 
@@ -1879,37 +1969,52 @@ class Simulation(JobMixin):
                 ``OnError.RAISE`` — raises :exc:`JobError` unless status is ``SUCCESS``,
                 ``PARTIAL_SUCCESS``, or ``ABORTED`` (partial results may still be available).
                 ``OnError.STRICT`` — raises :exc:`JobError` unless status is exactly ``SUCCESS``.
+            resource_reservation: Optional reservation for the job
+                (:class:`~allsolve.resource_reservation.ResourceReservation` or id
+                string). Renews the reservation lease for the full duration of this call.
         """
-        self.start()
-        while self.is_running(refresh_delay_s=refresh_delay_s):
+        with keep_reservation_alive(resource_reservation):
+            self.start(resource_reservation=resource_reservation)
+            while self.is_running(refresh_delay_s=refresh_delay_s):
+                if print_logs:
+                    self.print_new_loglines()
             if print_logs:
                 self.print_new_loglines()
-        if print_logs:
-            self.print_new_loglines()
-        status = self.get_status()
-        status_reason = self.get_status_reason() or ""
-        if on_error is OnError.STRICT and status != Job.SUCCESS:
-            raise JobError(
-                f"Simulation '{self.name}' (id={self.id}) failed with status: {status} {status_reason}",
-                status=status,
-                status_reason=status_reason,
-            )
-        elif on_error is OnError.RAISE and status not in (
-            Job.SUCCESS,
-            Job.PARTIAL_SUCCESS,
-            Job.ABORTED,
-        ):
-            raise JobError(
-                f"Simulation '{self.name}' (id={self.id}) failed with status: {status} {status_reason}",
-                status=status,
-                status_reason=status_reason,
-            )
+            status = self.get_status()
+            status_reason = self.get_status_reason() or ""
+            if on_error is OnError.STRICT and status != Job.SUCCESS:
+                raise JobError(
+                    f"Simulation '{self.name}' (id={self.id}) failed with status: {status} {status_reason}",
+                    status=status,
+                    status_reason=status_reason,
+                )
+            elif on_error is OnError.RAISE and status not in (
+                Job.SUCCESS,
+                Job.PARTIAL_SUCCESS,
+                Job.ABORTED,
+            ):
+                raise JobError(
+                    f"Simulation '{self.name}' (id={self.id}) failed with status: {status} {status_reason}",
+                    status=status,
+                    status_reason=status_reason,
+                )
 
     @prevent_deleted
-    def start(self) -> None:
+    def start(
+        self,
+        *,
+        resource_reservation: ResourceReservation | str | None = None,
+    ) -> None:
+        """Start the simulation.
+
+        Parameters:
+            resource_reservation: Optional reservation for the job
+                (:class:`~allsolve.resource_reservation.ResourceReservation` or id
+                string). Assigns reserved compute to the job start request. Does not
+                renew the lease while the job runs; use :meth:`run` or wrap manual
+                polling in :func:`~allsolve.resource_reservation.keep_reservation_alive`.
         """
-        Start the simulation.
-        """
+        start_body = build_start_job_request(resource_reservation)
         with get_api() as api:
             if self._uncommitted_update is not None:
                 api.update_simulation(
@@ -1924,8 +2029,14 @@ class Simulation(JobMixin):
                 authorization=get_auth(),
                 project_id=self._project_id,
                 simulation_id=self.id,
-                body={},
+                start_job_request=start_body,
             )
+
+        simulation_job = self._simulation.simulation_job
+        if simulation_job is not None:
+            self._job = Job(self._project_id, simulation_job.id)
+        else:
+            self._job = None
 
     @prevent_deleted
     def abort(self) -> None:
@@ -2123,7 +2234,7 @@ class Simulation(JobMixin):
                 authorization=get_auth(),
                 project_id=self._project_id,
                 template=self.id,
-                body={},
+                new_simulation=rawapi.NewSimulation(),
             )
 
         return self.__class__(self._project_id, simulation)

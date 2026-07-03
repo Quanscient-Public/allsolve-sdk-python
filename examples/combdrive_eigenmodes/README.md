@@ -6,49 +6,28 @@ The results are visualized using pyvista library.
 The demo project is based on example case:
 https://allsolve.quanscient.com/documentation/guides/example-cases/mems/mems-001-combdrive-eigenmodes
 
-# Installation
+# Prerequisites
 
-You need to have python3 and virtualenv module "venv" installed. Copy the allsolve
-wheel package to the working directory. Then, create a new virtualenv and install
-the dependencies with the following:
-
-```
-$ python3 -m venv venv
-$ source venv/bin/activate
-(venv) $ pip install -U pip
-(venv) $ pip install -r requirements.txt
-```
+Follow [Installation](../README.md#installation) and [Running](../README.md#running)
+in the parent example README to set up Python, install the Allsolve SDK,
+and configure credentials.
 
 # Running
 
-Create Organization API key via Allsolve web UI.
-Use "Create key" action from "Settings" / "Organization" / "API keys" menu.
-
-Then run:
+From the `examples/` directory:
 
 ```
-(venv) $ export ALLSOLVE_ACCESS_KEY=<your key id>
-(venv) $ export ALLSOLVE_SECRET_KEY=<your secret key>
-(venv) $ python combdrive_eigenmodes.py
+(venv) $ python combdrive_eigenmodes/combdrive_eigenmodes.py
 ```
 
-Optionally you can create .env file and copy the key and secret there.
+When prompted `Delete project? [Y/n]`, answer **`n`** if you plan to run the visualize
+script below.
 
-.env file:
+# Visualization
 
-```
-ALLSOLVE_ACCESS_KEY=<your key id>
-ALLSOLVE_SECRET_KEY=<your secret key>
-```
-
-Then run the script:
+After running the simulation, install this example's dependencies and run the visualization script:
 
 ```
-(venv) $ python combdrive_eigenmodes.py
-```
-
-After running the simulation you can also run the visualization script in interactive mode:
-
-```
+(venv) $ pip install -r requirements.txt
 (venv) $ python visualize_combdrive_eigenmodes.py --interactive
 ```

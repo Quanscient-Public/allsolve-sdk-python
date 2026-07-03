@@ -198,7 +198,7 @@ class Geometry(JobMixin):
             response = api.start_processing_geometry(
                 authorization=get_auth(),
                 project_id=project_id,
-                body={},
+                start_job_request=rawapi.StartJobRequest(),
             )
             job_id = response.job_id
             self._job = Job(self._project_id, job_id)

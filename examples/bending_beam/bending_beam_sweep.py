@@ -33,15 +33,20 @@ def main():
     build_geometry(project, verbose=verbose)
     regions = create_regions(project)
     create_materials(project, regions)
-    create_physics(project, regions)
+    physics_set = create_physics(project, regions)
     sweep = create_sweep(project)
     mesh = create_mesh(project, sweep)
-    sim = create_simulation(project, mesh, sweep)
+    sim = create_simulation(project, mesh, sweep, physics_set)
     run_mesh_and_simulation(mesh, sim)
     print_results(sim)
 
     # Store the project id in the cache to be used in visualize_bending_beam_sweep_results.py script
     client.set_current_project(project)
+
+    # If you are not running the visualize_bending_beam_sweep_results.py script,
+    # you can delete the project to free up project quota:
+    # client.set_current_project(None)
+    # project.delete()
 
 
 def create_variables(project: allsolve.Project) -> None:
@@ -195,8 +200,11 @@ def create_materials(project: allsolve.Project, regions: SimpleNamespace) -> Non
     )
 
 
-def create_physics(project: allsolve.Project, regions: SimpleNamespace) -> None:
-    solid_mechanics_physics = project.add_physics(allsolve.Physics.SolidMechanics())
+def create_physics(
+    project: allsolve.Project, regions: SimpleNamespace
+) -> allsolve.PhysicsSet:
+    physics_set = project.get_default_physics_set()
+    solid_mechanics_physics = physics_set.add_physics(allsolve.Physics.SolidMechanics())
     solid_mechanics_physics.add_interactions(
         [
             # Clamp beam at the clamp surface
@@ -212,6 +220,7 @@ def create_physics(project: allsolve.Project, regions: SimpleNamespace) -> None:
             ),
         ]
     )
+    return physics_set
 
 
 def create_sweep(project: allsolve.Project) -> allsolve.VariableOverrides:
@@ -242,7 +251,10 @@ def create_mesh(
 
 
 def create_simulation(
-    project: allsolve.Project, mesh: allsolve.Mesh, sweep: allsolve.VariableOverrides
+    project: allsolve.Project,
+    mesh: allsolve.Mesh,
+    sweep: allsolve.VariableOverrides,
+    physics_set: allsolve.PhysicsSet,
 ) -> allsolve.Simulation:
     # Create simulation
     print("Creating simulation")
@@ -254,6 +266,7 @@ def create_simulation(
         mesh=mesh.id,
         # Add variable overrides to the simulation
         variable_overrides=sweep.id,
+        physics_set=physics_set,
     )
 
     # Add outputs to the simulation

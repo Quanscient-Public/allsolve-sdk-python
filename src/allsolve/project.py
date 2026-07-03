@@ -22,6 +22,7 @@ import warnings
 from .job import Job
 from .material import Material, MaterialProperty
 from .override import VariableOverrides
+from .physics_set import PhysicsSet
 import allsolve_rawapi as rawapi
 from .mesh import Mesh, MeshSettings
 from .util import NotProjectAPIKeyError, deprecated, prevent_deleted
@@ -174,6 +175,7 @@ class Project:
         geometry_pipeline_version: GeometryPipelineVersion = GeometryPipelineVersion.V2,
         dimension: int = 3,
         geometry_no_implicit_fragment: bool = False,
+        team_id: str | None = None,
     ) -> Self:
         """
         Create a new project.
@@ -190,6 +192,13 @@ class Project:
                 By default, the final Fragment All operation splits intersecting geometric
                 entities into non-intersecting, disjoint parts. Setting parameter to True
                 prevents automatic splitting, preserving the original geometric entities as-is.
+            team_id: Optional team to assign the project to. When team credits enforcement
+                is active and the API user belongs to more than one team with active team
+                credits, this is required. When omitted and the user belongs to exactly one
+                such team, that team is assigned automatically. The team must have active
+                reserved quota and the API user must be a member of the team. Use
+                :func:`~allsolve.get_teams` to discover valid team ids.
+
         Returns:
             The created project.
 
@@ -214,6 +223,7 @@ class Project:
                     geometryPipelineVersion=geometry_pipeline_version.value,
                     dimension=dimension,
                     geometryNoImplicitFragment=geometry_no_implicit_fragment,
+                    teamId=team_id,
                 ),
             )
 
@@ -270,6 +280,12 @@ class Project:
     def labels(self) -> List[str]:
         """Get the labels of the project."""
         return self._project.labels
+
+    @property
+    @prevent_deleted
+    def team_id(self) -> str | None:
+        """Get the team assigned to the project, if any."""
+        return self._project.team_id
 
     @property
     @prevent_deleted
@@ -360,6 +376,7 @@ class Project:
             self._uncommitted_update = rawapi.NewProject(
                 name=self.name,
                 description=self.description,
+                teamId=self._project.team_id,
             )
 
         return self._uncommitted_update
@@ -711,32 +728,27 @@ class Project:
         """
         return Physic.get_all(project_id=self._project.id)
 
+    @deprecated("Use PhysicsSet.add_physics() instead.")
     @prevent_deleted
     def add_physics(self, physic: Physic) -> Physic:
         """
-        Add a physics definition to the project.
+        Add a physics definition to the project's default physics set.
+
+        .. deprecated::
+            Use :meth:`PhysicsSet.add_physics` instead.
 
         Example::
 
-            solid_mechanics_physics = project.add_physics(
+            physics_set = project.get_default_physics_set()
+            solid_mechanics_physics = physics_set.add_physics(
                 allsolve.Physics.SolidMechanics(
                     target=solid_mechanics_region
                 )
             )
-            solid_mechanics_physics.add_interactions(
-                [
-                    allsolve.Interaction.SolidMechanicsClamp(
-                        name="Clamp",
-                        target=clamp_surface_region,
-                    ),
-                ]
-            )
         """
         if self._project.id is None:
             raise ValueError("Project must have an id before adding physics")
-        if not isinstance(physic, Physic):
-            raise ValueError("physic must be a Physic instance")
-        return physic._create_bound(project_id=self._project.id)
+        return PhysicsSet.get_default(project_id=self._project.id).add_physics(physic)
 
     @prevent_deleted
     def get_simulation(self, simulation_id: str) -> Simulation:
@@ -773,6 +785,7 @@ class Project:
         solver_mode: rawapi.DistributedSolverMode,
         mesh_id: str | None = None,
         variable_overrides_id: str | None = None,
+        physics_set: PhysicsSet | str | None = None,
         analysis_type: rawapi.AnalysisType | None = None,
         harmonics: list[int] | None = None,
         physics: list[str] | None = None,
@@ -801,6 +814,7 @@ class Project:
             project_id=self._project.id,
             mesh_id=mesh_id,
             variable_overrides_id=variable_overrides_id,
+            physics_set=physics_set,
             analysis_type=analysis_type,
             harmonics=harmonics,
             physics=physics,
@@ -851,6 +865,7 @@ class Project:
         solver_mode: rawapi.DistributedSolverMode = rawapi.DistributedSolverMode.DIRECT,
         mesh: "Mesh | str | None" = None,
         variable_overrides: "VariableOverrides | str | None" = None,
+        physics_set: PhysicsSet | str | None = None,
         physics: list[str] | None = None,
         solver_tolerance: str | None = None,
         nonlinear_solver_tolerance: str | None = None,
@@ -867,7 +882,8 @@ class Project:
             solver_mode: The solver mode of the simulation.
             mesh: The mesh to use (Mesh object or ID string).
             variable_overrides: The variable overrides to use (VariableOverrides object or ID string).
-            physics: List of physics IDs to simulate.
+            physics_set: The PhysicsSet to use (PhysicsSet object or ID string).
+            physics: Deprecated. List of physics IDs to simulate. Use physics_set instead.
             solver_tolerance: The solver tolerance expression (used when solver_mode is iterative).
             nonlinear_solver_tolerance: The nonlinear solver tolerance expression.
             nonlinear_solver_max_iterations: The nonlinear solver maximum iterations expression.
@@ -886,6 +902,7 @@ class Project:
             variable_overrides_id=self._resolve_variable_overrides_id(
                 variable_overrides
             ),
+            physics_set=physics_set,
             physics=physics,
             solver_tolerance=solver_tolerance,
             nonlinear_solver_tolerance=nonlinear_solver_tolerance,
@@ -905,6 +922,7 @@ class Project:
         num_fft_samples: int | None = None,
         mesh: "Mesh | str | None" = None,
         variable_overrides: "VariableOverrides | str | None" = None,
+        physics_set: PhysicsSet | str | None = None,
         physics: list[str] | None = None,
         solver_tolerance: str | None = None,
         nonlinear_solver_tolerance: str | None = None,
@@ -925,7 +943,8 @@ class Project:
             solver_mode: The solver mode of the simulation.
             mesh: The mesh to use (Mesh object or ID string).
             variable_overrides: The variable overrides to use (VariableOverrides object or ID string).
-            physics: List of physics IDs to simulate.
+            physics_set: The PhysicsSet to use (PhysicsSet object or ID string).
+            physics: Deprecated. List of physics IDs to simulate. Use physics_set instead.
             solver_tolerance: The solver tolerance expression (used when solver_mode is iterative).
             nonlinear_solver_tolerance: The nonlinear solver tolerance expression.
             nonlinear_solver_max_iterations: The nonlinear solver maximum iterations expression.
@@ -946,6 +965,7 @@ class Project:
             variable_overrides_id=self._resolve_variable_overrides_id(
                 variable_overrides
             ),
+            physics_set=physics_set,
             physics=physics,
             solver_tolerance=solver_tolerance,
             nonlinear_solver_tolerance=nonlinear_solver_tolerance,
@@ -966,6 +986,7 @@ class Project:
         num_fft_samples: int | None = None,
         mesh: "Mesh | str | None" = None,
         variable_overrides: "VariableOverrides | str | None" = None,
+        physics_set: PhysicsSet | str | None = None,
         physics: list[str] | None = None,
         solver_tolerance: str | None = None,
         nonlinear_solver_tolerance: str | None = None,
@@ -987,7 +1008,8 @@ class Project:
             solver_mode: The solver mode of the simulation.
             mesh: The mesh to use (Mesh object or ID string).
             variable_overrides: The variable overrides to use (VariableOverrides object or ID string).
-            physics: List of physics IDs to simulate.
+            physics_set: The PhysicsSet to use (PhysicsSet object or ID string).
+            physics: Deprecated. List of physics IDs to simulate. Use physics_set instead.
             solver_tolerance: The solver tolerance expression (used when solver_mode is iterative).
             nonlinear_solver_tolerance: The nonlinear solver tolerance expression.
             nonlinear_solver_max_iterations: The nonlinear solver maximum iterations expression.
@@ -1009,6 +1031,7 @@ class Project:
             variable_overrides_id=self._resolve_variable_overrides_id(
                 variable_overrides
             ),
+            physics_set=physics_set,
             physics=physics,
             solver_tolerance=solver_tolerance,
             nonlinear_solver_tolerance=nonlinear_solver_tolerance,
@@ -1031,6 +1054,7 @@ class Project:
         target_frequency: str | None = None,
         mesh: "Mesh | str | None" = None,
         variable_overrides: "VariableOverrides | str | None" = None,
+        physics_set: PhysicsSet | str | None = None,
         physics: list[str] | None = None,
         solver_tolerance: str | None = None,
         nonlinear_solver_tolerance: str | None = None,
@@ -1054,7 +1078,8 @@ class Project:
             solver_mode: The solver mode of the simulation.
             mesh: The mesh to use (Mesh object or ID string).
             variable_overrides: The variable overrides to use (VariableOverrides object or ID string).
-            physics: List of physics IDs to simulate.
+            physics_set: The PhysicsSet to use (PhysicsSet object or ID string).
+            physics: Deprecated. List of physics IDs to simulate. Use physics_set instead.
             solver_tolerance: The solver tolerance expression (used when solver_mode is iterative).
             nonlinear_solver_tolerance: The nonlinear solver tolerance expression.
             nonlinear_solver_max_iterations: The nonlinear solver maximum iterations expression.
@@ -1078,6 +1103,7 @@ class Project:
             variable_overrides_id=self._resolve_variable_overrides_id(
                 variable_overrides
             ),
+            physics_set=physics_set,
             physics=physics,
             solver_tolerance=solver_tolerance,
             nonlinear_solver_tolerance=nonlinear_solver_tolerance,
@@ -1099,6 +1125,7 @@ class Project:
         eigenmode_solver_max_iterations: str | None = None,
         mesh: "Mesh | str | None" = None,
         variable_overrides: "VariableOverrides | str | None" = None,
+        physics_set: PhysicsSet | str | None = None,
         physics: list[str] | None = None,
         solver_tolerance: str | None = None,
     ) -> Simulation:
@@ -1118,7 +1145,8 @@ class Project:
             solver_mode: The solver mode of the simulation.
             mesh: The mesh to use (Mesh object or ID string).
             variable_overrides: The variable overrides to use (VariableOverrides object or ID string).
-            physics: List of physics IDs to simulate.
+            physics_set: The PhysicsSet to use (PhysicsSet object or ID string).
+            physics: Deprecated. List of physics IDs to simulate. Use physics_set instead.
             solver_tolerance: The solver tolerance expression (used when solver_mode is iterative).
 
         Returns:
@@ -1138,6 +1166,7 @@ class Project:
             variable_overrides_id=self._resolve_variable_overrides_id(
                 variable_overrides
             ),
+            physics_set=physics_set,
             physics=physics,
             solver_tolerance=solver_tolerance,
             project_id=self._project.id,
@@ -1453,6 +1482,66 @@ class Project:
         return InterpolatedFunction.get_all(project_id=self._project.id)
 
     @prevent_deleted
+    def create_variable_from_library(self, name: str) -> Variable:
+        """
+        Create a variable from the library by name.
+
+        Parameters:
+            name: The name of the library variable to copy.
+
+        Returns:
+            The created variable.
+
+        Raises:
+            ValueError: If no library variable with the given name is found.
+        """
+        return Variable.create_from_library(
+            name=name,
+            project_id=self._project.id,
+        )
+
+    @prevent_deleted
+    def create_function_from_library(self, name: str) -> Function:
+        """
+        Create a function from the library by name.
+
+        Parameters:
+            name: The name of the library function to copy.
+
+        Returns:
+            The created function.
+
+        Raises:
+            ValueError: If no library function with the given name is found.
+        """
+        return Function.create_from_library(
+            name=name,
+            project_id=self._project.id,
+        )
+
+    @prevent_deleted
+    def create_interpolated_function_from_library(
+        self, name: str
+    ) -> InterpolatedFunction:
+        """
+        Create an interpolated function from the library by name.
+
+        Parameters:
+            name: The name of the library interpolated function to copy.
+
+        Returns:
+            The created interpolated function.
+
+        Raises:
+            ValueError: If no library interpolated function with the given name
+                is found.
+        """
+        return InterpolatedFunction.create_from_library(
+            name=name,
+            project_id=self._project.id,
+        )
+
+    @prevent_deleted
     def create_variable_overrides(
         self,
         name: str,
@@ -1495,6 +1584,45 @@ class Project:
         return VariableOverrides.get_all(project_id=self._project.id)
 
     @prevent_deleted
+    def get_physics_sets(self) -> List[PhysicsSet]:
+        """
+        Get all physics sets in the project.
+        """
+        return PhysicsSet.get_all(project_id=self._project.id)
+
+    @prevent_deleted
+    def get_default_physics_set(self) -> PhysicsSet:
+        """
+        Get the default physics set for the project.
+
+        Returns:
+            The default PhysicsSet.
+        """
+        return PhysicsSet.get_default(project_id=self._project.id)
+
+    @prevent_deleted
+    def create_physics_set(
+        self,
+        name: str,
+        description: str = "",
+    ) -> PhysicsSet:
+        """
+        Create a physics set in the project.
+
+        Args:
+            name: The name of the physics set.
+            description: Optional description of the physics set.
+
+        Returns:
+            The created PhysicsSet.
+        """
+        return PhysicsSet.create(
+            name=name,
+            description=description or None,
+            project_id=self._project.id,
+        )
+
+    @prevent_deleted
     def get_materials(self) -> List[Material]:
         """
         Get all materials in the project.
@@ -1531,6 +1659,13 @@ class Project:
         speed_of_sound: str | float | None = None,
         stiffness_damping_coefficient: str | float | None = None,
         thermal_conductivity: str | float | List[List[float | str]] | None = None,
+        longitudinal_attenuation: str | float | None = None,
+        shear_attenuation: str | float | None = None,
+        viscous_damping: (
+            MaterialProperty.ViscousDampingBulkViscosityShearViscosity
+            | MaterialProperty.ViscousDampingLongitudinalAttenuationShearAttenuation
+            | None
+        ) = None,
         orientation: str | Tuple[float | int, float | int, float | int] | None = None,
         enabled: str | None = None,
     ) -> Material:
@@ -1576,6 +1711,13 @@ class Project:
             thermal_conductivity: Optional thermal conductivity. Pass a float or string
                 expression for isotropic, or a 3x3 matrix (list of 3 lists of 3
                 floats/strings) for anisotropic.
+            longitudinal_attenuation: Optional longitudinal attenuation. Can be a float
+                or string expression.
+            shear_attenuation: Optional shear attenuation. Can be a float or string
+                expression.
+            viscous_damping: Optional viscous damping definition. Accepts one of:
+                - MaterialProperty.ViscousDampingBulkViscosityShearViscosity
+                - MaterialProperty.ViscousDampingLongitudinalAttenuationShearAttenuation
             orientation: Optional orientation of the material.
                 Can be a tuple of 3 floats or a string like "[90; 0; 0]"
             enabled: Optional enabled expression of the material.
@@ -1677,6 +1819,16 @@ class Project:
                 properties.append(
                     MaterialProperty.ThermalConductivity(value=thermal_conductivity)
                 )
+        if longitudinal_attenuation is not None:
+            properties.append(
+                MaterialProperty.LongitudinalAttenuation(value=longitudinal_attenuation)
+            )
+        if shear_attenuation is not None:
+            properties.append(
+                MaterialProperty.ShearAttenuation(value=shear_attenuation)
+            )
+        if viscous_damping is not None:
+            properties.append(viscous_damping)
 
         return Material.create(
             project_id=self._project.id,

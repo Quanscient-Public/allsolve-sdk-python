@@ -1,6 +1,7 @@
 name: test something
 description: "" # descriptions are optional in all objects
 dimension: 3
+# teamId: my-team-id  # optional; assign project to a team when team credits enforcement is active
 # geometry: # deprecated, for geometry pipeline version V1
 #   type: step
 #   filename: ./cube.step
@@ -407,8 +408,35 @@ materials:
   #   name: New material 2
   #   import: Air # Exact name from Allsolve material library
 
-# Physics definitions (commented reference examples)
+# Physics sets with nested physics definitions.
+# Each physics set entry contains its own 'physics' list.
+# physicsSets:
+#   - name: Physics 1  # default set
+#     physics:
+#       - type: solidMechanics
+#         target: cubes
+#         interactions:
+#           - type: clamp
+#             target: clamp_surface
+#           - type: load
+#             target: top_surface
+#             force: "[0; 0; -1000]"
+#   - name: physics_set_2
+#     description: Another physics set
+#     physics:
+#       - type: heatTransfer
+#         target: cubes
+#
+# If you only use the default physics set, you may place physics at the root level instead of under physicsSets.
+# This legacy format is equivalent to a single default physics set:
 # physics:
+#   - type: solidMechanics
+#     target: cubes
+#     interactions:
+#       - type: clamp
+#         target: clamp_surface
+#
+# Full physics type and interaction reference (commented examples)
 #   # acousticWaves
 #   - type: acousticWaves
 #     target: cubes # optional, default is everything
@@ -467,7 +495,7 @@ materials:
 #       - type: electromagneticWavesAbsorbingBoundary # target: some_surface_region
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
 #         enabled: true # optional for every interaction, default is true
-#       - type: electromagneticWavesBoundaryImpedance # target: some_surface_region; electromagneticWavesBoundaryImpedance: 377
+#       - type: electromagneticWavesBoundaryAdmittance # target: some_surface_region; electromagneticWavesBoundaryAdmittanceType: electromagneticWavesBoundaryAdmittanceTypeAdmittance; electromagneticWavesBoundaryAdmittanceYr: 1; electromagneticWavesBoundaryAdmittanceYi: 0
 #       - type: electromagneticWavesConstraint # target: some_surface_region; electromagneticWavesConstraint: "[0; 0; 0]"
 #       - type: electromagneticWavesDielectricLoss # target: some_surface_region; electromagneticWavesDielectricLossLossTangent: 0.01
 #       - type: electromagneticWavesEigenmodePort # port_target: port_region, mode_pec: pec_region; electromagneticWavesEigenmodePortNumEigenmodes: 5; electromagneticWavesEigenmodePortDrive: 1
@@ -639,6 +667,8 @@ meshes:
     variableOverride: pres_sweep
     #meshSizeMax: 0.1 # optional, defaults to no max
     #meshSizeMin: 0.01 # optional, defaults to no min
+    #minSizeFactor: 0.0001 # optional, defaults to 0.0001
+    #maxSizeFactor: 1 # optional, defaults to 1
 simulations:
   - name: test_simulation
     description: Test simulation description
@@ -646,6 +676,7 @@ simulations:
     solverMode: direct # optional, "direct" or "iterative", defaults to "direct"
     mesh: test_mesh # optional, name of mesh to use
     variableOverride: pres_sweep # optional, name of variable override to use
+    # physicsSet: Physics 1
     runtime: # optional
       nodeType: CORES_1_16GB # optional, defaults to CORES_3_10GB_FAST_START
       # Available node types: CORES_1_16GB, CORES_2_32GB, CORES_3_10GB_FAST_START,

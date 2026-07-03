@@ -10,6 +10,7 @@ This module provides functionality to export project data including:
 - Geometries (CAD elements)
 - Regions (basic, computed, region rules)
 - Materials
+- Physics sets
 - Physics (with nested interactions)
 - Variable overrides
 - Meshes
@@ -74,7 +75,7 @@ from allsolve.simulation import CPU, FieldInitialization
 import allsolve_rawapi as rawapi
 
 from allsolve.expression import Variable
-from allsolve.physics.physic import Physic
+from allsolve.physics import Physic
 from allsolve.project import Project
 from allsolve.simulation import Simulation
 from allsolve.export_format import (
@@ -962,6 +963,17 @@ def _extract_material_properties(properties: list, mat_dict: dict[str, Any]) -> 
             "stiffnessDampingCoefficient"
         ].value
 
+    # Longitudinal / shear attenuation (standalone, not part of viscous damping)
+    if (
+        "longitudinalAttenuation" in props_by_def
+        and "viscousDamping" not in props_by_def
+    ):
+        mat_dict["longitudinalAttenuation"] = props_by_def[
+            "longitudinalAttenuation"
+        ].value
+    if "shearAttenuation" in props_by_def and "viscousDamping" not in props_by_def:
+        mat_dict["shearAttenuation"] = props_by_def["shearAttenuation"].value
+
     # Coefficient of thermal expansion
     if "coefficientOfThermalExpansion" in props_by_def:
         prop = props_by_def["coefficientOfThermalExpansion"]
@@ -1066,6 +1078,32 @@ def _extract_material_properties(properties: list, mat_dict: dict[str, Any]) -> 
         if prony_dict:
             mat_dict["pronySeries"] = prony_dict
 
+    # Viscous damping
+    if "viscousDamping" in props_by_def:
+        prop = props_by_def["viscousDamping"]
+        alternative = getattr(prop, "alternative", "") or ""
+
+        if "BulkViscosityShearViscosity" in alternative:
+            viscous_dict = {}
+            if "bulkViscosity" in props_by_def:
+                viscous_dict["bulkViscosity"] = props_by_def["bulkViscosity"].value
+            if "shearViscosity" in props_by_def:
+                viscous_dict["shearViscosity"] = props_by_def["shearViscosity"].value
+            if viscous_dict:
+                mat_dict["viscousDamping"] = viscous_dict
+        elif "LongitudinalAttenuationShearAttenuation" in alternative:
+            viscous_dict = {}
+            if "longitudinalAttenuation" in props_by_def:
+                viscous_dict["longitudinalAttenuation"] = props_by_def[
+                    "longitudinalAttenuation"
+                ].value
+            if "shearAttenuation" in props_by_def:
+                viscous_dict["shearAttenuation"] = props_by_def[
+                    "shearAttenuation"
+                ].value
+            if viscous_dict:
+                mat_dict["viscousDamping"] = viscous_dict
+
 
 def _export_variable_overrides(
     project: Project, variable_id_to_name: dict[str, str]
@@ -1142,6 +1180,10 @@ def _export_meshes(
             mesh_dict["useMeshRefiner"] = mesh.use_mesh_refiner
         if mesh.scale_factor is not None:
             mesh_dict["scaleFactor"] = mesh.scale_factor
+        if mesh.min_size_factor is not None:
+            mesh_dict["minSizeFactor"] = mesh.min_size_factor
+        if mesh.max_size_factor is not None:
+            mesh_dict["maxSizeFactor"] = mesh.max_size_factor
         if mesh.curvature_enhancement is not None:
             mesh_dict["curvatureEnhancement"] = mesh.curvature_enhancement
         if mesh.curved_mesh:
@@ -1391,11 +1433,120 @@ def _export_interactions(
     return result
 
 
-def _export_physics(
+def _export_physics_sets(
     project: Project,
     region_id_to_name: dict[str, str],
+) -> tuple[list[dict], dict[str, str], dict[str, str], str | None, set[str]]:
+    """
+    Export physics sets with their physics nested under each set.
+
+    Returns:
+        Tuple of (list of physics set dicts with nested physics,
+                  physics_set_id_to_name mapping,
+                  physics_id_to_definition mapping,
+                  default_physics_set_id,
+                  set of physics-set IDs that were exported (non-empty sets))
+    """
+    physics_sets = project.get_physics_sets()
+    physics_list = project.get_physics()
+
+    set_id_to_name: dict[str, str] = {}
+    default_set_id: str | None = None
+    physics_id_to_definition: dict[str, str] = {}
+
+    for p in physics_list:
+        physics_id_to_definition[p.id] = p.definition
+
+    name_to_first_id: dict[str, str] = {}
+    duplicate_ids: set[str] = set()
+    for physics_set in sorted(physics_sets, key=lambda ps: (not ps.is_default,)):
+        resolved_name = physics_set.name
+        if resolved_name is None:
+            continue
+        first_id = name_to_first_id.get(resolved_name)
+        if first_id is not None and first_id != physics_set.id:
+            warnings.warn(
+                f"Multiple physics sets share the name '{resolved_name}'; "
+                f"using the first (id={first_id}), ignoring id={physics_set.id}.",
+                stacklevel=2,
+            )
+            duplicate_ids.add(physics_set.id)
+        else:
+            name_to_first_id.setdefault(resolved_name, physics_set.id)
+
+    ordered_sets: list[tuple[str, str | None, str | None]] = []
+    for physics_set in physics_sets:
+        resolved_name = physics_set.name
+        if physics_set.is_default:
+            default_set_id = physics_set.id
+            if physics_set.id not in duplicate_ids:
+                if resolved_name is not None:
+                    set_id_to_name[physics_set.id] = resolved_name
+                ordered_sets.insert(
+                    0, (physics_set.id, resolved_name, physics_set.description)
+                )
+        else:
+            if resolved_name is None:
+                continue
+            set_id_to_name[physics_set.id] = resolved_name
+            if physics_set.id not in duplicate_ids:
+                ordered_sets.append(
+                    (physics_set.id, resolved_name, physics_set.description)
+                )
+
+    physics_by_set: dict[str, list[dict]] = {}
+    for physic in physics_list:
+        ps_id = physic.physics_set_id
+        p_dict: dict[str, Any] = {"type": physic.definition}
+
+        target_id = physic.target_region_id
+        if target_id:
+            p_dict["target"] = region_id_to_name.get(target_id, target_id)
+
+        interactions = _export_interactions(physic, region_id_to_name)
+        if interactions:
+            p_dict["interactions"] = interactions
+
+        physics_by_set.setdefault(ps_id, []).append(p_dict)
+
+    result: list[dict] = []
+    exported_set_ids: set[str] = set()
+    for set_id, name, description in ordered_sets:
+        nested_physics = physics_by_set.get(set_id, [])
+        if not nested_physics:
+            continue
+        exported_set_ids.add(set_id)
+        ps_dict: dict[str, Any] = {}
+        if name is not None:
+            ps_dict["name"] = name
+        if description:
+            ps_dict["description"] = description
+        ps_dict["physics"] = nested_physics
+        result.append(ps_dict)
+
+    return (
+        result,
+        set_id_to_name,
+        physics_id_to_definition,
+        default_set_id,
+        exported_set_ids,
+    )
+
+
+def _export_physics(  # pyright: ignore[reportUnusedFunction]
+    project: Project,
+    region_id_to_name: dict[str, str],
+    physics_set_id_to_name: dict[str, str] | None = None,
+    default_physics_set_id: str | None = None,
 ) -> list[dict]:
-    """Export all physics (with nested interactions) from a project."""
+    """Export all physics (with nested interactions) from a project.
+
+    Kept for backwards compatibility with tests; the main export path now uses
+    _export_physics_sets which nests physics under their sets.
+    """
+    if physics_set_id_to_name is None:
+        physics_set_id_to_name = {}
+
     physics_list = project.get_physics()
     result: list[dict] = []
 
@@ -1405,6 +1556,11 @@ def _export_physics(
         target_id = physic.target_region_id
         if target_id:
             p_dict["target"] = region_id_to_name.get(target_id, target_id)
+
+        physics_set_id = physic.physics_set_id
+        ps_name = physics_set_id_to_name.get(physics_set_id)
+        if ps_name is not None:
+            p_dict["physicsSet"] = ps_name
 
         interactions = _export_interactions(physic, region_id_to_name)
         if interactions:
@@ -1560,6 +1716,9 @@ def _export_simulations(
     override_id_to_name: dict[str, str],
     physics_id_to_type: dict[str, str] | None = None,
     region_id_to_name: dict[str, str] | None = None,
+    physics_set_id_to_name: dict[str, str] | None = None,
+    default_physics_set_id: str | None = None,
+    exported_physics_set_ids: set[str] | None = None,
 ) -> list[dict]:
     """Export all simulations from a project."""
     if physics_id_to_type is None:
@@ -1604,6 +1763,16 @@ def _export_simulations(
             vo_name = override_id_to_name.get(vo.id, vo.name)
             sim_dict["variableOverride"] = vo_name
 
+        physics_set_id = sim.physics_set_id
+        if physics_set_id is not None and physics_set_id_to_name is not None:
+            if (
+                exported_physics_set_ids is None
+                or physics_set_id in exported_physics_set_ids
+            ):
+                ps_name = physics_set_id_to_name.get(physics_set_id)
+                if ps_name is not None:
+                    sim_dict["physicsSet"] = ps_name
+
         node_type = sim.node_type
         if node_type is not None and node_type != CPU.DEFAULT:
             sim_dict["runtime"] = {
@@ -1611,7 +1780,7 @@ def _export_simulations(
                 "nodeCount": sim.node_count or 1,
             }
 
-        if sim.physics:
+        if sim.physics and "physicsSet" not in sim_dict:
             sim_dict["physics"] = [
                 physics_id_to_type.get(pid, pid) for pid in sim.physics
             ]
@@ -1769,6 +1938,8 @@ def export_project_data(
     result["dimension"] = project.dimension
     if project.labels:
         result["labels"] = project.labels
+    if project.team_id is not None:
+        result["teamId"] = project.team_id
     if project.geometry_no_implicit_fragment:
         result["geometryNoImplicitFragment"] = project.geometry_no_implicit_fragment
     if project.pml_num_layers is not None or project.pml_thickness is not None:
@@ -1812,15 +1983,16 @@ def export_project_data(
     if materials:
         result["materials"] = materials
 
-    # Physics and interactions
-    physics_id_to_definition: dict[str, str] = {}
-    physics_list = project.get_physics()
-    for p in physics_list:
-        physics_id_to_definition[p.id] = p.definition
-
-    physics = _export_physics(project, region_id_to_name)
-    if physics:
-        result["physics"] = physics
+    # Physics sets (with nested physics)
+    (
+        physics_sets,
+        physics_set_id_to_name,
+        physics_id_to_definition,
+        default_physics_set_id,
+        exported_physics_set_ids,
+    ) = _export_physics_sets(project, region_id_to_name)
+    if physics_sets:
+        result["physicsSets"] = physics_sets
 
     # Variable overrides
     variable_overrides, override_id_to_name = _export_variable_overrides(
@@ -1843,6 +2015,9 @@ def export_project_data(
             override_id_to_name,
             physics_id_to_definition,
             region_id_to_name,
+            physics_set_id_to_name=physics_set_id_to_name,
+            default_physics_set_id=default_physics_set_id,
+            exported_physics_set_ids=exported_physics_set_ids,
         )
         if simulations:
             result["simulations"] = simulations

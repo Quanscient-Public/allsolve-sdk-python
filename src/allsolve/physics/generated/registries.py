@@ -68,7 +68,7 @@ from .interactions import (
     ElectromagneticWavesLumpVI,
     ElectromagneticWavesPeriodicity,
     ElectromagneticWavesAbsorbingBoundary,
-    ElectromagneticWavesBoundaryImpedance,
+    ElectromagneticWavesBoundaryAdmittance,
     ElectrostaticsConstraint,
     ElectrostaticsPiezoelectricity,
     ElectrostaticsLump,
@@ -204,7 +204,7 @@ INTERACTION_CLASSES: list[type[Interaction]] = [
     ElectromagneticWavesLumpVI,
     ElectromagneticWavesPeriodicity,
     ElectromagneticWavesAbsorbingBoundary,
-    ElectromagneticWavesBoundaryImpedance,
+    ElectromagneticWavesBoundaryAdmittance,
     ElectrostaticsConstraint,
     ElectrostaticsPiezoelectricity,
     ElectrostaticsLump,
@@ -387,7 +387,7 @@ ELASTIC_WAVES_INTERACTIONS: dict[str, type[Interaction]] = {
 
 ELECTROMAGNETIC_WAVES_INTERACTIONS: dict[str, type[Interaction]] = {
     "electromagneticWavesAbsorbingBoundary": ElectromagneticWavesAbsorbingBoundary,
-    "electromagneticWavesBoundaryImpedance": ElectromagneticWavesBoundaryImpedance,
+    "electromagneticWavesBoundaryAdmittance": ElectromagneticWavesBoundaryAdmittance,
     "electromagneticWavesConstraint": ElectromagneticWavesConstraint,
     "electromagneticWavesDielectricLoss": ElectromagneticWavesDielectricLoss,
     "electromagneticWavesEigenmodePort": ElectromagneticWavesEigenmodePort,
@@ -397,7 +397,7 @@ ELECTROMAGNETIC_WAVES_INTERACTIONS: dict[str, type[Interaction]] = {
     "electromagneticWavesPml": ElectromagneticWavesPml,
     "electromagneticWavesRectangularPort": ElectromagneticWavesRectangularPort,
     "electromagnetic_waves_absorbing_boundary": ElectromagneticWavesAbsorbingBoundary,
-    "electromagnetic_waves_boundary_impedance": ElectromagneticWavesBoundaryImpedance,
+    "electromagnetic_waves_boundary_admittance": ElectromagneticWavesBoundaryAdmittance,
     "electromagnetic_waves_constraint": ElectromagneticWavesConstraint,
     "electromagnetic_waves_dielectric_loss": ElectromagneticWavesDielectricLoss,
     "electromagnetic_waves_eigenmode_port": ElectromagneticWavesEigenmodePort,
@@ -700,6 +700,9 @@ INTERACTION_PARAMETER_DEFAULTS: dict[str, dict[str, str]] = {
     },
     "elasticWavesThermalExpansion": {
         "elasticWavesThermalExpansionReferenceTemperature": "273",
+    },
+    "electromagneticWavesBoundaryAdmittance": {
+        "electromagneticWavesBoundaryAdmittanceType": "electromagneticWavesBoundaryAdmittanceTypeAdmittance",
     },
     "electromagneticWavesEigenmodePort": {
         "electromagneticWavesEigenmodePortDrive": "1",

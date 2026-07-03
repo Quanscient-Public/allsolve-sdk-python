@@ -24,6 +24,17 @@ def main():
     )
     print(f"Created project: {project.name} (id: {project.id})")
 
+    try:
+        run_project(project, verbose)
+    except Exception as e:
+        print(f"Error running project: {e}")
+    finally:
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            project.delete()
+            print("Project deleted.")
+
+
+def run_project(project: allsolve.Project, verbose: bool) -> None:
     # Create variables for geometry and regions
     print("Creating variables")
     project.create_variables(
@@ -123,7 +134,8 @@ def main():
 
     # Create physics and interactions
     print("Creating physics and interactions")
-    solid_mechanics_physics = project.add_physics(allsolve.Physics.SolidMechanics())
+    physics_set = project.get_default_physics_set()
+    solid_mechanics_physics = physics_set.add_physics(allsolve.Physics.SolidMechanics())
     solid_mechanics_physics.add_interactions(
         [
             # Clamp beam at the clamp surface
@@ -157,6 +169,7 @@ def main():
         max_run_time_minutes=10,
         solver_mode=allsolve.SolverMode.DIRECT,
         mesh=mesh.id,
+        physics_set=physics_set,
     )
 
     # Add outputs to the simulation
@@ -180,6 +193,6 @@ def main():
 
 if __name__ == "__main__":
     try:
-        project = main()
+        main()
     except Exception as e:
-        print(f"Error running project: {e}")
+        print(f"Error: {e}")

@@ -24,9 +24,9 @@ rho = qs.parameter()
 rho.setvalue(all, materials["density"]["air"])
 rho.setvalue(box, materials["density"]["steel"])
 
-Dterms = qs.predefinedboxpml(pml, inner, k)
-
 qs.setfundamentalfrequency(freq)
+
+Dterms = qs.predefinedboxpml(pml, inner, k)
 
 p = qs.field("h1", [2, 3])
 

@@ -1,21 +1,25 @@
 # Introduction
 
-This is an example for creating a project from a declarative YAML or JSON file,
-and exporting projects back to YAML/JSON format.
+This is an example for creating a project from a declarative YAML file.
 
-# Import-Export Cycle
+# Prerequisites
 
-You can also run the import-export example to see how projects can be exported:
+Follow [Installation](../README.md#installation) and [Running](../README.md#running)
+in the parent example README to set up Python, install the Allsolve SDK,
+and configure credentials.
+
+# Importing YAML file
+
+You can run the example to see how projects can be imported:
+
+From the `examples/` directory:
 
 ```
-(venv) $ python import_export_example.py
+(venv) $ python import_project/main.py
 ```
 
-This demonstrates:
+To export a project to YAML and JSON, run:
 
-- Importing a project from YAML
-- Exporting it back to YAML and JSON
-- Getting export data as a Python dictionary
-
-The exported file will be semantically equivalent to the original, though
-formatting may differ slightly.
+```
+(venv) $ python import_project/import_export_example.py
+```

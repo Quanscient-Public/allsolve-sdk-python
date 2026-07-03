@@ -18,18 +18,28 @@ def main():
     client = allsolve.Client()
 
     yaml_file = SCRIPT_DIR / "bending_beam_sweep.yaml"
-    # Create project
-    project = client.import_project(
-        file_or_data=str(yaml_file),
-        run_meshes_and_simulations=True,
-        verbose=True,
-    )
-
-    print(f"Project: {project.name} (id: {project.id})")
+    project = None
+    try:
+        project = client.import_project(
+            file_or_data=str(yaml_file),
+            run_meshes_and_simulations=True,
+            verbose=True,
+        )
+        print(f"Project: {project.name} (id: {project.id})")
+    except Exception as e:
+        print(f"Error running project: {e}")
+    finally:
+        if project is not None and input("Delete project? [Y/n]: ").strip().lower() in (
+            "",
+            "y",
+            "yes",
+        ):
+            project.delete()
+            print("Project deleted.")
 
 
 if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print(f"Error running project: {e}")
+        print(f"Error: {e}")

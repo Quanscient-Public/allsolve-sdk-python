@@ -3,8 +3,12 @@ This script creates a project that trains a neural network surrogate model.
 It uses simple dummy data as the training data.
 """
 
+from pathlib import Path
 from types import SimpleNamespace
+
 import allsolve
+
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 
 def main():
@@ -22,8 +26,9 @@ def main():
     except Exception as e:
         print(f"Error setting up project: {e}")
     finally:
-        print("Deleting project")
-        project.delete()
+        if input("Delete project? [Y/n]: ").strip().lower() in ("", "y", "yes"):
+            project.delete()
+            print("Project deleted.")
 
 
 def setup_project(project: allsolve.Project):
@@ -57,7 +62,9 @@ def setup_project(project: allsolve.Project):
         [
             allsolve.Script(
                 is_main=True,
-                filepath="./simulation_scripts/generate_training_data.py",
+                filepath=str(
+                    SCRIPT_DIR / "simulation_scripts" / "generate_training_data.py"
+                ),
             )
         ]
     )
@@ -73,7 +80,9 @@ def setup_project(project: allsolve.Project):
         [
             allsolve.Script(
                 is_main=True,
-                filepath="./simulation_scripts/train_surrogate_model.py",
+                filepath=str(
+                    SCRIPT_DIR / "simulation_scripts" / "train_surrogate_model.py"
+                ),
             )
         ]
     )
@@ -94,7 +103,9 @@ def setup_project(project: allsolve.Project):
         [
             allsolve.Script(
                 is_main=True,
-                filepath="./simulation_scripts/find_pareto_front.py",
+                filepath=str(
+                    SCRIPT_DIR / "simulation_scripts" / "find_pareto_front.py"
+                ),
             )
         ]
     )
@@ -116,7 +127,7 @@ def setup_project(project: allsolve.Project):
         [
             allsolve.Script(
                 is_main=True,
-                filepath="./simulation_scripts/post_process.py",
+                filepath=str(SCRIPT_DIR / "simulation_scripts" / "post_process.py"),
             )
         ]
     )

@@ -65,7 +65,7 @@ from .interactions import (
     ElectromagneticWavesLumpVI,
     ElectromagneticWavesPeriodicity,
     ElectromagneticWavesAbsorbingBoundary,
-    ElectromagneticWavesBoundaryImpedance,
+    ElectromagneticWavesBoundaryAdmittance,
     ElectrostaticsConstraint,
     ElectrostaticsPiezoelectricity,
     ElectrostaticsLump,
@@ -210,7 +210,7 @@ class Interaction:
     ElectromagneticWavesLumpVI = ElectromagneticWavesLumpVI
     ElectromagneticWavesPeriodicity = ElectromagneticWavesPeriodicity
     ElectromagneticWavesAbsorbingBoundary = ElectromagneticWavesAbsorbingBoundary
-    ElectromagneticWavesBoundaryImpedance = ElectromagneticWavesBoundaryImpedance
+    ElectromagneticWavesBoundaryAdmittance = ElectromagneticWavesBoundaryAdmittance
     ElectrostaticsConstraint = ElectrostaticsConstraint
     ElectrostaticsPiezoelectricity = ElectrostaticsPiezoelectricity
     ElectrostaticsLump = ElectrostaticsLump
