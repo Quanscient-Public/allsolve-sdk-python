@@ -30,6 +30,9 @@ class JobStatusReason(str, Enum):
     ABORTEDWHENQUOTAEXCEEDED = 'abortedWhenQuotaExceeded'
     ABORTEDAFTERTIMEOUT = 'abortedAfterTimeout'
     ABORTEDROGUE = 'abortedRogue'
+    ABORTEDPROJECTDELETION = 'abortedProjectDeletion'
+    JOBHEARTBEATTIMEOUT = 'jobHeartbeatTimeout'
+    LOWQUALITYDATA = 'lowQualityData'
 
     @classmethod
     def from_json(cls, json_str: str) -> Self:

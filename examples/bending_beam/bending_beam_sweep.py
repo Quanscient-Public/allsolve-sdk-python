@@ -161,7 +161,7 @@ def create_regions(project: allsolve.Project) -> SimpleNamespace:
 def create_materials(project: allsolve.Project, regions: SimpleNamespace) -> None:
     project.create_material(
         name="Aluminium",
-        enabled="eq(material_index,0)",
+        enabled="material_index == 0",
         description="Aluminium",
         color="#aaaaaa",
         abbreviation="Al",
@@ -181,7 +181,7 @@ def create_materials(project: allsolve.Project, regions: SimpleNamespace) -> Non
     )
     project.create_material(
         name="Copper",
-        enabled="eq(material_index,1)",
+        enabled="material_index == 1",
         description="",
         color="#DD6839",
         abbreviation="Cu",

@@ -47,13 +47,10 @@ class SharedExpression(BaseModel):
     last_modified_by: Optional[StrictStr] = Field(default=None, alias="lastModifiedBy")
     __properties: ClassVar[List[str]] = ["id", "name", "type", "description", "owner", "origin", "args", "expression", "values", "cubicInterpolation", "createdAt", "lastModifiedAt", "lastModifiedBy"]
 
-    @field_validator('name')
+    @field_validator('name', mode="before")
     def name_validate_regular_expression(cls, value):
         """Validates the regular expression"""
-        if not isinstance(value, str):
-            value = str(value)
-
-        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,254}$", value):
+        if isinstance(value, str) and not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,254}$", value):
             raise ValueError(r"must validate the regular expression /^[a-zA-Z_][a-zA-Z0-9_]{0,254}$/")
         return value
 

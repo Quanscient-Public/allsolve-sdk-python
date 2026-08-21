@@ -4,13 +4,28 @@
 import inspect
 import json
 import warnings
+from collections.abc import Callable
 from enum import Enum
 from functools import wraps
+from typing import Any, Concatenate, ParamSpec, TypeVar, cast, overload
 
 import allsolve_rawapi as rawapi
 
+P = ParamSpec("P")
+R = TypeVar("R")
 
-def deprecated(reason):
+
+@overload
+def deprecated(reason: Callable[P, R]) -> Callable[P, R]: ...
+
+
+@overload
+def deprecated(reason: str) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+
+
+def deprecated(
+    reason: str | Callable[P, R],
+) -> Callable[[Callable[P, R]], Callable[P, R]] | Callable[P, R]:
     """
     Mark functions or methods as deprecated; emits DeprecationWarning on call.
     Use as ``@deprecated("message")`` or bare ``@deprecated``.
@@ -20,14 +35,14 @@ def deprecated(reason):
 
     if isinstance(reason, string_types):
 
-        def decorator(func1):
+        def decorator(func1: Callable[P, R]) -> Callable[P, R]:
             if inspect.isclass(func1):
                 fmt1 = "Call to deprecated class {name} ({reason})."
             else:
                 fmt1 = "Call to deprecated function {name} ({reason})."
 
-            @wraps(func1)
-            def new_func1(*args, **kwargs):
+            @wraps(cast(Any, func1))
+            def new_func1(*args: P.args, **kwargs: P.kwargs) -> R:
                 warnings.simplefilter("always", DeprecationWarning)
                 warnings.warn(
                     fmt1.format(name=func1.__name__, reason=reason),
@@ -50,7 +65,7 @@ def deprecated(reason):
             fmt2 = "Call to deprecated function {name}."
 
         @wraps(func2)
-        def new_func2(*args, **kwargs):
+        def new_func2(*args: P.args, **kwargs: P.kwargs) -> R:
             warnings.simplefilter("always", DeprecationWarning)
             warnings.warn(
                 fmt2.format(name=func2.__name__),
@@ -152,17 +167,19 @@ class ResourceReservationError(Exception):
         self.error_code = error_code
 
 
-def prevent_deleted(f):
+def prevent_deleted(
+    func: Callable[Concatenate[Any, P], R],
+) -> Callable[Concatenate[Any, P], R]:
     """
     Decorator to prevent access to methods/properties of deleted objects.
     Raises DeletedError if the object's _deleted attribute is True.
     """
 
-    @wraps(f)
-    def deny(self, *args, **kwargs):
+    @wraps(func)
+    def deny(self: Any, *args: P.args, **kwargs: P.kwargs) -> R:
         if self._deleted:
             raise DeletedError()
 
-        return f(self, *args, **kwargs)
+        return func(self, *args, **kwargs)
 
     return deny

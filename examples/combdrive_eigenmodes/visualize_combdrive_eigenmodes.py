@@ -6,7 +6,7 @@ python visualize_combdrive_eigenmodes.py --interactive
 python visualize_combdrive_eigenmodes.py
 
 First, the project is searched for by name and the first simulation is used.
-Then the simulation results are downloaded to the "output/vtus" subfolder.
+Then the simulation results are downloaded to the "output/results" subfolder.
 In interactive mode, the script will open an interactive window with all eigenmodes in a subplot grid.
 In non-interactive mode, the script will create PNG images in "output/images" and animated GIFs in "output/animation".
 """
@@ -20,11 +20,37 @@ import numpy as np
 from PIL import Image
 
 PROJECT_NAME = "Combdrive Eigenmodes demo"
+FIELD_NAME = "u (real)"
+RESULT_FILE_EXTENSIONS = (".vtu", ".hdf")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "output")
-RESULTS_DIR = os.path.join(OUTPUT_DIR, "vtus")
+RESULTS_DIR = os.path.join(OUTPUT_DIR, "results")
 IMAGES_DIR = os.path.join(OUTPUT_DIR, "images")
 ANIMATION_DIR = os.path.join(OUTPUT_DIR, "animation")
+
+
+def _result_file_sort_key(path: str) -> tuple[float | str, int, str]:
+    """Sort result files by numeric step label, then MPI rank."""
+    basename = os.path.basename(path)
+    stem, _ext = os.path.splitext(basename)
+    parts = stem.rsplit("_", 2)
+    if len(parts) != 3:
+        return (basename, 0, basename)
+
+    _field_name, step_label, rank_str = parts
+    try:
+        step_key: float | str = float(step_label)
+    except ValueError:
+        step_key = step_label
+    return (step_key, int(rank_str), basename)
+
+
+def _list_result_files(results_dir: str) -> list[str]:
+    """Return field output files (.vtu or .hdf) sorted by step label."""
+    files: list[str] = []
+    for ext in RESULT_FILE_EXTENSIONS:
+        files.extend(glob.glob(os.path.join(results_dir, f"*{ext}")))
+    return sorted(files, key=_result_file_sort_key)
 
 
 def main():
@@ -42,7 +68,7 @@ def main():
         )
 
     try:
-        download_simulation_result_vtu_files(project)
+        download_result_files(project)
 
         # To run visualizations in interactive mode, use:
         # python visualize_combdrive_eigenmodes.py --interactive
@@ -63,32 +89,32 @@ def main():
             print("Project deleted.")
 
 
-def download_simulation_result_vtu_files(project: allsolve.Project):
-    """Download the simulation result vtu files to the "vtus" folder if the folder does not exist"""
-    print("Downloading simulation result vtu files...")
+def download_result_files(project: allsolve.Project) -> None:
+    """Download the displacement field files for all eigenmode steps."""
+    print("Downloading simulation result files...")
 
-    # Get the first simulation
     simulations = project.get_simulations()
     if len(simulations) == 0:
         raise ValueError(f"No simulations found in project: {project.name}")
     simulation = simulations[0]
     print(f"Simulation: {simulation.name} (id: {simulation.id})")
 
-    # Download the simulation result vtu files if the folder does not exist
-    if not os.path.exists(RESULTS_DIR):
-        os.makedirs(RESULTS_DIR)
+    if os.path.exists(RESULTS_DIR) and _list_result_files(RESULTS_DIR):
+        print(f"Found result files in {RESULTS_DIR}, skipping download.")
+        return
 
-        output_data = simulation.get_output_data()
-        step_count = output_data.get_step_count()
-        for step_index in range(step_count):
-            simulation.save_output_field(
-                name="u (real)", step_index=step_index, output_dir=RESULTS_DIR
-            )
-            print(f"Saved output field files to {RESULTS_DIR} for step {step_index}")
+    os.makedirs(RESULTS_DIR, exist_ok=True)
 
-        output_data.clean_cache()  # Clean up the output data cache from disk
-    else:
-        print(f"Found {RESULTS_DIR}, skipping download.")
+    output_data = simulation.get_output_data()
+    step_count = output_data.get_step_count()
+    print(f"Downloading '{FIELD_NAME}' for {step_count} steps...")
+    for step_index in range(step_count):
+        simulation.save_output_field(
+            name=FIELD_NAME, step_index=step_index, output_dir=RESULTS_DIR
+        )
+        print(f"  step {step_index}/{step_count - 1} done")
+
+    output_data.clean_cache()
 
 
 def _find_vector_field(mesh) -> str | None:
@@ -109,21 +135,21 @@ def _warp_and_color(mesh, vector_name: str):
 
 
 def create_png_images_with_pyvista(results_dir: str = RESULTS_DIR):
-    """Render each VTU file to a PNG screenshot and save the screenshots to the "images" folder"""
+    """Render each result file to a PNG screenshot and save the screenshots to the "images" folder."""
     print("Creating PNG images...")
-    vtu_files = sorted(glob.glob(os.path.join(results_dir, "*.vtu")))
-    if not vtu_files:
-        print(f"No VTU files found in {results_dir}")
+    result_files = _list_result_files(results_dir)
+    if not result_files:
+        print(f"No VTU or HDF files found in {results_dir}")
         return
 
     os.makedirs(IMAGES_DIR, exist_ok=True)
 
-    for vtu_path in vtu_files:
-        filename = os.path.basename(vtu_path)
+    for result_path in result_files:
+        filename = os.path.basename(result_path)
         stem = os.path.splitext(filename)[0]
         print(f"Processing {filename}...")
 
-        mesh = pv.read(vtu_path)
+        mesh = pv.read(result_path)
         vector_name = _find_vector_field(mesh)
         if vector_name is None:
             print(f"  No vector field found, skipping.")
@@ -159,25 +185,25 @@ def create_animated_gifs(
     warp_factor: float = 0.001,
     duration: int = 50,
 ):
-    """Create one animated GIF per VTU file with sinusoidal warp ramping and save the GIFs to the animation folder."""
+    """Create one animated GIF per result file with sinusoidal warp ramping and save the GIFs to the animation folder."""
     print("Creating animated GIFs...")
-    vtu_files = sorted(glob.glob(os.path.join(results_dir, "*.vtu")))
-    if not vtu_files:
-        print(f"No VTU files found in {results_dir}")
+    result_files = _list_result_files(results_dir)
+    if not result_files:
+        print(f"No VTU or HDF files found in {results_dir}")
         return
 
     os.makedirs(animation_dir, exist_ok=True)
 
     phases = np.linspace(0, 2 * np.pi, n_frames, endpoint=False)
 
-    for vtu_path in vtu_files:
-        stem = os.path.splitext(os.path.basename(vtu_path))[0]
+    for result_path in result_files:
+        stem = os.path.splitext(os.path.basename(result_path))[0]
         gif_path = os.path.join(animation_dir, f"{stem}.gif")
         if os.path.exists(gif_path):
             print(f"Found {gif_path}, skipping.")
             continue
 
-        mesh = pv.read(vtu_path)
+        mesh = pv.read(result_path)
         vector_name = _find_vector_field(mesh)
         if vector_name is None:
             print(f"  No vector field in {stem}, skipping.")
@@ -227,21 +253,21 @@ def create_animated_gifs(
 
 def show_interactive_grid(results_dir: str = RESULTS_DIR):
     """Open an interactive PyVista window with all eigenmodes in a subplot grid."""
-    vtu_files = sorted(glob.glob(os.path.join(results_dir, "*.vtu")))
-    if not vtu_files:
-        print(f"No VTU files found in {results_dir}")
+    result_files = _list_result_files(results_dir)
+    if not result_files:
+        print(f"No VTU or HDF files found in {results_dir}")
         return
 
-    n = len(vtu_files)
+    n = len(result_files)
     cols = 4
     rows = (n + cols - 1) // cols
 
     plotter = pv.Plotter(shape=(rows, cols))
-    for i, vtu_path in enumerate(vtu_files):
+    for i, result_path in enumerate(result_files):
         r, c = divmod(i, cols)
         plotter.subplot(r, c)
 
-        mesh = pv.read(vtu_path)
+        mesh = pv.read(result_path)
         vector_name = _find_vector_field(mesh)
         if vector_name is None:
             continue
@@ -256,7 +282,9 @@ def show_interactive_grid(results_dir: str = RESULTS_DIR):
             show_edges=False,
         )
         plotter.add_axes()  # type: ignore[call-arg]
-        plotter.add_text(os.path.splitext(os.path.basename(vtu_path))[0], font_size=8)
+        plotter.add_text(
+            os.path.splitext(os.path.basename(result_path))[0], font_size=8
+        )
 
     plotter.link_views()
     plotter.show()

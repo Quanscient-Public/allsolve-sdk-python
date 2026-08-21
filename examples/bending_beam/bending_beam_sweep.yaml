@@ -98,7 +98,7 @@ materials:
   description: Aluminium
   color: '#aaaaaa'
   abbreviation: Al
-  enabled: eq(material_index,0)
+  enabled: material_index == 0
   target: beam_volume
   density: '2700'
   heatCapacity: '897'
@@ -114,7 +114,7 @@ materials:
 - name: Copper
   color: '#DD6839'
   abbreviation: Cu
-  enabled: eq(material_index,1)
+  enabled: material_index == 1
   target: beam_volume
   density: '8960'
   heatCapacity: '385'
@@ -133,11 +133,9 @@ physicsSets:
     interactions:
     - type: clamp
       name: Clamp
-      enabled: true
       target: clamp_surface
     - type: load
       name: Load
-      enabled: true
       target: top_surface
       force: '[0; 0; force]'
 variableOverrides:
@@ -177,12 +175,10 @@ simulations:
   outputs:
   - type: fieldOutput
     name: Displacement
-    enabled: true
     filter:
       type: None
     expression: u
   - type: discreteOutput
     name: z_deflection
-    enabled: true
     expression: lineinterpolate(reg.beam_volume, compz(u), getcoords(reg.top_surface_clamp_corner),
       getcoords(reg.top_surface_free_corner), 10)

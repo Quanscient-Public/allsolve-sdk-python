@@ -39,13 +39,10 @@ class MaterialUpdate(BaseModel):
     properties: List[PhysicalProperty]
     __properties: ClassVar[List[str]] = ["name", "abbreviation", "description", "color", "target", "orientation", "enabled", "properties"]
 
-    @field_validator('color')
+    @field_validator('color', mode="before")
     def color_validate_regular_expression(cls, value):
         """Validates the regular expression"""
-        if not isinstance(value, str):
-            value = str(value)
-
-        if not re.match(r"^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$", value):
+        if isinstance(value, str) and not re.match(r"^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$", value):
             raise ValueError(r"must validate the regular expression /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/")
         return value
 

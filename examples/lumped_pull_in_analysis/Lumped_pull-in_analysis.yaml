@@ -269,26 +269,21 @@ physicsSets:
     interactions:
     - type: clamp
       name: Clamp
-      enabled: true
       target: fixed bottom plate
     - type: solidMechanicsConstraint
       name: Constraint
-      enabled: true
       target: movable top plate
       solidMechanicsConstraint: '[1, 0; 1, 0; 0, 0]'
     - type: solidMechanicsLump
       name: Lump U/F
-      enabled: true
       namespace: lump
       target: bottom-surface of movable-top-plate
       solidMechanicsLumpActuationMode: solidMechanicsLumpActuationModeCircuitCoupling
       solidMechanicsLumpCircuitCoupling: '[0, 0; 0, 0; 1, lump.Fz - -(K*lump.Uz)]'
     - type: solidMechanicsElectricForce
       name: Electric force
-      enabled: true
     - type: solidMechanicsLargeDisplacement
       name: Large displacement
-      enabled: true
     - type: solidMechanicsGeometricNonlinearity
       name: Geometric nonlinearity
       enabled: false
@@ -297,30 +292,25 @@ physicsSets:
     interactions:
     - type: electrostaticsLump
       name: Lump V/Q
-      enabled: true
       namespace: lump_2
       target: top-surface of fixed-bottom-plate
       electrostaticsLumpVoltage: Vdc
     - type: electrostaticsLump
       name: Lump V/Q 2
-      enabled: true
       namespace: lump_3
       target: bottom-surface of movable-top-plate
       electrostaticsLumpVoltage: '0.0'
     - type: electrostaticsLargeDisplacement
       name: Large displacement
-      enabled: true
   - type: meshDeformation
     target: electric domain
     interactions:
     - type: meshDeformationConstraint
       name: Constraint
-      enabled: true
       target: solid domain
       meshDeformationConstraint: '[1, compx(u); 1, compy(u); 1, compz(u)]'
     - type: meshDeformationConstraint
       name: Constraint 2
-      enabled: true
       target: Vacuum target
       meshDeformationConstraint: '[1, 0; 1, 0; 0, 0]'
 variableOverrides:
@@ -331,6 +321,7 @@ variableOverrides:
   sweepType: specific_values
 meshes:
 - name: Mesh 1
+  density: userDefined
   useMeshRefiner: false
   scaleFactor: '0.75'
   maxRunTimeMinutes: 60
@@ -360,19 +351,16 @@ simulations:
   outputs:
   - type: fieldState
     name: u
-    enabled: true
     filter:
       type: FinalOnly
     expression: u
   - type: fieldState
     name: v
-    enabled: true
     filter:
       type: FinalOnly
     expression: v
   - type: fieldState
     name: umesh
-    enabled: true
     filter:
       type: FinalOnly
     expression: umesh
@@ -408,31 +396,25 @@ simulations:
   outputs:
   - type: fieldOutput
     name: u
-    enabled: true
     filter:
       type: None
     skinOnly: true
     expression: u
   - type: fieldOutput
     name: v
-    enabled: true
     filter:
       type: None
     skinOnly: true
     expression: v
   - type: discreteOutput
     name: Pull-in deflection (um)
-    enabled: true
     expression: Upullin * 1e6
   - type: discreteOutput
     name: Pull-in voltage
-    enabled: true
     expression: Vpullin
   - type: discreteOutput
     name: Uz_theoritical
-    enabled: true
     expression: U_theoritical(Vdc)
   - type: discreteOutput
     name: Uz_simulation (um)
-    enabled: true
     expression: abs(lump.Uz) * 1e6

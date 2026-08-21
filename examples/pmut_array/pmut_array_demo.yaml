@@ -377,33 +377,27 @@ physicsSets:
     interactions:
     - type: elasticWavesClamp
       name: Clamp
-      enabled: true
       target: baseplate_clamp
     - type: elasticWavesPiezoelectricity
       name: Piezoelectricity
-      enabled: true
       target: pzt
   - type: acousticWaves
     target: air_bubble
     interactions:
     - type: acousticWavesPml
       name: PML
-      enabled: true
       target: air_dome_surface
     - type: acousticStructureForElasticWaves
       name: Acoustic structure
-      enabled: true
   - type: electrostatics
     target: pzt
     interactions:
     - type: electrostaticsConstraint
       name: Ground
-      enabled: true
       target: pzt_bottom_surfaces
       electrostaticsConstraint: '0'
     - type: electrostaticsLump
       name: Voltage excitation
-      enabled: true
       namespace: lump
       target: pzt_top_surfaces
       electrostaticsLumpVoltage: sin(2*pi*freq*t)
@@ -415,6 +409,7 @@ variableOverrides:
   sweepType: specific_values
 meshes:
 - name: Mesh 1
+  density: userDefined
   useMeshRefiner: true
   scaleFactor: '1.0'
   curvatureEnhancement: '6.0'
@@ -442,41 +437,33 @@ simulations:
   outputs:
   - type: fieldOutput
     name: u harmonic 2
-    enabled: true
     filter:
       type: None
     skinOnly: true
     expression: harm(2, u)
   - type: fieldOutput
     name: p harmonic 2
-    enabled: true
     filter:
       type: None
     expression: harm(2, p)
   - type: fieldOutput
     name: p harmonic 3
-    enabled: true
     filter:
       type: None
     expression: harm(3, p)
   - type: discreteOutput
     name: P above
-    enabled: true
     expression: probe(reg.p_above, sqrt(pow(harm(2, p), 2) + pow(harm(3, p), 2)))
   - type: discreteOutput
     name: U max
-    enabled: true
     expression: maxvalue(reg.solid_volumes, sqrt(pow(harm(2, compz(u)), 2) + pow(harm(3,
       compz(u)), 2)), 5)
   - type: discreteOutput
     name: V drive real
-    enabled: true
     expression: harm(2, lump.V)
   - type: discreteOutput
     name: I drive real
-    enabled: true
     expression: harm(2, dt(lump.Q))
   - type: discreteOutput
     name: I drive imag
-    enabled: true
     expression: harm(3, dt(lump.Q))

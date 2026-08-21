@@ -1,7 +1,7 @@
 form = qs.formulation()
 
 # Lump I/V cut interaction: Current source
-form += port.lump.I - expr.Top
+form += port.lump.I - expr.Iop
 
 # Default to V = 0 for the rest
 for i in range(3, len(var.cps), 2):

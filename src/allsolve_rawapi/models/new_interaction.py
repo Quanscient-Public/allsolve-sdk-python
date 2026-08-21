@@ -33,21 +33,19 @@ class NewInteraction(BaseModel):
     name: StrictStr
     namespace: Optional[Annotated[str, Field(strict=True)]] = None
     definition: StrictStr = Field(description="Id of an InteractionDefinition")
-    enabled: StrictBool
+    enabled: Optional[StrictBool] = Field(default=None, description="Whether the interaction is enabled. Deprecated in favor of enabledExpr. Only one of enabled and enabledExpr may be defined.")
+    enabled_expr: Optional[Annotated[str, Field(strict=True, max_length=5000)]] = Field(default=None, alias="enabledExpr")
     targets: List[InteractionTarget]
     parameters: List[InteractionParameter]
-    __properties: ClassVar[List[str]] = ["name", "namespace", "definition", "enabled", "targets", "parameters"]
+    __properties: ClassVar[List[str]] = ["name", "namespace", "definition", "enabled", "enabledExpr", "targets", "parameters"]
 
-    @field_validator('namespace')
+    @field_validator('namespace', mode="before")
     def namespace_validate_regular_expression(cls, value):
         """Validates the regular expression"""
         if value is None:
             return value
 
-        if not isinstance(value, str):
-            value = str(value)
-
-        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,254}$", value):
+        if isinstance(value, str) and not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,254}$", value):
             raise ValueError(r"must validate the regular expression /^[a-zA-Z_][a-zA-Z0-9_]{0,254}$/")
         return value
 
@@ -120,6 +118,7 @@ class NewInteraction(BaseModel):
             "namespace": obj.get("namespace"),
             "definition": obj.get("definition"),
             "enabled": obj.get("enabled"),
+            "enabledExpr": obj.get("enabledExpr"),
             "targets": [InteractionTarget.from_dict(_item) for _item in obj["targets"]] if obj.get("targets") is not None else None,
             "parameters": [InteractionParameter.from_dict(_item) for _item in obj["parameters"]] if obj.get("parameters") is not None else None
         })

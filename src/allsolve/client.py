@@ -6,7 +6,7 @@ from __future__ import annotations
 import base64
 import datetime as dt
 import logging
-import multiprocessing as mp
+import threading
 import os
 import pathlib
 import shutil
@@ -21,7 +21,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from .api import _current_client
+from .api import _current_client, _register_default_client
 from .project import GeometryPipelineVersion, Project
 from .quota import get_quota as _get_quota
 from .resource_reservation import (
@@ -271,7 +271,7 @@ class Client:
         self._host = host_str.rstrip("/")
         self._validate_host(self._host, allow_insecure_http)
         self._allow_insecure_http = allow_insecure_http
-        self._api_lock = mp.Lock()
+        self._api_lock = threading.Lock()
         self._access_token: rawapi.OauthClientTokenResponse | None = None
         self._access_token_refreshed: dt.datetime | None = None
 
@@ -300,7 +300,7 @@ class Client:
         self._lease_keepers: dict[str, _ReservationLeaseKeeper] = {}
 
         if _set_as_default:
-            _current_client.set(self)
+            _register_default_client(self)
 
         try:
             self._refresh_auth()
@@ -846,6 +846,8 @@ class Client:
         *,
         include_meshes: bool = True,
         download_geometries: bool = False,
+        download_scripts: bool = True,
+        download_shared_files: bool = True,
         files_output_dir: str | pathlib.Path = ".",
         file_overwrite_mode: FileOverwriteMode = FileOverwriteMode.SKIP,
     ) -> None:
@@ -857,10 +859,14 @@ class Client:
             output_path: Path to write the YAML file.
             include_meshes: Whether to include mesh definitions (default ``True``).
             download_geometries: Download geometry files to disk.
-            files_output_dir: Directory for downloads. When ``download_geometries`` is True
-                and this is omitted, defaults to the parent directory of ``output_path``.
-            file_overwrite_mode: Controls behavior when a geometry file already
-                exists on disk. ``FileOverwriteMode.SKIP`` (default) keeps the
+            download_scripts: Write simulation script files to disk (default ``True``).
+            download_shared_files: Write shared files to disk when content is available
+                (default ``True``).
+            files_output_dir: Directory for downloads. When ``download_geometries``,
+                ``download_scripts``, or ``download_shared_files`` is True and this is
+                omitted, defaults to the parent directory of ``output_path``.
+            file_overwrite_mode: Controls behavior when a geometry, script, or shared file
+                already exists on disk. ``FileOverwriteMode.SKIP`` (default) keeps the
                 existing file, ``FileOverwriteMode.OVERWRITE`` replaces it, and
                 ``FileOverwriteMode.ERROR`` raises ``FileExistsError``.
         """
@@ -869,6 +875,8 @@ class Client:
             output_path=output_path,
             include_meshes=include_meshes,
             download_geometries=download_geometries,
+            download_scripts=download_scripts,
+            download_shared_files=download_shared_files,
             files_output_dir=files_output_dir,
             file_overwrite_mode=file_overwrite_mode,
         )

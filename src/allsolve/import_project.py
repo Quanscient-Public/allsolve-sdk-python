@@ -3,6 +3,10 @@
 
 """
 Contains a PoC of a convenience import format parser.
+
+Library references: materials, variables (name-only entries), and functions
+(``type: library``) can be copied from the organization library on import.
+Export always expands these to full inline definitions.
 """
 
 import json
@@ -49,10 +53,12 @@ from allsolve.geometry.cad_simple_operation import (
     CadRemove,
 )
 from .material import Material, MaterialProperty
+from .expression import Variable, Function, InterpolatedFunction
 from .project import Project, GeometryPipelineVersion
 from .job import Job, OnError
 from .mesh import (
     MeshSettings,
+    MeshDensity,
     MeshRefinement,
     AutoTransfiniteGroup,
     MeshExtrusion,
@@ -103,6 +109,211 @@ from .physics.generated.registries import (
     get_physics_class,
 )
 from .physics.conversions import boolean_to_str
+
+import allsolve_rawapi as rawapi
+
+
+def import_shared_files(
+    project: Project,
+    shared_files_data: list[dict],
+    yaml_file_path: Path | None = None,
+    verbose: bool = False,
+    *,
+    allow_paths_outside_project: bool = False,
+) -> dict[str, rawapi.InputFile]:
+    """
+    Import project-level shared files from the import data catalog.
+
+    Returns:
+        Mapping from file name to uploaded ``InputFile`` handle.
+    """
+    if verbose:
+        print("Importing shared files...")
+
+    registry: dict[str, rawapi.InputFile] = {}
+
+    for idx, entry in enumerate(shared_files_data):
+        if not isinstance(entry, dict):
+            raise ValueError(
+                f"sharedFiles[{idx}] must be a mapping, got {type(entry).__name__}"
+            )
+
+        has_filepath = "filepath" in entry
+        has_content = "content" in entry
+
+        if has_filepath and has_content:
+            raise ValueError(
+                f"sharedFiles[{idx}] must specify either 'filepath' or 'content', not both"
+            )
+        if not has_filepath and not has_content:
+            raise ValueError(f"sharedFiles[{idx}] must specify 'filepath' or 'content'")
+
+        if has_filepath:
+            filepath = _resolve_path(
+                entry["filepath"],
+                yaml_file_path,
+                allow_paths_outside_project=allow_paths_outside_project,
+            )
+            name = entry.get("name", Path(entry["filepath"]).name)
+        else:
+            name = entry.get("name")
+            if not name:
+                raise ValueError(
+                    f"sharedFiles[{idx}] with inline 'content' requires 'name'"
+                )
+
+        if name in registry:
+            raise ValueError(
+                f"Duplicate shared file name {name!r} in sharedFiles catalog"
+            )
+
+        if verbose:
+            print(f"Uploading shared file {name!r}...")
+
+        if has_filepath:
+            handle = project.add_shared_file(filepath)
+        else:
+            content = entry["content"]
+            if not isinstance(content, dict):
+                raise ValueError(
+                    f"sharedFiles[{idx}] 'content' must be a mapping, "
+                    f"got {type(content).__name__}"
+                )
+            handle = project.add_shared_json_file(name, content)
+
+        registry[name] = handle
+
+    return registry
+
+
+def _resolve_source_simulation(
+    source_simulation_name: str | None,
+    source_simulation_id: str | None,
+    imported_simulations: dict[str, Simulation],
+    context: str,
+) -> Simulation:
+    """Resolve a simulation reference by name for cross-simulation input files."""
+    source_name = source_simulation_name or source_simulation_id
+    if source_name is None:
+        raise ValueError(f"{context} requires 'sourceSimulationName'")
+    if source_name in imported_simulations:
+        return imported_simulations[source_name]
+    raise ValueError(
+        f"Source simulation '{source_name}' not found for {context}. "
+        f"It must be defined before the simulation that references it. "
+        f"Available simulations: {list(imported_simulations.keys())}"
+    )
+
+
+def _apply_simulation_input_files(
+    sim: Simulation,
+    simulation_data: dict,
+    shared_file_registry: dict[str, rawapi.InputFile],
+    imported_simulations: dict[str, Simulation],
+    yaml_file_path: Path | None,
+    *,
+    allow_paths_outside_project: bool = False,
+) -> None:
+    """Import simulation-scoped input files, shared file links, and output references."""
+    sim_name = simulation_data.get("name", "?")
+
+    for idx, entry in enumerate(simulation_data.get("inputFiles", [])):
+        if not isinstance(entry, dict):
+            raise ValueError(
+                f"simulation '{sim_name}' inputFiles[{idx}] must be a mapping"
+            )
+
+        entry_type = entry.get("type")
+        if entry_type is None:
+            if "filepath" in entry:
+                filepath = _resolve_path(
+                    entry["filepath"],
+                    yaml_file_path,
+                    allow_paths_outside_project=allow_paths_outside_project,
+                )
+                sim.add_file(filepath)
+            elif "content" in entry:
+                name = entry.get("name")
+                if not name:
+                    raise ValueError(
+                        f"simulation '{sim_name}' inputFiles[{idx}] with inline "
+                        "'content' requires 'name'"
+                    )
+                content = entry["content"]
+                if not isinstance(content, dict):
+                    raise ValueError(
+                        f"simulation '{sim_name}' inputFiles[{idx}] 'content' "
+                        f"must be a mapping"
+                    )
+                sim.add_json_file(name, content)
+            else:
+                raise ValueError(
+                    f"simulation '{sim_name}' inputFiles[{idx}] must specify "
+                    "'filepath' or 'content' when type is omitted"
+                )
+            continue
+
+        if entry_type == "simulationOutputFile":
+            source_sim = _resolve_source_simulation(
+                entry.get("sourceSimulationName"),
+                entry.get("sourceSimulationId"),
+                imported_simulations,
+                f"simulation '{sim_name}' inputFiles[{idx}]",
+            )
+            source_file_name = entry.get("sourceFileName")
+            target_file_name = entry.get("targetFileName")
+            if not source_file_name or not target_file_name:
+                raise ValueError(
+                    f"simulation '{sim_name}' inputFiles[{idx}] of type "
+                    "'simulationOutputFile' requires 'sourceFileName' and "
+                    "'targetFileName'"
+                )
+            sim.add_input_file_from_simulation(
+                source_simulation=source_sim,
+                source_file_name=source_file_name,
+                target_file_name=target_file_name,
+                source_sweep_step=entry.get("sourceSweepStep"),
+                target_sweep_step=entry.get("targetSweepStep"),
+                target_rank=entry.get("targetRank"),
+            )
+        elif entry_type == "simulationOutputDatabase":
+            source_sim = _resolve_source_simulation(
+                entry.get("sourceSimulationName"),
+                entry.get("sourceSimulationId"),
+                imported_simulations,
+                f"simulation '{sim_name}' inputFiles[{idx}]",
+            )
+            target_file_name = entry.get("targetFileName")
+            if not target_file_name:
+                raise ValueError(
+                    f"simulation '{sim_name}' inputFiles[{idx}] of type "
+                    "'simulationOutputDatabase' requires 'targetFileName'"
+                )
+            sim.add_input_value_outputs_from_simulation(
+                source_simulation=source_sim,
+                target_file_name=target_file_name,
+                source_sweep_step=entry.get("sourceSweepStep"),
+                target_sweep_step=entry.get("targetSweepStep"),
+                target_rank=entry.get("targetRank"),
+            )
+        else:
+            raise ValueError(
+                f"simulation '{sim_name}' inputFiles[{idx}] has unknown type "
+                f"{entry_type!r}. Expected 'simulationOutputFile', "
+                "'simulationOutputDatabase', or omit type for file uploads."
+            )
+
+    if "sharedFiles" in simulation_data:
+        handles: list[rawapi.InputFile] = []
+        for name in simulation_data["sharedFiles"]:
+            if name not in shared_file_registry:
+                raise ValueError(
+                    f"Shared file '{name}' referenced by simulation '{sim_name}' "
+                    f"was not found in the project sharedFiles catalog. "
+                    f"Available: {list(shared_file_registry.keys())}"
+                )
+            handles.append(shared_file_registry[name])
+        sim.set_shared_files(handles)
 
 
 def _resolve_path(
@@ -202,6 +413,23 @@ def _validate_import_input_files_exist(
                     f"simulations[{sidx}] '{sim_name}' scripts[{j}]",
                     script_data["filepath"],
                 )
+        for j, input_file_data in enumerate(simulation_data.get("inputFiles", [])):
+            if not isinstance(input_file_data, dict):
+                continue
+            if "filepath" in input_file_data:
+                record_if_missing(
+                    f"simulations[{sidx}] '{sim_name}' inputFiles[{j}]",
+                    input_file_data["filepath"],
+                )
+
+    for idx, shared_file_data in enumerate(import_data.get("sharedFiles", [])):
+        if not isinstance(shared_file_data, dict):
+            continue
+        if "filepath" in shared_file_data:
+            record_if_missing(
+                f"sharedFiles[{idx}]",
+                shared_file_data["filepath"],
+            )
 
     if missing:
         lines = "\n".join(f"  - {ctx}: {path}" for ctx, path in missing)
@@ -392,6 +620,14 @@ def import_project(
             verbose=effective_verbose,
         )
 
+        shared_file_registry = import_shared_files(
+            project,
+            import_data.get("sharedFiles", []),
+            yaml_file_path=yaml_file_path,
+            verbose=effective_verbose,
+            allow_paths_outside_project=allow_paths_outside_project,
+        )
+
         imported_simulations = import_simulations(
             project,
             import_data.get("simulations", []),
@@ -403,6 +639,7 @@ def import_project(
             regions=regions,
             verbose=effective_verbose,
             allow_paths_outside_project=allow_paths_outside_project,
+            shared_file_registry=shared_file_registry,
         )
 
         if run_meshes_and_simulations:
@@ -1248,7 +1485,8 @@ def import_outputs_for_simulation(
 
         name = o.get("name") or str(otype)
 
-        enabled = o.get("enabled", True)
+        enabled_raw = o.get("enabled")
+        enabled = boolean_to_str(enabled_raw) if enabled_raw is not None else None
 
         # Build InteractionParameter list from top-level keys
         parameters: list[InteractionParameter] = []
@@ -1766,6 +2004,15 @@ def import_variables(project: Project, variables: list[dict], verbose: bool = Fa
     result = {}
 
     for variable in variables:
+        if list(variable.keys()) == ["name"]:
+            result[variable["name"]] = Variable.create_from_library(
+                name=variable["name"],
+                project_id=project.id,
+            )
+            if verbose:
+                print(f"  Created variable from library: {variable['name']}")
+            continue
+
         result[variable["name"]] = project.create_variable(
             name=variable["name"],
             expression=variable["expression"],
@@ -1773,6 +2020,34 @@ def import_variables(project: Project, variables: list[dict], verbose: bool = Fa
         )
 
     return result
+
+
+def _is_library_function_not_found_error(exc: ValueError) -> bool:
+    """Return True when *exc* is the expected library lookup miss from expression.py."""
+    message = str(exc)
+    return (
+        message.startswith("Library function '")
+        or message.startswith("Library interpolated function '")
+    ) and message.endswith("' not found")
+
+
+def _create_function_from_library(name: str, project_id: str | None) -> None:
+    """Copy a regular or interpolated function from the organization library."""
+    try:
+        Function.create_from_library(name=name, project_id=project_id)
+        return
+    except ValueError as exc:
+        if not _is_library_function_not_found_error(exc):
+            raise
+    try:
+        InterpolatedFunction.create_from_library(name=name, project_id=project_id)
+        return
+    except ValueError as exc:
+        if not _is_library_function_not_found_error(exc):
+            raise
+    raise ValueError(
+        f"Library function '{name}' not found as a regular or interpolated function"
+    )
 
 
 def import_functions(
@@ -1787,7 +2062,17 @@ def import_functions(
         print("Importing functions...")
 
     for function in functions:
-        if function["type"] == "regular":
+        if function["type"] == "library":
+            extra_keys = set(function.keys()) - {"name", "type"}
+            if extra_keys:
+                raise ValueError(
+                    f"Library function '{function.get('name', '?')}' must only "
+                    f"specify 'name' and 'type', got extra keys: {sorted(extra_keys)}"
+                )
+            _create_function_from_library(function["name"], project.id)
+            if verbose:
+                print(f"  Created function from library: {function['name']}")
+        elif function["type"] == "regular":
             project.create_function(
                 name=function["name"],
                 args=[arg["name"] for arg in function["args"]],
@@ -1943,6 +2228,17 @@ def import_regions(project: Project, regions: list[dict], verbose: bool = False)
             raise ValueError(f"Unknown region type: {region['type']}")
 
     return imported_regions
+
+
+def _parse_mesh_density(value: str) -> MeshDensity:
+    """Parse a mesh density string from import YAML into ``MeshDensity``."""
+    try:
+        return MeshDensity(rawapi.MeshDensity(value))
+    except ValueError as exc:
+        allowed = ", ".join(d.value for d in rawapi.MeshDensity)
+        raise ValueError(
+            f"Unknown mesh density {value!r}. Must be one of: {allowed}"
+        ) from exc
 
 
 def import_materials(
@@ -2346,14 +2642,20 @@ def import_meshes(
         if "variableOverride" in mesh_data:
             variable_override = variables_overrides[mesh_data["variableOverride"]]
 
+        mesh_density = None
+        if "density" in mesh_data:
+            mesh_density = _parse_mesh_density(mesh_data["density"])
+
         mesh = project.create_mesh(
             MeshSettings(
                 name=mesh_data["name"],
+                density=mesh_density,
+                node_type=mesh_data.get("nodeType"),
                 use_mesh_refiner=mesh_data.get("useMeshRefiner", True),
-                scale_factor=mesh_data.get("scaleFactor", 1),
+                scale_factor=mesh_data.get("scaleFactor"),
                 min_size_factor=mesh_data.get("minSizeFactor"),
                 max_size_factor=mesh_data.get("maxSizeFactor"),
-                curvature_enhancement=mesh_data.get("curvatureEnhancement", 6),
+                curvature_enhancement=mesh_data.get("curvatureEnhancement"),
                 curved_mesh=mesh_data.get("curvedMesh", False),
                 target_width_to_height_ratio=mesh_data.get("targetWidthToHeightRatio"),
                 max_run_time_minutes=mesh_data.get("maxRunTimeMinutes", 15),
@@ -2437,11 +2739,14 @@ def import_simulations(
     verbose: bool = False,
     *,
     allow_paths_outside_project: bool = False,
+    shared_file_registry: dict[str, rawapi.InputFile] | None = None,
 ) -> dict[str, Simulation]:
     if verbose:
         print("Importing simulations...")
 
     imported_simulations: dict[str, Simulation] = {}
+    if shared_file_registry is None:
+        shared_file_registry = {}
 
     for simulation_data in simulations:
         if verbose:
@@ -2600,9 +2905,18 @@ def import_simulations(
 
             sim.set_runtime(Runtime(node_type=node_type, node_count=node_count))
 
-        # Set scripts if specified
+        _apply_simulation_input_files(
+            sim,
+            simulation_data,
+            shared_file_registry,
+            imported_simulations,
+            yaml_file_path,
+            allow_paths_outside_project=allow_paths_outside_project,
+        )
+
+        # Set scripts if specified (file-based and custom section scripts together)
+        scripts: list[Script] = []
         if "scripts" in simulation_data:
-            scripts = []
             for script_data in simulation_data["scripts"]:
                 filepath = _resolve_path(
                     script_data["filepath"],
@@ -2611,24 +2925,24 @@ def import_simulations(
                 )
                 is_main = script_data.get("isMain", False)
                 scripts.append(Script(filepath=filepath, is_main=is_main))
-            sim.set_scripts(scripts)
 
         if "customScripts" in simulation_data:
-            custom_scripts = []
             for cs_data in simulation_data["customScripts"]:
                 section_val = cs_data["sectionName"]
                 if isinstance(section_val, CustomScriptSectionName):
                     section_enum = CustomSection(section_val)
                 else:
                     section_enum = CustomSection(CustomScriptSectionName(section_val))
-                custom_scripts.append(
+                scripts.append(
                     Script(
                         name=cs_data["name"],
                         section_name=section_enum,
                         content=cs_data["content"],
                     )
                 )
-            sim.set_scripts(custom_scripts)
+
+        if scripts:
+            sim.set_scripts(scripts)
 
         if "fieldInitializations" in simulation_data:
             field_inits = []

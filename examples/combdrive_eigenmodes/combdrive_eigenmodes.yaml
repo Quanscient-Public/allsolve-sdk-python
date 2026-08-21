@@ -189,10 +189,10 @@ physicsSets:
     interactions:
     - type: clamp
       name: Clamp
-      enabled: true
       target: clamp
 meshes:
 - name: Mesh 1
+  density: userDefined
   useMeshRefiner: false
   scaleFactor: '0.25'
   curvatureEnhancement: '12.0'
@@ -224,7 +224,6 @@ simulations:
   outputs:
   - type: fieldOutput
     name: u
-    enabled: true
     filter:
       type: None
     skinOnly: true

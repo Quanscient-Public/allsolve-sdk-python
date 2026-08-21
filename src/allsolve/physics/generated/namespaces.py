@@ -42,6 +42,7 @@ from .interactions import (
     SolidMechanicsProportionalDamping,
     SolidMechanicsGeometricNonlinearity,
     SolidMechanicsContact,
+    SolidMechanicsViscohyperelasticity,
     CurrentFlowConstraint,
     CurrentFlowCurrentDensity,
     CurrentFlowLump,
@@ -185,6 +186,7 @@ class Interaction:
     SolidMechanicsProportionalDamping = SolidMechanicsProportionalDamping
     SolidMechanicsGeometricNonlinearity = SolidMechanicsGeometricNonlinearity
     SolidMechanicsContact = SolidMechanicsContact
+    SolidMechanicsViscohyperelasticity = SolidMechanicsViscohyperelasticity
     CurrentFlowConstraint = CurrentFlowConstraint
     CurrentFlowCurrentDensity = CurrentFlowCurrentDensity
     CurrentFlowLump = CurrentFlowLump

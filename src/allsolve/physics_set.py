@@ -1,16 +1,14 @@
 # Copyright 2026 Quanscient Oy
 # SPDX-License-Identifier: Apache-2.0
 
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import allsolve_rawapi as rawapi
 from typing_extensions import Self
 
 from allsolve.api import check_for_project_api_key, get_api, get_auth
+from allsolve.physics.physic import Physic
 from allsolve.util import prevent_deleted
-
-if TYPE_CHECKING:
-    from allsolve.physics.physic import Physic
 
 DEFAULT_PHYSICS_SET_NAME = "Physics 1"
 
@@ -175,7 +173,7 @@ class PhysicsSet:
         return self._physics_set.is_default
 
     @prevent_deleted
-    def add_physics(self, physic: "Physic") -> "Physic":
+    def add_physics(self, physic: Physic) -> Physic:
         """
         Add a physics definition to this physics set.
 
@@ -186,8 +184,6 @@ class PhysicsSet:
                 allsolve.Physics.SolidMechanics(target=beam_region)
             )
         """
-        from allsolve.physics.physic import Physic
-
         if not isinstance(physic, Physic):
             raise ValueError("physic must be a Physic instance")
         if self.is_default and self._physics_set.name is None:
@@ -196,6 +192,17 @@ class PhysicsSet:
             project_id=self._project_id,
             physics_set_id=self.id,
         )
+
+    @prevent_deleted
+    def get_physics(self) -> List[Physic]:
+        """
+        Get all physics definitions in this physics set.
+        """
+        return [
+            physic
+            for physic in Physic.get_all(project_id=self._project_id)
+            if physic.physics_set_id == self.id
+        ]
 
     @prevent_deleted
     def copy(self, name: str | None = None) -> Self:

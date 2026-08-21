@@ -33,13 +33,10 @@ class SharedExpressionArg(BaseModel):
     values: Optional[Annotated[List[Union[StrictFloat, StrictInt]], Field(max_length=1000000)]] = None
     __properties: ClassVar[List[str]] = ["name", "index", "values"]
 
-    @field_validator('name')
+    @field_validator('name', mode="before")
     def name_validate_regular_expression(cls, value):
         """Validates the regular expression"""
-        if not isinstance(value, str):
-            value = str(value)
-
-        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,254}$", value):
+        if isinstance(value, str) and not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,254}$", value):
             raise ValueError(r"must validate the regular expression /^[a-zA-Z_][a-zA-Z0-9_]{0,254}$/")
         return value
 

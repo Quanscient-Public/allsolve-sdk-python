@@ -34,16 +34,13 @@ class GDSImportConfig(BaseModel):
     z_offset: Optional[Annotated[str, Field(strict=True)]] = Field(default=None, description="Z-coordinate field for accurate coordinates. The field can contain a raw double value with no unit (in which case the unit is considered to be millimeters) or a value with a unit suffix of either m, mm, um or nm for meters, millimeters, micrometers or nanometers, respectively. ", alias="zOffset", json_schema_extra={"examples": ["[\"1.22mm\",\"0.99\",\"1e-6\",\"200nm\",\"1.2E3nm\"]"]})
     __properties: ClassVar[List[str]] = ["layers", "includedTopLevelCells", "zOffset"]
 
-    @field_validator('z_offset')
+    @field_validator('z_offset', mode="before")
     def z_offset_validate_regular_expression(cls, value):
         """Validates the regular expression"""
         if value is None:
             return value
 
-        if not isinstance(value, str):
-            value = str(value)
-
-        if not re.match(r"^\s*([\-]?(?:0\.|[1-9][0-9]*\.)?[0-9]+(?:[eE][+\-]?[1-9][0-9]*)?)\s*(m|mm|um|nm)?$", value):
+        if isinstance(value, str) and not re.match(r"^\s*([\-]?(?:0\.|[1-9][0-9]*\.)?[0-9]+(?:[eE][+\-]?[1-9][0-9]*)?)\s*(m|mm|um|nm)?$", value):
             raise ValueError(r"must validate the regular expression /^\s*([\-]?(?:0\.|[1-9][0-9]*\.)?[0-9]+(?:[eE][+\-]?[1-9][0-9]*)?)\s*(m|mm|um|nm)?$/")
         return value
 

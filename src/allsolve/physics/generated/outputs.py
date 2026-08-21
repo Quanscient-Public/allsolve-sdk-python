@@ -34,8 +34,8 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
     def __init__(
         self,
         name: str,
-        enabled: bool = True,
         *,
+        enabled: BooleanValue | None = None,
         acoustic_waves_acoustic_extrapolation_c: ScalarValue = "343",
         acoustic_waves_acoustic_extrapolation_rho: ScalarValue = "1.2",
         acoustic_waves_acoustic_extrapolation_target_times: ScalarValue = "[]",
@@ -86,7 +86,7 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
 
         Parameters:
             name: Name of the output.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             acoustic_waves_acoustic_extrapolation_c: acoustic waves acoustic extrapolation c
             acoustic_waves_acoustic_extrapolation_rho: acoustic waves acoustic extrapolation rho
             acoustic_waves_acoustic_extrapolation_target_times: acoustic waves acoustic extrapolation target times
@@ -438,8 +438,8 @@ class AcousticWavesRadiationPattern(OutputInteraction):
     def __init__(
         self,
         name: str,
-        enabled: bool = True,
         *,
+        enabled: BooleanValue | None = None,
         acoustic_waves_radiation_pattern_num_points: ScalarValue = "10",
         acoustic_waves_radiation_pattern_plane_normal: VectorValue | None = None,
         acoustic_waves_radiation_pattern_far_field_c: ScalarValue = "343",
@@ -449,7 +449,7 @@ class AcousticWavesRadiationPattern(OutputInteraction):
 
         Parameters:
             name: Name of the output.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             acoustic_waves_radiation_pattern_num_points: acoustic waves radiation pattern num points
             acoustic_waves_radiation_pattern_plane_normal: Normal of the plane to draw on as a column vector
             acoustic_waves_radiation_pattern_far_field_c: acoustic waves radiation pattern far field c
@@ -497,14 +497,15 @@ class ValueOutput(OutputInteraction):
         self,
         name: str,
         expression: ScalarValue,
-        enabled: bool = True,
+        *,
+        enabled: BooleanValue | None = None,
     ) -> None:
         """Create a value output output.
 
         Parameters:
             name: Name of the output.
             expression: The output expression
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -525,13 +526,14 @@ class Eigenfrequencies(OutputInteraction):
     def __init__(
         self,
         name: str,
-        enabled: bool = True,
+        *,
+        enabled: BooleanValue | None = None,
     ) -> None:
         """Create a eigenfrequencies output.
 
         Parameters:
             name: Name of the output.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -549,13 +551,14 @@ class Eigenvalues(OutputInteraction):
     def __init__(
         self,
         name: str,
-        enabled: bool = True,
+        *,
+        enabled: BooleanValue | None = None,
     ) -> None:
         """Create a eigenvalues output.
 
         Parameters:
             name: Name of the output.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -573,8 +576,8 @@ class ElectromagneticWavesRadiationPattern(OutputInteraction):
     def __init__(
         self,
         name: str,
-        enabled: bool = True,
         *,
+        enabled: BooleanValue | None = None,
         electromagnetic_waves_radiation_pattern_num_points: ScalarValue = "10",
         electromagnetic_waves_radiation_pattern_plane_normal: VectorValue | None = None,
     ) -> None:
@@ -582,7 +585,7 @@ class ElectromagneticWavesRadiationPattern(OutputInteraction):
 
         Parameters:
             name: Name of the output.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             electromagnetic_waves_radiation_pattern_num_points: electromagnetic waves radiation pattern num points
             electromagnetic_waves_radiation_pattern_plane_normal: Normal of the plane to draw on as a column vector
         """
@@ -620,8 +623,8 @@ class FieldOutput(OutputInteraction):
         name: str,
         expression: ScalarValue,
         target: "Region | str | None" = None,
-        enabled: bool = True,
         *,
+        enabled: BooleanValue | None = None,
         field_output_skin_only: BooleanValue = False,
         field_output_deformed_mesh: BooleanValue = False,
         field_output_filter_type: (
@@ -637,7 +640,7 @@ class FieldOutput(OutputInteraction):
             name: Name of the output.
             expression: The output expression
             target: Target region.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             field_output_skin_only: If checked, only the skin of the region is written.
             field_output_deformed_mesh: If checked, the field is written on the deformed mesh.
             field_output_filter_type: How to select which steps to save.
@@ -739,8 +742,8 @@ class FieldState(OutputInteraction):
         self,
         name: str,
         field_state: ScalarValue,
-        enabled: bool = True,
         *,
+        enabled: BooleanValue | None = None,
         field_state_filter_type: (
             FieldStateFilterType | str
         ) = FieldStateFilterType.FINAL_ONLY,
@@ -753,7 +756,7 @@ class FieldState(OutputInteraction):
         Parameters:
             name: Name of the output.
             field_state: field state
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             field_state_filter_type: How to select which steps to save.
             field_state_filter_every_nth_step: Provide interval N as an integer. The output will be saved every Nth step.
             field_state_filter_step_indices: Provide a list of step indices to output. For example [0, 2, 10]
@@ -839,15 +842,15 @@ class FinalHPhiState(OutputInteraction):
     def __init__(
         self,
         name: str,
-        enabled: bool = True,
         *,
+        enabled: BooleanValue | None = None,
         final_h_phi_state_transient_projection: BooleanValue = True,
     ) -> None:
         """Create a final h phi state output.
 
         Parameters:
             name: Name of the output.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             final_h_phi_state_transient_projection: final h phi state transient projection
         """
         parameters: List[InteractionParameter] = []
@@ -874,14 +877,15 @@ class MagneticForce(OutputInteraction):
         self,
         name: str,
         target: "Region | str",
-        enabled: bool = True,
+        *,
+        enabled: BooleanValue | None = None,
     ) -> None:
         """Create a magnetic force output.
 
         Parameters:
             name: Name of the output.
             target: Target region.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -900,13 +904,14 @@ class QFactors(OutputInteraction):
     def __init__(
         self,
         name: str,
-        enabled: bool = True,
+        *,
+        enabled: BooleanValue | None = None,
     ) -> None:
         """Create a q-factors output.
 
         Parameters:
             name: Name of the output.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -924,13 +929,14 @@ class SParameters(OutputInteraction):
     def __init__(
         self,
         name: str,
-        enabled: bool = True,
+        *,
+        enabled: BooleanValue | None = None,
     ) -> None:
         """Create a s-parameters output.
 
         Parameters:
             name: Name of the output.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -948,13 +954,14 @@ class TransientState(OutputInteraction):
     def __init__(
         self,
         name: str,
-        enabled: bool = True,
+        *,
+        enabled: BooleanValue | None = None,
     ) -> None:
         """Create a transient state output.
 
         Parameters:
             name: Name of the output.
-            enabled: Whether the output is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(

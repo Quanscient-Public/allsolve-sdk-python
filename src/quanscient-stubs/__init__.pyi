@@ -601,17 +601,9 @@ class eigenvalue:
     ...
 
 class expression:
-    @overload
-    def __add__(self, arg0: expressionlike) -> expression: ...
-    @overload
-    def __add__(self, arg0: field) -> expression: ...
-    @overload
-    def __add__(self, arg0: float) -> expression: ...
-    @overload
-    def __add__(self, arg0: parameter) -> expression: ...
-    @overload
-    def __add__(self, arg0: port) -> expression: ...
-    def __add__(self, *args, **kwargs) -> Any: ...
+    def __add__(self, arg0: expressionlike) -> expression:
+        return expression()
+
     @overload
     def __init__(self) -> None:
         """
@@ -766,7 +758,7 @@ class expression:
         """
 
     @overload
-    def __init__(self, input: field) -> None: ...
+    def __init__(self, input: field, physreg: int = -1) -> None: ...
     @overload
     def __init__(self, input: float) -> None: ...
     @overload
@@ -798,17 +790,9 @@ class expression:
         tocompare: expressionlike,
     ) -> None: ...
     def __init__(self, *args, **kwargs) -> None: ...
-    @overload
-    def __mul__(self, arg0: expressionlike) -> expression: ...
-    @overload
-    def __mul__(self, arg0: field) -> expression: ...
-    @overload
-    def __mul__(self, arg0: float) -> expression: ...
-    @overload
-    def __mul__(self, arg0: parameter) -> expression: ...
-    @overload
-    def __mul__(self, arg0: port) -> expression: ...
-    def __mul__(self, *args, **kwargs) -> Any: ...
+    def __mul__(self, arg0: expressionlike) -> expression:
+        return expression()
+
     def __neg__(self) -> expression:
         return expression()
 
@@ -851,28 +835,12 @@ class expression:
     @overload
     def __rtruediv__(self, arg0: port) -> expression: ...
     def __rtruediv__(self, *args, **kwargs) -> Any: ...
-    @overload
-    def __sub__(self, arg0: expressionlike) -> expression: ...
-    @overload
-    def __sub__(self, arg0: field) -> expression: ...
-    @overload
-    def __sub__(self, arg0: float) -> expression: ...
-    @overload
-    def __sub__(self, arg0: parameter) -> expression: ...
-    @overload
-    def __sub__(self, arg0: port) -> expression: ...
-    def __sub__(self, *args, **kwargs) -> Any: ...
-    @overload
-    def __truediv__(self, arg0: expressionlike) -> expression: ...
-    @overload
-    def __truediv__(self, arg0: field) -> expression: ...
-    @overload
-    def __truediv__(self, arg0: float) -> expression: ...
-    @overload
-    def __truediv__(self, arg0: parameter) -> expression: ...
-    @overload
-    def __truediv__(self, arg0: port) -> expression: ...
-    def __truediv__(self, *args, **kwargs) -> Any: ...
+    def __sub__(self, arg0: expressionlike) -> expression:
+        return expression()
+
+    def __truediv__(self, arg0: expressionlike) -> expression:
+        return expression()
+
     def allgridwrite(
         self,
         physreg: int,
@@ -1173,6 +1141,73 @@ class expression:
         numtimesteps: int,
     ) -> list[float]: ...
     def alltimeinterpolate(self, *args, **kwargs) -> Any: ...
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        numfftharms: int,
+        filename: str,
+        lagrangeorder: int,
+        returnharm1bounds: bool = False,
+    ) -> list[float]:
+        """
+        This is the collective counterpart of `expression.write`. It must be called by all ranks. Each rank writes
+        its own file: the rank number is inserted in `filename` when all ranks provide the same file name.
+
+        With `returnharm1bounds` set to True the bounds of the data written by all ranks are returned in format
+        [minnorm, mincomp1, mincomp2, ..., maxnorm, maxcomp1, maxcomp2, ...] where the norm is taken over all
+        components. The returned list is empty if nothing was written. In that case the expression must be
+        constant in time (harmonic 1) and `numtimesteps` must not be used.
+
+        Examples
+        --------
+        >>> # setup
+        >>> mymesh = mesh("disk.msh")
+        >>> vol = 1
+        >>> u = field("h1xyz")
+        >>> u.setorder(vol, 1)
+        >>>
+        >>> # one file per rank, no bounds returned
+        >>> (1e8*u).allwrite(vol, "u.vtk", 1)
+        >>>
+        >>> # bounds of the data written by all ranks
+        >>> bounds = (1e8*u).allwrite(vol, "u.vtk", 1, -1, True)
+
+        See Also
+        --------
+        expression.write
+        """
+
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        numfftharms: int,
+        meshdeform: expressionlike,
+        filename: str,
+        lagrangeorder: int,
+        returnharm1bounds: bool = False,
+    ) -> list[float]: ...
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        filename: str,
+        lagrangeorder: int,
+        numtimesteps: int = -1,
+        returnharm1bounds: bool = False,
+    ) -> list[float]: ...
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        meshdeform: expressionlike,
+        filename: str,
+        lagrangeorder: int,
+        numtimesteps: int = -1,
+        returnharm1bounds: bool = False,
+    ) -> list[float]: ...
+    def allwrite(self, *args, **kwargs) -> Any: ...
     def at(self, row: int, col: int) -> expression:
         """
         This returns the entry at the requested row and column.
@@ -2134,6 +2169,73 @@ class field:
         numtimesteps: int,
     ) -> list[float]: ...
     def alltimeinterpolate(self, *args, **kwargs) -> Any: ...
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        numfftharms: int,
+        filename: str,
+        lagrangeorder: int,
+        returnharm1bounds: bool = False,
+    ) -> list[float]:
+        """
+        This is the collective counterpart of `field.write`. It must be called by all ranks. Each rank writes
+        its own file: the rank number is inserted in `filename` when all ranks provide the same file name.
+
+        With `returnharm1bounds` set to True the bounds of the data written by all ranks are returned in format
+        [minnorm, mincomp1, mincomp2, ..., maxnorm, maxcomp1, maxcomp2, ...] where the norm is taken over all
+        components. The returned list is empty if nothing was written. In that case the field must be constant
+        in time (harmonic 1) and `numtimesteps` must not be used.
+
+        Examples
+        --------
+        >>> # setup
+        >>> mymesh = mesh("disk.msh")
+        >>> vol = 1
+        >>> u = field("h1xyz")
+        >>> u.setorder(vol, 1)
+        >>>
+        >>> # one file per rank, no bounds returned
+        >>> u.allwrite(vol, "u.vtk", 1)
+        >>>
+        >>> # bounds of the data written by all ranks
+        >>> bounds = u.allwrite(vol, "u.vtk", 1, -1, True)
+
+        See Also
+        --------
+        field.write
+        """
+
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        numfftharms: int,
+        meshdeform: expressionlike,
+        filename: str,
+        lagrangeorder: int,
+        returnharm1bounds: bool = False,
+    ) -> list[float]: ...
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        filename: str,
+        lagrangeorder: int,
+        numtimesteps: int = -1,
+        returnharm1bounds: bool = False,
+    ) -> list[float]: ...
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        meshdeform: expressionlike,
+        filename: str,
+        lagrangeorder: int,
+        numtimesteps: int = -1,
+        returnharm1bounds: bool = False,
+    ) -> list[float]: ...
+    def allwrite(self, *args, **kwargs) -> Any: ...
     def atbarycenter(self, physreg: int, onefield: field) -> vec:
         """
         This outputs a `vec` object whose structure is based on the field argument `onefield` and which contains the field
@@ -4062,12 +4164,7 @@ class genalpha:
 
     @overload
     def allnext(
-        self,
-        relrestol: float,
-        maxnumit: int,
-        timestep: float,
-        maxnumnlit: int,
-        enforcetolerance: bool = False,
+        self, relrestol: float, maxnumit: int, timestep: float, maxnumnlit: int
     ) -> int: ...
     def allnext(self, *args, **kwargs) -> Any: ...
     def count(self) -> int:
@@ -4149,9 +4246,7 @@ class genalpha:
         """
 
     @overload
-    def next(
-        self, timestep: float, maxnumnlit: int, enforcetolerance: bool = False
-    ) -> int: ...
+    def next(self, timestep: float, maxnumnlit: int) -> int: ...
     def next(self, *args, **kwargs) -> Any: ...
     def postsolve(self, formuls: Sequence[formulation]) -> None:
         """
@@ -4603,12 +4698,7 @@ class impliciteuler:
 
     @overload
     def allnext(
-        self,
-        relrestol: float,
-        maxnumit: int,
-        timestep: float,
-        maxnumnlit: int,
-        enforcetolerance: bool = False,
+        self, relrestol: float, maxnumit: int, timestep: float, maxnumnlit: int
     ) -> int: ...
     def allnext(self, *args, **kwargs) -> Any: ...
     def allsavestate(self, statename: str) -> None: ...
@@ -4690,9 +4780,7 @@ class impliciteuler:
         """
 
     @overload
-    def next(
-        self, timestep: float, maxnumnlit: int, enforcetolerance: bool = False
-    ) -> int: ...
+    def next(self, timestep: float, maxnumnlit: int) -> int: ...
     def next(self, *args, **kwargs) -> Any: ...
     def postsolve(self, formuls: Sequence[formulation]) -> None:
         """
@@ -5148,6 +5236,22 @@ class mat:
         """
         ...
 
+    def eliminate(self, b: vec) -> vec:
+        """
+        This returns the right handside vector with the Dirichlet constraints eliminated, i.e.
+        $\\boldsymbol{b_a} - \\boldsymbol{A_d}\\,\\boldsymbol{b_d}$. The output has the size of $\\boldsymbol{A_a}$ and
+        together with it forms the reduced system actually solved. Refer `mat.getainds`.
+
+        Example
+        -------
+        >>> breduced = A.eliminate(b)
+
+        See Also
+        --------
+        mat.getainds, mat.getdinds
+        """
+        return vec()
+
     def getainds(self) -> indexmat:
         """
         Let us call *dinds*  the set of unknowns that have a Dirichlet constraint and *ainds* the remaining unknowns.
@@ -5200,6 +5304,23 @@ class mat:
     def reusefactorization(self) -> None:
         """
         The matrix factorization will be reused in `allsolve`.
+        """
+        ...
+
+    def write(self, matrixname: str) -> None:
+        """
+        This writes the matrix $\\boldsymbol{A_a}$ to disk in PETSc binary format. The extension `.dat` is appended to
+        `matrixname`. Only $\\boldsymbol{A_a}$ is written, not the Dirichlet block $\\boldsymbol{A_d}$, so the matching
+        right handside is the one given by `mat.eliminate`. Refer `mat.getainds`.
+
+        Example
+        -------
+        >>> A.write("A")                    # writes the matrix to A.dat
+        >>> A.eliminate(b).write("b.bin")   # writes the matching right handside
+
+        See Also
+        --------
+        mat.eliminate, vec.write
         """
         ...
     ...
@@ -5881,6 +6002,35 @@ class mesh:
         startdirections: Sequence[Sequence[float]],
     ) -> None: ...
     def setcohomologycuts(self, *args, **kwargs) -> Any: ...
+    def setcomputationalload(self, loads: Sequence[Sequence[int]]) -> None:
+        """
+        This provides the computational load associated with the mesh cells so that the DDM partitioning balances the
+        expected compute per rank instead of the cell count. Each entry of the argument is a `[physical region, load]`
+        pair. Loads are summed on overlapping regions and every cell that is not targeted gets a load of $0$.
+
+        A cell carrying a vector field, such as `"h1xyz"`, holds more unknowns and leads to a denser matrix than a cell
+        carrying a single scalar field. Without this information the partitioner balances the number of cells and the
+        ranks holding the vector field regions become the bottleneck.
+
+        A load of $0$ is meant for regions that carry no unknown at all. Such cells are excluded from the balancing of
+        the other cells, which are spread over all ranks as usual, and are then absorbed one layer at a time by the ranks
+        already touching them. They therefore add no rank interface and no overlap. An error is raised if no cell at all
+        has a positive load.
+
+        Example
+        -------
+        In the below example a displacement field with three components is defined on the solid while only a scalar
+        pressure field is defined in the fluid. The piezoelectric region additionally carries the electric potential.
+        >>> solid=1; piezo=2; fluid=3;
+        >>> mymesh = mesh()
+        >>> mymesh.setcomputationalload([[solid, 3], [piezo, 3], [piezo, 1], [fluid, 1]])
+        >>> mymesh.partition()
+        >>> mymesh.load("micromembrane.msh")
+
+        Region "*piezo*" gets a load of $3+1=4$ because the loads are summed on the overlaps.
+        """
+        ...
+
     def setphysicalregions(
         self,
         dims: Sequence[int],
@@ -6278,6 +6428,73 @@ class parameter:
         numtimesteps: int,
     ) -> list[float]: ...
     def alltimeinterpolate(self, *args, **kwargs) -> Any: ...
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        numfftharms: int,
+        filename: str,
+        lagrangeorder: int,
+        returnharm1bounds: bool = False,
+    ) -> list[float]:
+        """
+        This is the collective counterpart of `parameter.write`. It must be called by all ranks. Each rank writes
+        its own file: the rank number is inserted in `filename` when all ranks provide the same file name.
+
+        With `returnharm1bounds` set to True the bounds of the data written by all ranks are returned in format
+        [minnorm, mincomp1, mincomp2, ..., maxnorm, maxcomp1, maxcomp2, ...] where the norm is taken over all
+        components. The returned list is empty if nothing was written. In that case the parameter must be
+        constant in time (harmonic 1) and `numtimesteps` must not be used.
+
+        Examples
+        --------
+        >>> # setup
+        >>> mymesh = mesh("disk.msh")
+        >>> vol = 1
+        >>> p = parameter()
+        >>> p.setvalue(vol, 10)
+        >>>
+        >>> # one file per rank, no bounds returned
+        >>> p.allwrite(vol, "p.vtk", 1)
+        >>>
+        >>> # bounds of the data written by all ranks
+        >>> bounds = p.allwrite(vol, "p.vtk", 1, -1, True)
+
+        See Also
+        --------
+        parameter.write
+        """
+
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        numfftharms: int,
+        meshdeform: expressionlike,
+        filename: str,
+        lagrangeorder: int,
+        returnharm1bounds: bool = False,
+    ) -> list[float]: ...
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        filename: str,
+        lagrangeorder: int,
+        numtimesteps: int = -1,
+        returnharm1bounds: bool = False,
+    ) -> list[float]: ...
+    @overload
+    def allwrite(
+        self,
+        physreg: int,
+        meshdeform: expressionlike,
+        filename: str,
+        lagrangeorder: int,
+        numtimesteps: int = -1,
+        returnharm1bounds: bool = False,
+    ) -> list[float]: ...
+    def allwrite(self, *args, **kwargs) -> Any: ...
     def atbarycenter(self, physreg: int, onefield: field) -> vec:
         """
         This outputs a `vec` object whose structure is based on the field argument `onefield` and which contains the parameter
@@ -7621,9 +7838,12 @@ class universe:
     ddmscaleportrelations = True
     distributeddirectsolver = False
     eigensolveshiftangle = 0.1
+    enforceddmtolerance = False
+    enforcenonlineartolerance = False
     epstype = "krylovschur"
     extraintegrationorder = 0
     fastprocessrows = True
+    fastquadblas = True
     fouriercroppingthreshold = 1e-14
     gmresmodifiedgramschmidt = False
     gmresreorthogonalize = True
@@ -8739,7 +8959,47 @@ def allextrapolateacousticfield(
     rho: float,
     target: shape,
     inpolar: bool = False,
-) -> list[iodata]: ...
+) -> list[iodata]:
+    """
+    This calls `allhelmholtzkirchhoff` at every node of the `target` shape and returns the extrapolated acoustic
+    pressure as `iodata` ready to be written to disk with `write`. Duplicated target coordinates are merged and
+    the curvature order of the target shape is used for the output data. The `form`, `skinregion`, `region`, `p`,
+    `c` and `rho` arguments as well as the symmetry, patterning and attenuation declared with
+    `setextrapolationsymmetry`, `setextrapolationpatterning` and `setextrapolationattenuation` are the ones of
+    `allhelmholtzkirchhoff`. Each returned `iodata` holds the scalar pressure on the target shape.
+
+    Examples
+    --------
+    **Example 1**: `allextrapolateacousticfield(form:formulation, skinregion:int, region:int, p:field, c:float, rho:float, target:shape, inpolar:bool=False)`
+
+    This is the harmonic extrapolation and it raises a RuntimeError if the fundamental frequency was not set. Two
+    `iodata` objects are returned. The first one holds harmonic $2$ (the $sin(2{\\pi}{f_o}t)$ coefficient) and
+    the second one harmonic $3$ (the $cos(2{\\pi}{f_o}t)$ coefficient), which are the real and the imaginary part
+    of the complex pressure amplitude. With `inpolar` set to True the first one instead holds the magnitude of
+    that complex amplitude and the second one its phase, in degrees.
+    >>> setfundamentalfrequency(1e3)
+    >>> ...
+    >>> target = shape("quadrangle", -1, [25,-10,0, 45,-10,0, 45,10,0, 25,10,0], [10,10,10,10])
+    >>> target = target.convertcurvatureorder(3)
+    >>>
+    >>> data = allextrapolateacousticfield(acoustics, bnd, sur, p, c, rho, target)
+    >>> write("pharm2.vtu", data[0])
+    >>> write("pharm3.vtu", data[1])
+
+    **Example 2**: `allextrapolateacousticfield(form:formulation, skinregion:int, region:int, p:field, c:float, rho:float, target:shape, targettimes:List[float], samplestimes:List[float], samplespdtpntp:List[List[field]])`
+
+    This is the transient extrapolation. The history of the trace is provided with `samplestimes` and
+    `samplespdtpntp` as in `allhelmholtzkirchhoff`. A single `iodata` object is returned, holding the pressure on
+    the target shape at every requested target time, in the order the target times are provided.
+    >>> ...
+    >>> data = allextrapolateacousticfield(acoustics, bnd, sur, p, c, rho, target, [6e-3,20e-3], samplestimes, samples)
+    >>> write("ptime.vtu", data)
+
+    See Also
+    --------
+    allhelmholtzkirchhoff, allhelmholtzkirchhofffarfield, allextrapolateemfield, write
+    """
+
 @overload
 def allextrapolateacousticfield(
     form: formulation,
@@ -8754,6 +9014,71 @@ def allextrapolateacousticfield(
     samplespdtpntp: Sequence[Sequence[field]],
 ) -> iodata: ...
 def allextrapolateacousticfield(*args, **kwargs) -> Any: ...
+@overload
+def allextrapolateemfield(
+    form: formulation,
+    skinregion: int,
+    region: int,
+    E: field,
+    mu: float,
+    epsilon: float,
+    target: shape,
+    inpolar: bool = False,
+) -> list[iodata]:
+    """
+    This calls `allstrattonchu` at every node of the `target` shape and returns the extrapolated electric field as
+    `iodata` ready to be written to disk with `write`. Duplicated target coordinates are merged and the curvature
+    order of the target shape is used for the output data. The `form`, `skinregion`, `region`, `E`, `mu` and
+    `epsilon` arguments as well as the symmetry, patterning and attenuation declared with
+    `setextrapolationsymmetry`, `setextrapolationpatterning` and `setextrapolationattenuation` are the ones of
+    `allstrattonchu`. Each returned `iodata` holds the three field components on the target shape.
+
+    Examples
+    --------
+    **Example 1**: `allextrapolateemfield(form:formulation, skinregion:int, region:int, E:field, mu:float, epsilon:float, target:shape, inpolar:bool=False)`
+
+    This is the harmonic extrapolation and it raises a RuntimeError if the fundamental frequency was not set. Two
+    `iodata` objects are returned. The first one holds harmonic $2$ (the $sin(2{\\pi}{f_o}t)$ coefficient) and
+    the second one harmonic $3$ (the $cos(2{\\pi}{f_o}t)$ coefficient), which are the real and the imaginary part
+    of the complex field amplitude. With `inpolar` set to True the first one instead holds the magnitude of that
+    complex amplitude and the second one its phase, in degrees.
+    >>> setfundamentalfrequency(1e9)
+    >>> ...
+    >>> target = shape("quadrangle", -1, [25,-10,0, 45,-10,0, 45,10,0, 25,10,0], [10,10,10,10])
+    >>> target = target.convertcurvatureorder(3)
+    >>>
+    >>> data = allextrapolateemfield(form, bnd, sur, E, getmu0(), getepsilon0(), target)
+    >>> write("Eharm2.vtu", data[0])
+    >>> write("Eharm3.vtu", data[1])
+
+    **Example 2**: `allextrapolateemfield(form:formulation, skinregion:int, region:int, E:field, mu:float, epsilon:float, target:shape, targettimes:List[float], samplestimes:List[float], samplesEdtEntE:List[List[field]])`
+
+    This is the transient extrapolation. The history of the trace is provided with `samplestimes` and
+    `samplesEdtEntE` as in `allstrattonchu`. A single `iodata` object is returned, holding the field on the target
+    shape at every requested target time, in the order the target times are provided.
+    >>> ...
+    >>> data = allextrapolateemfield(form, bnd, sur, E, getmu0(), getepsilon0(), target, [8e-9,9e-9], samplestimes, samples)
+    >>> write("Etime.vtu", data)
+
+    See Also
+    --------
+    allstrattonchu, allstrattonchufarfield, allextrapolateacousticfield, write
+    """
+
+@overload
+def allextrapolateemfield(
+    form: formulation,
+    skinregion: int,
+    region: int,
+    E: field,
+    mu: float,
+    epsilon: float,
+    target: shape,
+    targettimes: Sequence[float],
+    samplestimes: Sequence[float],
+    samplesEdtEntE: Sequence[Sequence[field]],
+) -> iodata: ...
+def allextrapolateemfield(*args, **kwargs) -> Any: ...
 def allfinalize() -> None:
     """
     <<INTERNAL>>
@@ -8798,6 +9123,118 @@ def allgetcoords(singlenodephysreg: int) -> list[float]:
     -------
     >>> mymesh = mesh("disk.msh")
     >>> xyz_coords = qs.allgetcoords(singlenodephysreg)
+    """
+    ...
+
+@overload
+def allhelmholtzkirchhoff(
+    form: formulation,
+    skinregion: int,
+    region: int,
+    p: field,
+    c: float,
+    rho: float,
+    coords: Sequence[float],
+) -> list[list[float]]:
+    """
+    This is a collective MPI operation and hence must be called by all ranks.
+    This extrapolates the acoustic pressure radiated at the requested coordinates from the field traces on
+    `skinregion`, a closed skin around the radiating structure. The `region` argument is the region that
+    `skinregion` surrounds and is only used to orient the normal outwards. The Neumann trace is taken from
+    `form`, the formulation the pressure field was solved with. Arguments `c` and `rho` are the speed of sound
+    and the density of the homogeneous, source free medium the field is extrapolated in. Coordinates are provided
+    flattened as $[x_0,y_0,z_0,x_1,y_1,z_1,...]$ and a RuntimeError is raised if their number is not a multiple
+    of three, as well as in 1D. In plain 2D the $z$ coordinate of the targets is ignored. In 2D axisymmetry the
+    targets can instead be anywhere in 3D space, each one being brought back to the meridian half-plane by an
+    azimuthal rotation. The symmetry, patterning and attenuation declared with `setextrapolationsymmetry`,
+    `setextrapolationpatterning` and `setextrapolationattenuation` are taken into account.
+
+    Examples
+    --------
+    **Example 1**: `allhelmholtzkirchhoff(form:formulation, skinregion:int, region:int, p:field, c:float, rho:float, coords:List[float])`
+
+    This is the harmonic extrapolation and it raises a RuntimeError if the fundamental frequency was not set. Two
+    lists are returned, each of length equal to the number of coordinates. Entry $0$ holds harmonic $2$ (the
+    $sin(2{\\pi}{f_o}t)$ coefficient) and entry $1$ holds harmonic $3$ (the $cos(2{\\pi}{f_o}t)$ coefficient).
+    The two harmonics are the real and the imaginary part of the complex pressure amplitude. In both lists the
+    value at index $i$ is the one at coordinate $i$, i.e. at $[coords[3i], coords[3i+1], coords[3i+2]]$.
+    >>> setfundamentalfrequency(1e3)
+    >>> ...
+    >>> pvals = allhelmholtzkirchhoff(acoustics, bnd, sur, p, c, rho, [1.0,2.0,0.0, 3.0,2.0,0.0])
+    >>> pharm2 = pvals[0][1]    # harmonic 2 at (3.0, 2.0, 0.0)
+    >>> pharm3 = pvals[1][1]    # harmonic 3 at (3.0, 2.0, 0.0)
+
+    **Example 2**: `allhelmholtzkirchhoff(form:formulation, skinregion:int, region:int, p:field, c:float, rho:float, coords:List[float], times:List[float], samplestimes:List[float], samplespdtpntp:List[List[field]])`
+
+    This is the transient extrapolation. The history of the trace is provided with `samplestimes`, the time of
+    each sample, and `samplespdtpntp`, the matching $[p, dtp, ntp]$ triplet of fields as returned by
+    `genalpha.allgatherextrapolationdata`. A RuntimeError is raised if a triplet does not hold three fields.
+    Since the trace is read from the samples, `form` plays no role there. A single list is returned, of length
+    equal to the number of times multiplied by the number of coordinates and ordered time first, i.e. the
+    pressure at time index $j$ and coordinate index $i$ is at index $j \\cdot numcoords + i$.
+    >>> ga = genalpha(acoustics, dtxinit, dtdtxinit)
+    >>> samplestimes = []; samples = []
+    >>> for i in range(1000):
+    >>>     ga.allnext(1e-8, 500, 2e-5)
+    >>>     samplestimes.append(gettime())
+    >>>     samples.append(ga.allgatherextrapolationdata(bnd, sur, p))
+    >>>
+    >>> pvals = allhelmholtzkirchhoff(acoustics, bnd, sur, p, c, rho, [1.0,2.0,0.0, 3.0,2.0,0.0], [6e-3,20e-3], samplestimes, samples)
+    >>> pval = pvals[1*2 + 0]   # pressure at time 20e-3 and coordinate (1.0, 2.0, 0.0)
+
+    See Also
+    --------
+    allhelmholtzkirchhofffarfield, allextrapolateacousticfield, allstrattonchu, setextrapolationsymmetry, setextrapolationpatterning, setextrapolationattenuation
+    """
+
+@overload
+def allhelmholtzkirchhoff(
+    form: formulation,
+    skinregion: int,
+    region: int,
+    p: field,
+    c: float,
+    rho: float,
+    coords: Sequence[float],
+    times: Sequence[float],
+    samplestimes: Sequence[float],
+    samplespdtpntp: Sequence[Sequence[field]],
+) -> list[float]: ...
+def allhelmholtzkirchhoff(*args, **kwargs) -> Any: ...
+def allhelmholtzkirchhofffarfield(
+    form: formulation,
+    skinregion: int,
+    region: int,
+    p: field,
+    c: float,
+    rho: float,
+    coords: Sequence[float],
+) -> list[list[float]]:
+    """
+    This is a collective MPI operation and hence must be called by all ranks.
+    This is the far field approximation of `allhelmholtzkirchhoff`. The arguments and the output format are
+    identical: two lists of length equal to the number of coordinates, entry $0$ holding harmonic $2$ (the
+    $sin(2{\\pi}{f_o}t)$ coefficient) and entry $1$ holding harmonic $3$ (the $cos(2{\\pi}{f_o}t)$ coefficient).
+    In both lists the value at index $i$ is the one at coordinate $i$, i.e. at
+    $[coords[3i], coords[3i+1], coords[3i+2]]$. The expansion is made around the origin, from which only the
+    direction and the distance of each coordinate are used, so the radiating structure should be located around
+    the origin. The surface is then integrated once per coordinate whatever the declared patterning, which is
+    applied as an array factor instead. This makes the call much cheaper than the near field one and the values
+    converge to the `allhelmholtzkirchhoff` ones as the targets move away from the structure. A RuntimeError is
+    raised if the fundamental frequency was not set, if the number of coordinates is not a multiple of three, if a
+    target is at the origin, which defines no direction, as well as in 1D.
+
+    Example
+    -------
+    >>> setfundamentalfrequency(1e3)
+    >>> ...
+    >>> pvals = allhelmholtzkirchhofffarfield(acoustics, bnd, sur, p, c, rho, [1.2e6,0.9e6,0.0])
+    >>> pharm2 = pvals[0][0]
+    >>> pharm3 = pvals[1][0]
+
+    See Also
+    --------
+    allhelmholtzkirchhoff, allextrapolateacousticfield, allstrattonchufarfield, setextrapolationsymmetry, setextrapolationpatterning, setextrapolationattenuation
     """
     ...
 
@@ -9079,6 +9516,123 @@ def allstatictotransienthphi(
 ) -> tuple[field, field]:
     return (field(), field())
 
+@overload
+def allstrattonchu(
+    form: formulation,
+    skinregion: int,
+    region: int,
+    E: field,
+    mu: float,
+    epsilon: float,
+    coords: Sequence[float],
+) -> list[list[float]]:
+    """
+    This is a collective MPI operation and hence must be called by all ranks.
+    This extrapolates the electric field radiated at the requested coordinates from the field traces on
+    `skinregion`, a closed skin around the radiating structure. The `region` argument is the region that
+    `skinregion` surrounds and is only used to orient the normal outwards. The Neumann trace is taken from
+    `form`, the formulation the field was solved with. Arguments `mu` and `epsilon` are the permeability and
+    permittivity of the homogeneous, source free medium the field is extrapolated in. Coordinates are provided
+    flattened as $[x_0,y_0,z_0,x_1,y_1,z_1,...]$ and a RuntimeError is raised if their number is not a multiple
+    of three, as well as in 1D. In plain 2D the $z$ coordinate of the targets is ignored. In 2D axisymmetry the
+    targets can instead be anywhere in 3D space: each one is brought back to the meridian half-plane by an
+    azimuthal rotation and the values are rotated back, so the returned components are always the global $x$, $y$
+    and $z$ ones at the requested coordinates.
+    The symmetry, patterning and attenuation declared with `setextrapolationsymmetry`,
+    `setextrapolationpatterning` and `setextrapolationattenuation` are taken into account.
+
+    Examples
+    --------
+    **Example 1**: `allstrattonchu(form:formulation, skinregion:int, region:int, E:field, mu:float, epsilon:float, coords:List[float])`
+
+    This is the harmonic extrapolation and it raises a RuntimeError if the fundamental frequency was not set. Six
+    lists are returned, each of length equal to the number of coordinates. Entries $0$, $1$ and $2$ hold the $x$,
+    $y$ and $z$ components of harmonic $2$ (the $sin(2{\\pi}{f_o}t)$ coefficient) and entries $3$, $4$ and $5$
+    hold the $x$, $y$ and $z$ components of harmonic $3$ (the $cos(2{\\pi}{f_o}t)$ coefficient). The two
+    harmonics of a component are the real and the imaginary part of its complex amplitude. In every list the
+    value at index $i$ is the one at coordinate $i$, i.e. at $[coords[3i], coords[3i+1], coords[3i+2]]$.
+    >>> setfundamentalfrequency(1e9)
+    >>> ...
+    >>> Evals = allstrattonchu(form, bnd, sur, E, getmu0(), getepsilon0(), [10.0,5.0,0.0, 20.0,5.0,0.0])
+    >>> Exharm2 = Evals[0][1]   # x component of harmonic 2 at (20.0, 5.0, 0.0)
+    >>> Exharm3 = Evals[3][1]   # x component of harmonic 3 at (20.0, 5.0, 0.0)
+
+    **Example 2**: `allstrattonchu(form:formulation, skinregion:int, region:int, E:field, mu:float, epsilon:float, coords:List[float], times:List[float], samplestimes:List[float], samplesEdtEntE:List[List[field]])`
+
+    This is the transient extrapolation. The history of the trace is provided with `samplestimes`, the time of
+    each sample, and `samplesEdtEntE`, the matching $[E, dtE, ntE]$ triplet of fields as returned by
+    `genalpha.allgatherextrapolationdata`. A RuntimeError is raised if a triplet does not hold three fields.
+    Since the trace is read from the samples, `form` plays no role there. Three lists are returned, holding the
+    $x$, $y$ and $z$ field components at the requested `times`. Each list has a length equal to the number of
+    times multiplied by the number of coordinates and is ordered time first, i.e. the value at time index $j$
+    and coordinate index $i$ is at index $j \\cdot numcoords + i$.
+    >>> ga = genalpha(form, dtxinit, dtdtxinit)
+    >>> samplestimes = []; samples = []
+    >>> for i in range(1000):
+    >>>     ga.allnext(1e-8, 500, 1e-12)
+    >>>     samplestimes.append(gettime())
+    >>>     samples.append(ga.allgatherextrapolationdata(bnd, sur, E))
+    >>>
+    >>> Evals = allstrattonchu(form, bnd, sur, E, getmu0(), getepsilon0(), [10.0,5.0,0.0, 20.0,5.0,0.0], [8e-9,9e-9], samplestimes, samples)
+    >>> Ex = Evals[0][1*2 + 0]  # x component at time 9e-9 and coordinate (10.0, 5.0, 0.0)
+
+    See Also
+    --------
+    allstrattonchufarfield, allextrapolateemfield, allhelmholtzkirchhoff, setextrapolationsymmetry, setextrapolationpatterning, setextrapolationattenuation
+    """
+
+@overload
+def allstrattonchu(
+    form: formulation,
+    skinregion: int,
+    region: int,
+    E: field,
+    mu: float,
+    epsilon: float,
+    coords: Sequence[float],
+    times: Sequence[float],
+    samplestimes: Sequence[float],
+    samplesEdtEntE: Sequence[Sequence[field]],
+) -> list[list[float]]: ...
+def allstrattonchu(*args, **kwargs) -> Any: ...
+def allstrattonchufarfield(
+    form: formulation,
+    skinregion: int,
+    region: int,
+    E: field,
+    mu: float,
+    epsilon: float,
+    coords: Sequence[float],
+) -> list[list[float]]:
+    """
+    This is a collective MPI operation and hence must be called by all ranks.
+    This is the far field approximation of `allstrattonchu`. The arguments and the output format are identical: six
+    lists of length equal to the number of coordinates, entries $0$, $1$, $2$ holding the $x$, $y$ and $z$
+    components of harmonic $2$ (the $sin(2{\\pi}{f_o}t)$ coefficient) and entries $3$, $4$, $5$ the $x$, $y$ and
+    $z$ components of harmonic $3$ (the $cos(2{\\pi}{f_o}t)$ coefficient). In every list the value at index $i$
+    is the one at coordinate $i$, i.e. at $[coords[3i], coords[3i+1], coords[3i+2]]$. The expansion is made
+    around the origin, from which only the direction and the distance of each coordinate are used, so the
+    radiating structure should be located around the origin. The surface is then integrated once per coordinate
+    whatever the declared patterning, which is applied as an array factor instead. This makes the call much
+    cheaper than the near field one and the values converge to the `allstrattonchu` ones as the targets move away
+    from the structure. A RuntimeError is raised if the fundamental frequency was not set, if the number of
+    coordinates is not a multiple of three, if a target is at the origin, which defines no direction, as well as
+    in 1D.
+
+    Example
+    -------
+    >>> setfundamentalfrequency(1e9)
+    >>> ...
+    >>> Evals = allstrattonchufarfield(form, bnd, sur, E, getmu0(), getepsilon0(), [1.2e8,0.9e8,0.0])
+    >>> Exharm2 = Evals[0][0]
+    >>> Exharm3 = Evals[3][0]
+
+    See Also
+    --------
+    allstrattonchu, allextrapolateemfield, allhelmholtzkirchhofffarfield, setextrapolationsymmetry, setextrapolationpatterning, setextrapolationattenuation
+    """
+    ...
+
 def alltimeinterpolate(
     physreg: int, expr: expressionlike, xyzcoord: Sequence[float], numtimesteps: int
 ) -> list[float]:
@@ -9107,6 +9661,15 @@ def alltimeinterpolate(
     """
     ...
 
+def analyticjacobianelectromechanics(
+    dofu: expressionlike,
+    tfu: expressionlike,
+    dofv: expressionlike,
+    tfv: expressionlike,
+    u: expressionlike,
+    v: expressionlike,
+    epsilon: expressionlike,
+) -> list[expression]: ...
 def andpositive(exprs: Sequence[expressionlike]) -> expression:
     """
     This returns an expression whose value is 1 for all evaluation points where the value of all the input expressions is larger
@@ -9758,7 +10321,7 @@ def count() -> int:
     """
     ...
 
-def countphysicalram() -> int: ...
+def countphysicalram() -> float: ...
 def crossproduct(a: expressionlike, b: expressionlike) -> expression:
     """
     This computes the cross-product of two vector expressions. The returned expression is a vector.
@@ -10655,30 +11218,6 @@ def grouptimesteps(*args, **kwargs) -> Any: ...
 def harm(harmnum: int, input: expressionlike, numfftharms: int = -1) -> expression:
     return expression()
 
-@overload
-def helmholtzkirchhoff(
-    form: formulation,
-    skinregion: int,
-    region: int,
-    p: field,
-    c: float,
-    rho: float,
-    coords: Sequence[float],
-) -> list[list[float]]: ...
-@overload
-def helmholtzkirchhoff(
-    form: formulation,
-    skinregion: int,
-    region: int,
-    p: field,
-    c: float,
-    rho: float,
-    coords: Sequence[float],
-    times: Sequence[float],
-    samplestimes: Sequence[float],
-    samplespdtpntp: Sequence[Sequence[field]],
-) -> list[float]: ...
-def helmholtzkirchhoff(*args, **kwargs) -> Any: ...
 def ifpositive(
     condexpr: expressionlike, trueexpr: expressionlike, falseexpr: expressionlike
 ) -> expression:
@@ -11119,7 +11658,6 @@ def makeharmonic(
     harms: Sequence[int], expr: expressionlike, numfftharms: int
 ) -> expression: ...
 def makeharmonic(*args, **kwargs) -> Any: ...
-@overload
 def max(a: expressionlike, b: expressionlike) -> expression:
     """
     This returns an expression whose value is the maximum of the two input arguments `a` and `b`.
@@ -11135,12 +11673,8 @@ def max(a: expressionlike, b: expressionlike) -> expression:
     --------
     min
     """
+    return expression()
 
-@overload
-def max(a: field, b: field) -> expression: ...
-@overload
-def max(a: parameter, b: parameter) -> expression: ...
-def max(*args, **kwargs) -> Any: ...
 def meshsize(integrationorder: int) -> expression:
     """
     This returns an expression whose value is the length/area/volume for each 1D/2D/3D mesh element respectively. The value is
@@ -11156,7 +11690,6 @@ def meshsize(integrationorder: int) -> expression:
     """
     return expression()
 
-@overload
 def min(a: expressionlike, b: expressionlike) -> expression:
     """
     This returns an expression whose value is the minimum of the two input arguments `a` and `b`.
@@ -11172,12 +11705,8 @@ def min(a: expressionlike, b: expressionlike) -> expression:
     --------
     max
     """
+    return expression()
 
-@overload
-def min(a: field, b: field) -> expression: ...
-@overload
-def min(a: parameter, b: parameter) -> expression: ...
-def min(*args, **kwargs) -> Any: ...
 def mod(input: expressionlike, modval: float) -> expression:
     """
     This is a modulo function. This returns an expression equal to the remainder resulting from the division
@@ -12258,6 +12787,90 @@ def predefinedhyperelasticity(
     nu: expressionlike,
     prestress: expressionlike,
 ) -> expression:
+    """
+    This function returns the weak formulation term of a solid in **finite-strain (large deformation) hyperelasticity**.
+    The material is a compressible Neo-Hookean material with a decoupled isochoric-volumetric strain energy density.
+    Contrary to `predefinedelasticity`, no small strain assumption is made: the full geometric and material
+    nonlinearity is taken into account, so the resolution must iterate (a Newton iteration converges quadratically
+    since the returned term includes the consistent tangent).
+
+    **Model**
+
+    With $\\boldsymbol{u}$ the displacement field, the deformation gradient, the right Cauchy-Green tensor, its
+    determinant and first invariant are
+    $$
+        \\boldsymbol{F} = \\boldsymbol{I} + \\nabla \\boldsymbol{u}, \\quad
+        \\boldsymbol{C} = \\boldsymbol{F}^T \\boldsymbol{F}, \\quad
+        J = \\det \\boldsymbol{F}, \\quad
+        I_1 = \\mathrm{tr}\\, \\boldsymbol{C}
+    $$
+    In 2D the out-of-plane stretch is set to one, i.e. $I_1 = \\mathrm{tr}\\, \\boldsymbol{C} + 1$, so that a **plane
+    strain** state is simulated. The strain energy density and the second Piola-Kirchhoff stress it derives from are
+    $$
+        W = \\frac{\\mu}{2} \\left( J^{-2/3} I_1 - 3 \\right) + \\frac{K}{2} \\left( J - 1 \\right)^2, \\quad
+        \\boldsymbol{S} = 2 \\frac{\\partial W}{\\partial \\boldsymbol{C}} =
+        \\mu J^{-2/3} \\left( \\boldsymbol{I} - \\frac{I_1}{3} \\boldsymbol{C}^{-1} \\right) + K J (J-1) \\boldsymbol{C}^{-1}
+    $$
+    with the shear and bulk moduli obtained from the Young's modulus and the Poisson ratio,
+    $$
+        \\mu = \\frac{E}{2(1+\\nu)}, \\qquad K = \\frac{E}{3(1-2\\nu)}
+    $$
+    The first term is the isochoric (shape changing) contribution and the second one penalizes volume changes. For
+    small strains this material recovers the classical linear isotropic elasticity of `predefinedelasticity`.
+
+    **Weak form**
+
+    The returned term is the total Lagrangian virtual work of the internal stress together with its consistent
+    linearization,
+    $$
+        \\delta W = - \\int_{\\Omega_0} \\boldsymbol{S} : \\delta \\boldsymbol{E} \\, d\\Omega_0, \\quad
+        \\boldsymbol{E} = \\frac{1}{2} \\left( \\boldsymbol{F}^T \\boldsymbol{F} - \\boldsymbol{I} \\right)
+    $$
+    where $\\boldsymbol{E}$ is the Green-Lagrange strain. Both the material tangent and the geometric (initial stress)
+    tangent are included. An error is thrown if the deformation jacobian $J$ becomes negative anywhere, which happens
+    when elements get inverted by an excessive deformation (use smaller load steps in that case).
+
+    The arguments have the following meaning:
+    * `dofu` is the dof of the mechanical displacement field ($2\\times1$ in 2D, $3\\times1$ in 3D).
+    * `tfu` is the test function of the mechanical displacement field.
+    * `u` is the mechanical displacement field.
+    * `E` is the Young's modulus in $Pa$.
+    * `nu` is the Poisson ratio, which must be lower than $0.5$.
+    * `prestress` is a constant initial second Piola-Kirchhoff stress in Voigt form ($3\\times1$ in 2D, $6\\times1$ in
+      3D), or $0.0$ when there is none. It adds to the stress and contributes to the geometric stiffness.
+
+    Examples
+    --------
+    **Example 1**: a clamped disk pulled by a volumic force.
+    >>> mymesh = mesh("disk.msh")
+    >>> vol=1; sur=2; top=3
+    >>>
+    >>> u = field("h1xyz")
+    >>> u.setorder(vol, 2)
+    >>> u.setconstraint(sur)
+    >>>
+    >>> hyperelasticity = formulation()
+    >>> hyperelasticity += integral(vol, predefinedhyperelasticity(dof(u), tf(u), u, 1e6, 0.4, 0.0))
+    >>> hyperelasticity += integral(vol, array3x1(0.0, 0.0, -1e4)*tf(u))
+    >>>
+    >>> # the material is nonlinear: allsolve iterates natively, here at most 200 nonlinear
+    >>> # iterations until the relative solution change drops below 1e-6
+    >>> hyperelasticity.allsolve(1e-8, 500, 1e-6, 200)
+    >>>
+    >>> u.write(vol, "u.vtu", 2)
+
+    A large load might have to be applied in several steps to keep the nonlinear iteration converging.
+
+    **Example 2**: with an initial prestress (Voigt form).
+    >>> prestress = expression(6,1, [1e4, 1e4, 0.0, 0.0, 0.0, 0.0])
+    >>>
+    >>> hyperelasticity = formulation()
+    >>> hyperelasticity += integral(vol, predefinedhyperelasticity(dof(u), tf(u), u, 1e6, 0.4, prestress))
+
+    See Also
+    --------
+    predefinedviscohyperelasticity, predefinedelasticity, predefinedyeoh
+    """
     return expression()
 
 @overload
@@ -12966,7 +13579,155 @@ def predefinedviscohyperelasticity(
     nup: expressionlike,
     taup: expressionlike,
     prestress: expressionlike,
-) -> list[tuple[expression, int, list[operation], preconditioner]]: ...
+) -> list[tuple[expression, int, list[operation], preconditioner]]:
+    """
+    This function returns the weak formulation terms of a solid in **finite-strain (large deformation) viscoelasticity**.
+    The material is a compressible Neo-Hookean equilibrium spring placed in parallel with an arbitrary number of Maxwell
+    branches whose stress relaxes exponentially (a generalized Maxwell, or Prony series, arrangement). This is the finite
+    linear viscoelasticity model of Simo, also known as Fung's quasi-linear viscoelasticity and available as the
+    time-domain *hyperelastic + Prony* material in commercial finite element codes.
+
+    This model is defined for **time-domain (transient) resolution only**: calling it after `setfundamentalfrequency` or
+    with a multiharmonic displacement field throws an error. Because the material is nonlinear, the resolution must
+    iterate at every timestep (pass a maximum number of nonlinear iterations to `genalpha.next`).
+
+    **Kinematics and hyperelastic spring**
+
+    With $\\boldsymbol{u}$ the displacement field, the deformation gradient, the right Cauchy-Green tensor, its
+    determinant and first invariant are
+    $$
+        \\boldsymbol{F} = \\boldsymbol{I} + \\nabla \\boldsymbol{u}, \\quad
+        \\boldsymbol{C} = \\boldsymbol{F}^T \\boldsymbol{F}, \\quad
+        J = \\det \\boldsymbol{F}, \\quad
+        I_1 = \\mathrm{tr}\\, \\boldsymbol{C}
+    $$
+    In 2D the out-of-plane stretch is set to one, i.e. $I_1 = \\mathrm{tr}\\, \\boldsymbol{C} + 1$, so that a **plane
+    strain** state is simulated. The spring is a compressible Neo-Hookean material with a decoupled
+    isochoric-volumetric strain energy density
+    $$
+        W = \\frac{\\mu}{2} \\left( J^{-2/3} I_1 - 3 \\right) + \\frac{K}{2} \\left( J - 1 \\right)^2, \\quad
+        \\mu = \\frac{E}{2(1+\\nu)}, \\quad K = \\frac{E}{3(1-2\\nu)}
+    $$
+    from which the second Piola-Kirchhoff stress $\\boldsymbol{S} = 2 \\, \\partial W / \\partial \\boldsymbol{C}$ follows.
+    Writing $\\boldsymbol{\\hat{S}}$ for that stress evaluated at a unit Young's modulus ($E = 1$),
+    $$
+        \\boldsymbol{\\hat{S}} = \\hat{\\mu} J^{-2/3} \\left( \\boldsymbol{I} - \\frac{I_1}{3} \\boldsymbol{C}^{-1} \\right)
+        + \\hat{K} J (J-1) \\boldsymbol{C}^{-1}
+    $$
+    so that the stress of a branch of modulus $E_i$ is simply $E_i \\boldsymbol{\\hat{S}}$. The material is fully defined
+    by the Poisson ratio and by the moduli of the branches.
+
+    **Viscoelastic relaxation**
+
+    The equilibrium branch of modulus $E_0$ carries $E_0 \\boldsymbol{\\hat{S}}(t)$ at all times. Each Maxwell branch
+    $i \\geq 1$ of modulus $E_i$ and relaxation time $\\tau_i$ carries an overstress given by the hereditary (convolution)
+    integral of the Neo-Hookean stress rate, so the total second Piola-Kirchhoff stress is
+    $$
+        \\boldsymbol{S}(t) = E_0 \\boldsymbol{\\hat{S}}(t)
+        + \\sum_{i \\geq 1} \\int_0^t E_i \\, e^{-(t-s)/\\tau_i} \\, \\frac{d \\boldsymbol{\\hat{S}}}{ds} \\, ds
+    $$
+    which is evaluated in the equivalent form actually implemented,
+    $$
+        \\boldsymbol{S}(t) = E_0 \\boldsymbol{\\hat{S}}(t) + \\sum_{i \\geq 1} \\left[ E_i \\boldsymbol{\\hat{S}}(t)
+        - \\frac{E_i}{\\tau_i} \\int_0^t e^{-(t-s)/\\tau_i} \\, \\boldsymbol{\\hat{S}}(s) \\, ds \\right]
+    $$
+    The convolution integrals are stored as time accumulators that are updated at each timestep with a second-order
+    (trapezoidal) recursion, so no history beyond the previous timestep is kept in memory. The stiffness seen by the
+    current timestep is $E_0 + \\sum_i E_i \\left(1 - \\Delta t / (2 \\tau_i)\\right)$.
+
+    The model is therefore **quasi-linear**: the time dependence and the (nonlinear) strain dependence separate. The
+    scalar relaxation modulus is
+    $$
+        G(t) = E_0 + \\sum_{i \\geq 1} E_i \\, e^{-t/\\tau_i}
+    $$
+    with instantaneous modulus $G(0) = E_0 + \\sum_i E_i$ and long-term (fully relaxed) modulus $G(\\infty) = E_0$. Under
+    a deformation $\\boldsymbol{F}_0$ that is suddenly applied and then held constant, the stress relaxes as
+    $\\boldsymbol{S}(t) = \\boldsymbol{\\hat{S}}(\\boldsymbol{F}_0) \\, G(t)$.
+
+    **Weak form**
+
+    The returned terms are the total Lagrangian virtual work of the internal stress together with its consistent
+    linearization,
+    $$
+        \\delta W = - \\int_{\\Omega_0} \\boldsymbol{S} : \\delta \\boldsymbol{E} \\, d\\Omega_0, \\quad
+        \\boldsymbol{E} = \\frac{1}{2} \\left( \\boldsymbol{F}^T \\boldsymbol{F} - \\boldsymbol{I} \\right)
+    $$
+    where $\\boldsymbol{E}$ is the Green-Lagrange strain. Both the material tangent (the derivative of
+    $\\boldsymbol{\\hat{S}}$ with respect to $\\boldsymbol{C}$, scaled by the current stiffness) and the geometric
+    (initial stress) tangent are included, so a Newton iteration converges quadratically.
+
+    The arguments have the following meaning:
+    * `dofu` is the dof of the mechanical displacement field ($2\\times1$ in 2D, $3\\times1$ in 3D).
+    * `tfu` is the test function of the mechanical displacement field.
+    * `u` is the mechanical displacement field.
+    * `Ep` is the row vector $\\{E_0, E_1, ...\\}$ of the moduli in $Pa$: entry $0$ is the equilibrium modulus, the
+      following entries are the moduli of the Maxwell branches.
+    * `nup` is the (scalar) Poisson ratio, which must be lower than $0.5$.
+    * `taup` is the row vector $\\{0, \\tau_1, ...\\}$ of the relaxation times in $s$. It must have the same length as
+      `Ep` and its first entry is not used (the equilibrium branch does not relax).
+    * `prestress` is a constant initial second Piola-Kirchhoff stress in Voigt form ($3\\times1$ in 2D, $6\\times1$ in
+      3D), or $0.0$ when there is none. It is treated as a fully relaxed prestress: it adds to the equilibrium stress
+      and to the geometric stiffness but it is not relaxed by the Maxwell branches.
+
+    Providing a single modulus in `Ep` (no Maxwell branch) gives a purely hyperelastic material, identical to
+    `predefinedhyperelasticity`.
+
+    Examples
+    --------
+    **Example 1**: stress relaxation of a held stretch.
+
+    A step deformation is imposed and held. The stress must relax from $\\hat{S} (E_0 + E_1)$ to $\\hat{S} E_0$
+    following $G(t)$.
+    >>> mymesh = mesh("disk.msh")
+    >>> vol=1; sur=2; top=3
+    >>>
+    >>> u = field("h1xyz")
+    >>> u.setorder(vol, 2)
+    >>>
+    >>> # the disk is clamped on 'sur' and its top face is pushed up and held there
+    >>> u.setconstraint(sur)
+    >>> u.setconstraint(top, array3x1(0.0, 0.0, 1e-3))
+    >>>
+    >>> # equilibrium modulus 1 MPa, one Maxwell branch of 2 MPa relaxing in 50 ms
+    >>> Ep = expression(1,2, [1e6, 2e6])
+    >>> taup = expression(1,2, [0.0, 0.05])
+    >>> nup = 0.3
+    >>>
+    >>> visco = formulation()
+    >>> visco += integral(vol, predefinedviscohyperelasticity(dof(u), tf(u), u, Ep, nup, taup, 0.0))
+    >>>
+    >>> # the second Piola-Kirchhoff stress (Voigt) for postprocessing. Define it only once so that
+    >>> # its hereditary accumulators are created once and advance with the time resolution
+    >>> S = viscohyperelasticstress(vol, u, Ep, nup, taup)
+    >>>
+    >>> ga = genalpha(visco, vec(visco), vec(visco), 0)
+    >>> ga.settolerance(1e-10)
+    >>>
+    >>> settime(0.0)
+    >>> for i in range(100):
+    ...     ga.next(0.01, 50)   # up to 50 nonlinear iterations per timestep
+    ...     # the stress relaxes from Shat*(E0+E1) towards Shat*E0
+    ...     print(gettime(), S.at(2,0).interpolate(vol, [0.5,0.0,0.05])[0])
+    >>>
+    >>> u.write(vol, "u.vtu", 2)
+
+    **Example 2**: several Maxwell branches and a prestress.
+
+    Any number of branches can be used. The prestress is provided in Voigt form.
+    >>> Ep = expression(1,3, [1e6, 2e6, 0.5e6])
+    >>> taup = expression(1,3, [0.0, 0.05, 1.2])
+    >>>
+    >>> prestress = expression(6,1, [1e4, 1e4, 0.0, 0.0, 0.0, 0.0])
+    >>>
+    >>> visco = formulation()
+    >>> visco += integral(vol, predefinedviscohyperelasticity(dof(u), tf(u), u, Ep, nup, taup, prestress))
+
+    See Also
+    --------
+    viscohyperelasticstress, predefinedhyperelasticity, predefinedelasticity
+    """
+    ...
+
 def predefinedyeoh(
     dofu: expressionlike,
     tfu: expressionlike,
@@ -13107,7 +13868,6 @@ def printtotalforce(
     extraintegrationorder: int = 0,
 ) -> list[float]: ...
 def printtotalforce(*args, **kwargs) -> Any: ...
-@overload
 def printvector(input: Sequence[float]) -> None:
     """
     This prints the `input` list as well as its values. The `input` can be a list of double/int/bool elements.
@@ -13123,12 +13883,8 @@ def printvector(input: Sequence[float]) -> None:
     --------
     loadvector, writevector
     """
+    ...
 
-@overload
-def printvector(input: Sequence[int]) -> None: ...
-@overload
-def printvector(input: Sequence[bool]) -> None: ...
-def printvector(*args, **kwargs) -> Any: ...
 def printversion() -> None: ...
 def pulse(
     uptime: expressionlike, downtime: expressionlike, delay: expressionlike
@@ -13586,8 +14342,97 @@ def setdata(invec: vec) -> None:
     """
     ...
 
+def setextrapolationattenuation(dBpm: float) -> None:
+    """
+    This declares the attenuation, in $dB/m$, of the homogeneous medium the field is extrapolated in. It must be
+    positive or zero, otherwise a RuntimeError is raised. The value is converted to nepers per meter as
+    $\\alpha = dBpm \\ln(10)/20$ and every subsequent extrapolation then replaces the wavenumber $k$ by
+    $k - i\\alpha$. A harmonic contribution reaching the target over a distance $R$ is thus weighted by
+    $e^{-\\alpha R}$ and a transient contribution is weighted by $e^{-\\alpha c \\tau}$, with $c \\tau$ the
+    length of its propagation path. The declared attenuation should match the losses of the medium used in the
+    simulated model. Declare a zero attenuation to come back to a lossless extrapolation.
+
+    Example
+    -------
+    >>> setfundamentalfrequency(1e3)
+    >>> ...
+    >>> setextrapolationattenuation(1.5)
+    >>> pattenuated = allhelmholtzkirchhoff(acoustics, bnd, sur, p, c, rho, [1.0,2.0,0.0])
+    >>> setextrapolationattenuation(0.0)
+    >>> plossless = allhelmholtzkirchhoff(acoustics, bnd, sur, p, c, rho, [1.0,2.0,0.0])
+
+    See Also
+    --------
+    setextrapolationsymmetry, setextrapolationpatterning, allstrattonchu, allhelmholtzkirchhoff
+    """
+    ...
+
 @overload
-def setextrapolationsymmetry(symplanes: Sequence[Sequence[float]]) -> None: ...
+def setextrapolationpatterning(translations: Sequence[Sequence[float]]) -> None:
+    """
+    This extrapolates the field of the structure repeated by translation, without having to simulate the copies.
+    Each translation brings copies of the structure at $0, 1, ..., numcopies-1$ times its $[dx,dy,dz]$ vector and
+    all translations are combined into a grid, so the untranslated structure is always part of the pattern. When
+    symmetry planes are also declared with `setextrapolationsymmetry` the whole pattern is mirrored, i.e. the
+    copies of a mirrored structure are placed at the mirror images of the translations. A single copy in a
+    direction means no repetition along it, whatever its pitch: one copy in every direction, just like an empty
+    list of translations, brings back the unpatterned extrapolation. Since every extrapolated coordinate costs
+    one surface integration per copy in the near field, at most $10^6$ copies in total are allowed.
+
+    Examples
+    --------
+    **Example 1**: `setextrapolationpatterning(translations:List[List[float]])`
+
+    Each translation is provided as $[dx,dy,dz,numcopies]$. A whole number of at least one copy is expected, as
+    well as a nonzero $[dx,dy,dz]$ as soon as more than one copy is requested, otherwise a RuntimeError is
+    raised. Below the field of a $3$ by $4$ array of pitch $10 \\mu m$ and $20 \\mu m$ is extrapolated:
+    >>> setextrapolationpatterning([[10e-6,0,0,3], [0,20e-6,0,4]])
+
+    **Example 2**: `setextrapolationpatterning(xyzpitches:List[float], xyznumcopies:List[int])`
+
+    This is a shortcut for a pattern whose translations are along the $x$, $y$ and $z$ axes:
+    >>> setextrapolationpatterning([10e-6, 20e-6, 0], [3, 4, 1])
+
+    See Also
+    --------
+    setextrapolationsymmetry, setextrapolationattenuation, allstrattonchu, allhelmholtzkirchhoff
+    """
+
+@overload
+def setextrapolationpatterning(
+    xyzpitches: Sequence[float], xyznumcopies: Sequence[int]
+) -> None: ...
+def setextrapolationpatterning(*args, **kwargs) -> Any: ...
+@overload
+def setextrapolationsymmetry(symplanes: Sequence[Sequence[float]]) -> None:
+    """
+    This declares the mirror symmetry planes of the structure whose field is extrapolated. Every extrapolation
+    (`allstrattonchu`, `allhelmholtzkirchhoff`, `allextrapolateemfield`, `allextrapolateacousticfield`, ...) then sums
+    the contribution of the simulated part and of its $2^n$ mirror images, so that the extrapolated field is the
+    one radiated by the whole symmetric structure while only a fraction of it has to be simulated. The plane
+    normals must be mutually orthogonal, otherwise a RuntimeError is raised: any other pair of planes would
+    generate a reflection group larger than the $2^n$ combinations that are enumerated. Declaring an empty list
+    of planes removes any previously declared symmetry.
+
+    Examples
+    --------
+    **Example 1**: `setextrapolationsymmetry(symplanes:List[List[float]])`
+
+    Each plane is provided as $[a,b,c,d]$ for the plane $ax + by + cz + d = 0$ and its normal $[a,b,c]$ must be
+    nonzero, otherwise a RuntimeError is raised. Below the structure is mirrored by the $y = 0$ plane and by the
+    $x = 2$ plane, which brings a total of four images:
+    >>> setextrapolationsymmetry([[0,1,0,0], [1,0,0,-2]])
+
+    **Example 2**: `setextrapolationsymmetry(xequal0sym:bool, yequal0sym:bool, zequal0sym:bool)`
+
+    This is a shortcut to declare the $x = 0$, $y = 0$ and/or $z = 0$ planes:
+    >>> setextrapolationsymmetry(True, False, True)
+
+    See Also
+    --------
+    setextrapolationpatterning, setextrapolationattenuation, allstrattonchu, allhelmholtzkirchhoff
+    """
+
 @overload
 def setextrapolationsymmetry(
     xequal0sym: bool, yequal0sym: bool, zequal0sym: bool
@@ -13982,7 +14827,6 @@ def sum(data: Sequence[int]) -> None:
 @overload
 def sum(data: Sequence[float]) -> None: ...
 def sum(*args, **kwargs) -> Any: ...
-@overload
 def symmetrycondition(
     bndphysreg: int, u: field, lagmultorder: int = 0
 ) -> list[integration]:
@@ -14011,7 +14855,6 @@ def symmetrycondition(
 
     Examples
     --------
-    **Example 1**: `symmetrycondition_doc(bndphysreg:int, u:field, lagmultorder:int=0)`
     >>> mymesh = mesh("quarterdisk.msh")    
     >>> vol = 1; sur = 2; top = 3; sym=4
     >>>
@@ -14033,7 +14876,7 @@ def symmetrycondition(
     >>> 
     >>> elasticity.solve()
 
-    Note that the symmetry condition also works on fields with harmonics.
+    Note that the symmetry condition also works on fields with harmonics and multiharmonic fields.
     >>> ...
     >>> u = field("h1xyz", [2,3])
     >>> u.setorder(vol, 1)
@@ -14049,25 +14892,12 @@ def symmetrycondition(
     >>> elasticity += symmetrycondition(sym, u, 1)  # uses "h1" shape function with interpolation order 1 for Lagrange multiplier.
     >>> elasticity += symmetrycondition(sym, u, 2)  # uses "h1" shape function with interpolation order 2 for Lagrange multiplier.
 
-    **Example 2**: `symmetrycondition_doc(bndphysreg:int, meshdeform:expression, u:field, lagmultorder:int=0)`
-
-    Here, the symmetry boundary condition of `u` is formulated on the mesh deformed by the field `v`.
-    >>> ...
-    >>> v = field("h1xyz")
-    >>> v.setorder(vol, 1)
-    >>> ...
-    >>> elasticity += symmetrycondition(sym, v, u, 1)
-
     See Also
     --------
     periodicitycondition, continuitycondition
     """
+    ...
 
-@overload
-def symmetrycondition(
-    bndphysreg: int, meshdeform: expressionlike, u: field, lagmultorder: int = 0
-) -> list[integration]: ...
-def symmetrycondition(*args, **kwargs) -> Any: ...
 def t() -> expression:
     """
     This gives the time variable in the form of an expression. The evaluation gives a value equal to `gettime`.
@@ -14202,6 +15032,70 @@ def viscohyperelasticstress(
     nup: expressionlike,
     taup: expressionlike,
 ) -> expression:
+    """
+    This function returns the second Piola-Kirchhoff stress of the finite-strain viscoelastic material defined by
+    `predefinedviscohyperelasticity`, in Voigt form ($3\\times1$ in 2D, $6\\times1$ in 3D). It is meant for
+    postprocessing the stress of a transient viscoelastic resolution.
+
+    The stress returned is
+    $$
+        \\boldsymbol{S}(t) = E_0 \\boldsymbol{\\hat{S}}(t) + \\sum_{i \\geq 1} \\left[ E_i \\boldsymbol{\\hat{S}}(t)
+        - \\frac{E_i}{\\tau_i} \\int_0^t e^{-(t-s)/\\tau_i} \\, \\boldsymbol{\\hat{S}}(s) \\, ds \\right]
+    $$
+    where $\\boldsymbol{\\hat{S}}$ is the Neo-Hookean second Piola-Kirchhoff stress at a unit Young's modulus. See
+    `predefinedviscohyperelasticity` for the definition of the model, of $\\boldsymbol{\\hat{S}}$ and of the arguments
+    `Ep`, `nup` and `taup`. The Voigt ordering is $\\{S_{xx}, S_{yy}, S_{xy}\\}$ in 2D and
+    $\\{S_{xx}, S_{yy}, S_{zz}, S_{yz}, S_{xz}, S_{xy}\\}$ in 3D.
+
+    The hereditary integrals above are stored in time accumulators that are created on the physical region `physreg`
+    and that are updated by the time resolution. This expression must therefore be **defined only once**, before the
+    time loop, and reused at each timestep. Defining it inside the time loop creates a new set of accumulators at
+    every timestep and gives a wrong (non relaxing) stress.
+
+    Any `prestress` passed to `predefinedviscohyperelasticity` is **not** included in the returned stress and must be
+    added by hand if needed.
+
+    To get the Cauchy stress $\\boldsymbol{\\sigma}$ instead, push the second Piola-Kirchhoff stress forward with
+    $$
+        \\boldsymbol{\\sigma} = \\frac{1}{J} \\boldsymbol{F} \\boldsymbol{S} \\boldsymbol{F}^T
+    $$
+    as shown in the example below.
+
+    The arguments have the following meaning:
+    * `physreg` is the physical region on which the hereditary accumulators are created.
+    * `u` is the mechanical displacement field ($2$ or $3$ components).
+    * `Ep` is the row vector $\\{E_0, E_1, ...\\}$ of the moduli in $Pa$.
+    * `nup` is the (scalar) Poisson ratio.
+    * `taup` is the row vector $\\{0, \\tau_1, ...\\}$ of the relaxation times in $s$.
+
+    Examples
+    --------
+    >>> ...
+    >>> Ep = expression(1,2, [1e6, 2e6])
+    >>> taup = expression(1,2, [0.0, 0.05])
+    >>> nup = 0.3
+    >>>
+    >>> visco = formulation()
+    >>> visco += integral(vol, predefinedviscohyperelasticity(dof(u), tf(u), u, Ep, nup, taup, 0.0))
+    >>>
+    >>> # defined once, before the time loop
+    >>> S = viscohyperelasticstress(vol, u, Ep, nup, taup)
+    >>>
+    >>> # the Cauchy stress, with the Voigt stress written back as a tensor
+    >>> St = array3x3(S.at(0,0), S.at(5,0), S.at(4,0), S.at(5,0), S.at(1,0), S.at(3,0), S.at(4,0), S.at(3,0), S.at(2,0))
+    >>> F = eye(3) + grad(u)
+    >>> sigma = 1.0/determinant(F) * F * St * transpose(F)
+    >>>
+    >>> ga = genalpha(visco, vec(visco), vec(visco), 0)
+    >>> settime(0.0)
+    >>> for i in range(100):
+    ...     ga.next(0.01, 50)   # up to 50 nonlinear iterations per timestep
+    ...     print(gettime(), sigma.at(2,2).interpolate(vol, [0.5,0.0,0.05])[0])
+
+    See Also
+    --------
+    predefinedviscohyperelasticity, predefinedhyperelasticity, voigttotensor
+    """
     return expression()
 
 def vonmises(stress: expressionlike) -> expression:

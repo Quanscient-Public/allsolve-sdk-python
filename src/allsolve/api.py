@@ -23,10 +23,36 @@ _current_client: contextvars.ContextVar[Client | None] = contextvars.ContextVar(
     "_current_client", default=None
 )
 
+# Process-wide default client. If ContextVar state is lost between isolated Python
+# executions (e.g. Pyodide); this fallback keeps the
+# registered default reachable via _resolve_client().
+_default_client: Client | None = None
+
+
+def _register_default_client(  # pyright: ignore[reportUnusedFunction]
+    client: Client,
+) -> None:
+    """Register *client* as the process-wide default."""
+    global _default_client
+    _default_client = client
+    _current_client.set(client)
+
+
+def _clear_default_client() -> None:  # pyright: ignore[reportUnusedFunction]
+    """Clear the process-wide default client."""
+    global _default_client
+    _default_client = None
+    _current_client.set(None)
+
+
+def _resolve_client() -> Client | None:
+    """Return the active client from context, falling back to the default."""
+    return _current_client.get() or _default_client
+
 
 def _get_current_client() -> Client:
     """Return the active client or raise if none has been set up."""
-    client = _current_client.get()
+    client = _resolve_client()
     if client is None:
         raise NotInitializedError(
             "API not set up. Use `allsolve.setup()` to set up the API."
@@ -45,7 +71,7 @@ def get_http_basic_auth_header() -> dict[str, str]:
 
 
 def get_token_payload() -> AccessToken:
-    client = _current_client.get()
+    client = _resolve_client()
     if client is None:
         raise ValueError("No access token")
     return client._get_token_payload()
@@ -67,14 +93,14 @@ def get_auth() -> str:
 
 
 def get_http_session() -> requests.Session:
-    client = _current_client.get()
+    client = _resolve_client()
     if client is None:
         return requests.Session()
     return client._http_session
 
 
 def get_allow_insecure_http() -> bool:
-    client = _current_client.get()
+    client = _resolve_client()
     if client is None:
         return False
     return client._allow_insecure_http
@@ -82,14 +108,14 @@ def get_allow_insecure_http() -> bool:
 
 def is_setup() -> bool:
     """Check if the Allsolve API client has been initialized."""
-    return _current_client.get() is not None
+    return _resolve_client() is not None
 
 
 def get_cache_dir() -> str | None:
     """Get the cache directory path.
     The cache directory is created in the cache_base_dir directory,
     which can be set in setup method."""
-    client = _current_client.get()
+    client = _resolve_client()
     if client is None:
         return None
     return client._cache_dir

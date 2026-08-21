@@ -17,26 +17,26 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, field_validator
 from typing import Any, ClassVar, Dict, List
-from typing_extensions import Annotated
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
 
-class NewFileUpload(BaseModel):
+class ElementCounts(BaseModel):
     """
-    NewFileUpload
+    ElementCounts
     """ # noqa: E501
-    name: Annotated[str, Field(strict=True, max_length=1000)]
-    size: Annotated[int, Field(le=107374182400, strict=True, ge=1)] = Field(description="The size of the file in bytes.")
-    __properties: ClassVar[List[str]] = ["name", "size"]
+    type: StrictStr
+    total: StrictInt = Field(description="Total number of elements of type in the mesh.")
+    low_quality: StrictInt = Field(description="Number of low quality elements in the FEM mesh.", alias="lowQuality")
+    __properties: ClassVar[List[str]] = ["type", "total", "lowQuality"]
 
-    @field_validator('name', mode="before")
-    def name_validate_regular_expression(cls, value):
-        """Validates the regular expression"""
-        if isinstance(value, str) and not re.match(r"^[^\/]+$", value):
-            raise ValueError(r"must validate the regular expression /^[^\/]+$/")
+    @field_validator('type')
+    def type_validate_enum(cls, value):
+        """Validates the enum"""
+        if value not in set(['tetrahedron', 'pyramid', 'high-order']):
+            raise ValueError("must be one of enum values ('tetrahedron', 'pyramid', 'high-order')")
         return value
 
     model_config = ConfigDict(
@@ -57,7 +57,7 @@ class NewFileUpload(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of NewFileUpload from a JSON string"""
+        """Create an instance of ElementCounts from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -82,7 +82,7 @@ class NewFileUpload(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of NewFileUpload from a dict"""
+        """Create an instance of ElementCounts from a dict"""
         if obj is None:
             return None
 
@@ -90,8 +90,9 @@ class NewFileUpload(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "name": obj.get("name"),
-            "size": obj.get("size")
+            "type": obj.get("type"),
+            "total": obj.get("total"),
+            "lowQuality": obj.get("lowQuality")
         })
         return _obj
 

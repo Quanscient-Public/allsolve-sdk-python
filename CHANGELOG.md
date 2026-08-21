@@ -5,6 +5,22 @@ All notable changes to the Allsolve SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-08-19
+
+### Added
+
+- **Mesh metrics** — `Mesh.get_metrics()` and `MeshInstance.get_metrics()` fetch FEM node/element counts and optional per-type quality breakdown (`MeshMetrics`, `ElementCounts`). Raises `ApiException` with HTTP 404 when metrics are not yet available.
+- **Mesh status reason** — `Mesh.get_status_reason()` and `MeshInstance.get_sweep_status_reason()` return the backend job status reason for the default or per-sweep mesh instance (e.g. `lowQualityData`).
+- **Interaction enabled expressions** — physics interactions and simulation outputs accept `enabled` as a bool or expression string (`BooleanValue`).
+- **Solid mechanics viscohyperelasticity** — `SolidMechanicsViscohyperelasticity` interaction.
+- **Simulation script export** — project export now includes file-based simulation scripts in the `scripts` array. `export_yaml` / `export_json` write script files to a `sim/` directory beside the output file (via new `download_scripts` parameter, default `True` on file export). `Project.export(download_scripts=True)` enables the same for dict exports.
+- **Shared files import/export** — project import/export now supports `sharedFiles` (project-level catalog) and per-simulation `sharedFiles` / `inputFiles` wiring, including cross-simulation output file and output database references. `export_yaml` / `export_json` accept `download_shared_files` (default `True`) to write shared file content when available; the API currently exposes upload metadata only, so binary file bytes cannot be downloaded from the cloud until a backend download endpoint is added.
+- **VTK-HDF result files** — simulation result download automatically decompresses zstd-compressed `.hdf` files.
+
+### Fixed
+
+- **Material.create_from_library()** — includes elasticity matrices.
+
 ## [0.5.0] - 2026-07-03
 
 ### Added

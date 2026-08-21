@@ -17,18 +17,22 @@ This module provides functionality to export project data including:
 - Simulations (with output interactions)
 
 Note:
-    CAD file paths and shared file paths are exported as placeholders unless
-    ``download_geometries=True`` is used (geometry CAD files only; see export_project_data).
-    When re-importing without downloaded files, provide the actual files at those paths.
+    CAD file paths are exported as placeholders unless ``download_geometries=True``.
+    Simulation script file paths are placeholders unless ``download_scripts=True``
+    (default for ``export_yaml`` / ``export_json``). Shared file paths are always
+    included; file bytes are written when ``download_shared_files=True``.
+    When re-importing without downloaded files, provide the actual files at
+    those paths.
 """
 
 from __future__ import annotations
 
 import warnings
 from collections import Counter, defaultdict
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict
-
+import json
 
 from allsolve.util import FileOverwriteMode
 
@@ -70,12 +74,16 @@ from allsolve.physics.generated.registries import (
     get_output_parameter_defaults,
 )
 from allsolve.region import Region, RegionOperation
-from allsolve.simulation import CPU, FieldInitialization
+from allsolve.simulation import CPU, FieldInitialization, Script
 
 import allsolve_rawapi as rawapi
 
+from allsolve.api import get_api, get_auth
+
 from allsolve.expression import Variable
+from allsolve.mesh import MeshDensity
 from allsolve.physics import Physic
+from allsolve.physics.conversions import export_enabled_value
 from allsolve.project import Project
 from allsolve.simulation import Simulation
 from allsolve.export_format import (
@@ -187,7 +195,7 @@ def _export_functions(project: Project) -> list[dict]:
     # Export regular functions
     functions = project.get_functions()
     for func in functions:
-        func_dict = {
+        func_dict: dict[str, Any] = {
             "name": func.name,
             "type": "regular",
             "args": [{"name": arg.name} for arg in (func.args or [])],
@@ -199,20 +207,21 @@ def _export_functions(project: Project) -> list[dict]:
 
     # Export interpolated functions
     interp_functions = project.get_interpolated_functions()
-    for func in interp_functions:
-        func_dict = {
-            "name": func.name,
+    for interp_func in interp_functions:
+        interp_dict: dict[str, Any] = {
+            "name": interp_func.name,
             "type": "interpolated",
             "args": [
-                {"name": arg.name, "values": arg.values} for arg in (func.args or [])
+                {"name": arg.name, "values": arg.values}
+                for arg in (interp_func.args or [])
             ],
-            "values": func.values,
+            "values": interp_func.values,
         }
-        if func.description:
-            func_dict["description"] = func.description
-        if func.cubic_interpolation is not None:
-            func_dict["cubicInterpolation"] = func.cubic_interpolation
-        result.append(func_dict)
+        if interp_func.description:
+            interp_dict["description"] = interp_func.description
+        if interp_func.cubic_interpolation is not None:
+            interp_dict["cubicInterpolation"] = interp_func.cubic_interpolation
+        result.append(interp_dict)
 
     return result
 
@@ -229,7 +238,7 @@ def _entity_type_to_string(entity_type: Any) -> str:
     if result is None:
         warnings.warn(
             f"Unknown region entity type {entity_type!r}, falling back to 'volume'",
-            stacklevel=2,
+            stacklevel=3,
         )
         return "volume"
     return result
@@ -254,7 +263,7 @@ def _operation_to_string(
     if result is None:
         warnings.warn(
             f"Unknown region operation {operation!r}, falling back to 'union'",
-            stacklevel=2,
+            stacklevel=3,
         )
         return "union"
     return result
@@ -544,6 +553,311 @@ def _apply_geometry_file_download(
     elem.download(output_dir=str(out_dir))
     downloaded_basenames.add(basename)
     geo_dict["filepath"] = rel_fp
+
+
+def _normalize_script_name(name: str | None) -> str:
+    """Return a script filename with a ``.py`` suffix."""
+    if not name:
+        return "script.py"
+    if not name.endswith(".py"):
+        return f"{name}.py"
+    return name
+
+
+def _script_relative_path(sim_name: str, script_name: str, used_paths: set[str]) -> str:
+    """Choose a relative export path for a file-based simulation script."""
+    default_path = f"sim/{script_name}"
+    if default_path not in used_paths:
+        return default_path
+    fallback = f"sim/{sim_name}/{script_name}"
+    if fallback in used_paths:
+        raise ValueError(
+            f"Cannot assign a unique export path for script {script_name!r} "
+            f"on simulation {sim_name!r}: '{fallback}' is already used. "
+            f"Rename the simulation or script so exported paths are unique."
+        )
+    return fallback
+
+
+def _write_file_with_overwrite_mode(
+    content: str,
+    target: Path,
+    file_overwrite_mode: FileOverwriteMode,
+    preexisting_skip_printed: set[str],
+    *,
+    label: str,
+) -> None:
+    """Write text content to disk, honoring overwrite mode."""
+    skip_key = str(target)
+    if target.exists():
+        if file_overwrite_mode is FileOverwriteMode.ERROR:
+            raise FileExistsError(
+                f"File already exists: {target}. "
+                "Use file_overwrite_mode=FileOverwriteMode.OVERWRITE to replace "
+                "or FileOverwriteMode.SKIP to skip."
+            )
+        if file_overwrite_mode is FileOverwriteMode.SKIP:
+            if skip_key not in preexisting_skip_printed:
+                print(
+                    f"allsolve export: skipping {label} write for "
+                    f"{target!r}: file already exists"
+                )
+                preexisting_skip_printed.add(skip_key)
+            return
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content, encoding="utf-8")
+
+
+def _write_script_file(
+    content: str,
+    target: Path,
+    file_overwrite_mode: FileOverwriteMode,
+    preexisting_skip_printed: set[str],
+) -> None:
+    """Write simulation script content to disk, honoring overwrite mode."""
+    _write_file_with_overwrite_mode(
+        content,
+        target,
+        file_overwrite_mode,
+        preexisting_skip_printed,
+        label="script",
+    )
+
+
+def _export_file_scripts(
+    sim: Simulation,
+    sim_dict: dict[str, Any],
+    scripts: list[Script],
+    *,
+    file_ctx: _ExportFileContext,
+) -> None:
+    """Export file-based simulation scripts into the import-compatible ``scripts`` array."""
+    file_scripts = [s for s in scripts if s.section_name is None]
+    if not file_scripts:
+        return
+
+    scripts_export: list[dict[str, Any]] = []
+    for script in file_scripts:
+        script_name = _normalize_script_name(script.name)
+        rel_fp = _script_relative_path(
+            sim.name, script_name, file_ctx.used_script_paths
+        )
+        file_ctx.used_script_paths.add(rel_fp)
+
+        if (
+            file_ctx.download_scripts
+            and file_ctx.files_output_dir is not None
+            and script.content
+        ):
+            target = file_ctx.files_output_dir / rel_fp
+            _write_script_file(
+                script.content,
+                target,
+                file_ctx.file_overwrite_mode,
+                file_ctx.script_skip_printed,
+            )
+
+        entry: dict[str, Any] = {"filepath": rel_fp}
+        if script.is_main:
+            entry["isMain"] = True
+        scripts_export.append(entry)
+
+    if (
+        not file_ctx.download_scripts
+        and not file_ctx.script_paths_placeholder_warned[0]
+    ):
+        warnings.warn(
+            "allsolve export: simulation script paths in the export dict are "
+            "placeholders unless download_scripts=True; provide script files at "
+            "those paths before re-importing, or export with download_scripts=True.",
+            stacklevel=3,
+        )
+        file_ctx.script_paths_placeholder_warned[0] = True
+
+    sim_dict["scripts"] = scripts_export
+
+
+def _get_sim_scoped_file_map(project_id: str, simulation_id: str) -> dict[str, str]:
+    """Return id-to-name mapping for files uploaded directly to a simulation."""
+    with get_api() as api:
+        files = api.get_files(
+            authorization=get_auth(),
+            project_id=project_id,
+            simulation_id=simulation_id,
+        )
+    return {f.id: f.name for f in files}
+
+
+def _project_shared_file_path(name: str) -> str:
+    return f"files/{name}"
+
+
+def _sim_scoped_file_path(sim_name: str, name: str) -> str:
+    return f"files/{sim_name}/{name}"
+
+
+@dataclass
+class _ExportFileContext:
+    """Shared state for writing exported files to disk during project export."""
+
+    files_output_dir: Path | None = None
+    file_overwrite_mode: FileOverwriteMode = FileOverwriteMode.SKIP
+    download_scripts: bool = False
+    download_shared_files: bool = False
+    used_script_paths: set[str] = field(default_factory=set)
+    script_skip_printed: set[str] = field(default_factory=set)
+    shared_skip_printed: set[str] = field(default_factory=set)
+    download_unavailable_warned: list[bool] = field(default_factory=lambda: [False])
+    script_paths_placeholder_warned: list[bool] = field(default_factory=lambda: [False])
+    shared_catalog_entries: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+
+@dataclass
+class _ExportSimulationsContext:
+    """Lookup maps and file-export state for simulation export."""
+
+    mesh_id_to_name: dict[str, str] = field(default_factory=dict)
+    override_id_to_name: dict[str, str] = field(default_factory=dict)
+    physics_id_to_type: dict[str, str] = field(default_factory=dict)
+    region_id_to_name: dict[str, str] | None = None
+    physics_set_id_to_name: dict[str, str] | None = None
+    exported_physics_set_ids: set[str] | None = None
+    files: _ExportFileContext = field(default_factory=_ExportFileContext)
+
+
+def _write_shared_file_content(
+    content: dict,
+    target: Path,
+    file_overwrite_mode: FileOverwriteMode,
+    preexisting_skip_printed: set[str],
+) -> None:
+    """Write inline JSON shared file content to disk."""
+    _write_file_with_overwrite_mode(
+        json.dumps(content, sort_keys=True, indent=2),
+        target,
+        file_overwrite_mode,
+        preexisting_skip_printed,
+        label="shared file",
+    )
+
+
+def _export_simulation_input_files(
+    sim: Simulation,
+    sim_dict: dict[str, Any],
+    project_id: str,
+    project_file_ids: set[str],
+    project_file_id_to_name: dict[str, str],
+    sim_id_to_name: dict[str, str],
+    *,
+    input_files: list[rawapi.SimulationInputFile],
+    file_ctx: _ExportFileContext,
+) -> None:
+    """Export shared file links and simulation input files."""
+    if sim.id is None:
+        return
+
+    sim_scoped_files: dict[str, str] | None = None
+    shared_names: list[str] = []
+    input_files_export: list[dict[str, Any]] = []
+
+    def _sim_scoped_files() -> dict[str, str]:
+        nonlocal sim_scoped_files
+        if sim_scoped_files is None:
+            sim_scoped_files = _get_sim_scoped_file_map(project_id, sim.id)
+        return sim_scoped_files
+
+    for inp in input_files:
+        inp_type = inp.type
+        if inp_type == rawapi.SimulationInputFileType.EXTRAINPUTFILE:
+            file_id = inp.source_extra_input_file_id
+            if file_id is None:
+                continue
+            if file_id in project_file_ids:
+                name = project_file_id_to_name.get(file_id, inp.target_file_name or "")
+                if not name:
+                    continue
+                if name not in shared_names:
+                    shared_names.append(name)
+                if name not in file_ctx.shared_catalog_entries:
+                    file_ctx.shared_catalog_entries[name] = {
+                        "filepath": _project_shared_file_path(name),
+                    }
+            elif file_id in _sim_scoped_files():
+                name = _sim_scoped_files().get(file_id, inp.target_file_name or "")
+                if not name:
+                    continue
+                rel_fp = _sim_scoped_file_path(sim.name, name)
+                input_files_export.append({"filepath": rel_fp})
+                if (
+                    file_ctx.download_shared_files
+                    and file_ctx.files_output_dir is not None
+                ):
+                    if not file_ctx.download_unavailable_warned[0]:
+                        warnings.warn(
+                            "allsolve export: shared file bytes cannot be downloaded "
+                            "from the API yet; only inline JSON content can be written "
+                            "to disk. Provide files at the exported paths for roundtrip.",
+                            stacklevel=3,
+                        )
+                        file_ctx.download_unavailable_warned[0] = True
+        elif inp_type == rawapi.SimulationInputFileType.SIMULATIONOUTPUTFILE:
+            source_sim_id = inp.source_simulation_id
+            source_sim_name = sim_id_to_name.get(source_sim_id or "", source_sim_id)
+            entry: dict[str, Any] = {
+                "type": "simulationOutputFile",
+                "sourceSimulationName": source_sim_name,
+                "sourceFileName": inp.source_file_name,
+                "targetFileName": inp.target_file_name,
+            }
+            if inp.source_sweep_step is not None:
+                entry["sourceSweepStep"] = inp.source_sweep_step
+            if inp.target_sweep_step is not None:
+                entry["targetSweepStep"] = inp.target_sweep_step
+            if inp.target_rank is not None:
+                entry["targetRank"] = inp.target_rank
+            input_files_export.append(_clean_dict(entry))
+        elif inp_type == rawapi.SimulationInputFileType.SIMULATIONOUTPUTDATABASE:
+            source_sim_id = inp.source_simulation_id
+            source_sim_name = sim_id_to_name.get(source_sim_id or "", source_sim_id)
+            entry = {
+                "type": "simulationOutputDatabase",
+                "sourceSimulationName": source_sim_name,
+                "targetFileName": inp.target_file_name,
+            }
+            if inp.source_sweep_step is not None:
+                entry["sourceSweepStep"] = inp.source_sweep_step
+            if inp.target_sweep_step is not None:
+                entry["targetSweepStep"] = inp.target_sweep_step
+            if inp.target_rank is not None:
+                entry["targetRank"] = inp.target_rank
+            input_files_export.append(_clean_dict(entry))
+
+    if shared_names:
+        sim_dict["sharedFiles"] = shared_names
+    if input_files_export:
+        sim_dict["inputFiles"] = input_files_export
+
+    if file_ctx.download_shared_files and file_ctx.files_output_dir is not None:
+        for name in shared_names:
+            entry = file_ctx.shared_catalog_entries.get(name, {})
+            content = entry.get("content")
+            if isinstance(content, dict):
+                rel_fp = entry.get("filepath", _project_shared_file_path(name))
+                target = file_ctx.files_output_dir / rel_fp
+                _write_shared_file_content(
+                    content,
+                    target,
+                    file_ctx.file_overwrite_mode,
+                    file_ctx.shared_skip_printed,
+                )
+
+
+def _export_shared_files_catalog(
+    shared_catalog_entries: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Build the top-level sharedFiles export list from collected catalog entries."""
+    return [shared_catalog_entries[name] for name in sorted(shared_catalog_entries)]
 
 
 def _export_geometries(
@@ -1158,7 +1472,7 @@ def _export_entity_selection(
         warnings.warn(
             f"No regions or entity IDs specified for '{key}'; "
             f"the selection will be empty in the exported project.",
-            stacklevel=2,
+            stacklevel=3,
         )
 
 
@@ -1175,6 +1489,11 @@ def _export_meshes(
         mesh_dict: dict[str, Any] = {
             "name": mesh.name,
         }
+
+        if mesh.density != MeshDensity.DEFAULT:
+            mesh_dict["density"] = mesh.density.value.value
+        if mesh.node_type is not None:
+            mesh_dict["nodeType"] = mesh.node_type
 
         if mesh.use_mesh_refiner is not None:
             mesh_dict["useMeshRefiner"] = mesh.use_mesh_refiner
@@ -1214,121 +1533,121 @@ def _export_meshes(
                 mesh_dict["refinements"].append(ref_dict)
 
         if mesh.extrusion:
-            ext = mesh.extrusion
+            simple_ext = mesh.extrusion
             ext_data: dict[str, Any] = {
-                "subLayerCounts": ext.sub_layer_counts,
+                "subLayerCounts": simple_ext.sub_layer_counts,
             }
-            if ext.volume_ids is not None:
-                ext_data["volumeIds"] = ext.volume_ids
-            elif ext.regions is not None:
+            if simple_ext.volume_ids is not None:
+                ext_data["volumeIds"] = simple_ext.volume_ids
+            elif simple_ext.regions is not None:
                 ext_data["regions"] = [
-                    region_id_to_name.get(r.id, r.name) for r in ext.regions
+                    region_id_to_name.get(r.id, r.name) for r in simple_ext.regions
                 ]
             mesh_dict["simpleExtrusion"] = ext_data
 
         if mesh.path_extrusions:
             mesh_dict["pathExtrusions"] = []
-            for ext in mesh.path_extrusions:
+            for path_ext in mesh.path_extrusions:
                 ext_dict: dict[str, Any] = {
                     "layers": [
                         {
                             "relativeHeight": layer.relative_height,
                             "subLayerCount": layer.sublayer_count,
                         }
-                        for layer in ext.layers
+                        for layer in path_ext.layers
                     ],
                 }
                 _export_entity_selection(
                     ext_dict,
                     "volumes",
-                    ext.volumes,
-                    ext.volume_entity_ids,
+                    path_ext.volumes,
+                    path_ext.volume_entity_ids,
                     region_id_to_name,
                 )
                 _export_entity_selection(
                     ext_dict,
                     "fromSurfaces",
-                    ext.from_surfaces,
-                    ext.from_surface_entity_ids,
+                    path_ext.from_surfaces,
+                    path_ext.from_surface_entity_ids,
                     region_id_to_name,
                 )
                 _export_entity_selection(
                     ext_dict,
                     "toSurfaces",
-                    ext.to_surfaces,
-                    ext.to_surface_entity_ids,
+                    path_ext.to_surfaces,
+                    path_ext.to_surface_entity_ids,
                     region_id_to_name,
                 )
-                if ext.quadrangles:
-                    ext_dict["useQuadrangles"] = ext.quadrangles
+                if path_ext.quadrangles:
+                    ext_dict["useQuadrangles"] = path_ext.quadrangles
                 mesh_dict["pathExtrusions"].append(ext_dict)
 
         if mesh.slanted_extrusions:
             mesh_dict["slantedExtrusions"] = []
-            for ext in mesh.slanted_extrusions:
-                ext_dict = {
+            for slanted_ext in mesh.slanted_extrusions:
+                slanted_ext_dict: dict[str, Any] = {
                     "layers": [
                         {
                             "relativeHeight": layer.relative_height,
                             "subLayerCount": layer.sublayer_count,
                         }
-                        for layer in ext.layers
+                        for layer in slanted_ext.layers
                     ],
                 }
                 _export_entity_selection(
-                    ext_dict,
+                    slanted_ext_dict,
                     "volumes",
-                    ext.volumes,
-                    ext.volume_entity_ids,
+                    slanted_ext.volumes,
+                    slanted_ext.volume_entity_ids,
                     region_id_to_name,
                 )
                 _export_entity_selection(
-                    ext_dict,
+                    slanted_ext_dict,
                     "fromSurfaces",
-                    ext.from_surfaces,
-                    ext.from_surface_entity_ids,
+                    slanted_ext.from_surfaces,
+                    slanted_ext.from_surface_entity_ids,
                     region_id_to_name,
                 )
                 _export_entity_selection(
-                    ext_dict,
+                    slanted_ext_dict,
                     "toSurfaces",
-                    ext.to_surfaces,
-                    ext.to_surface_entity_ids,
+                    slanted_ext.to_surfaces,
+                    slanted_ext.to_surface_entity_ids,
                     region_id_to_name,
                 )
-                if ext.quadrangles:
-                    ext_dict["useQuadrangles"] = ext.quadrangles
-                mesh_dict["slantedExtrusions"].append(ext_dict)
+                if slanted_ext.quadrangles:
+                    slanted_ext_dict["useQuadrangles"] = slanted_ext.quadrangles
+                mesh_dict["slantedExtrusions"].append(slanted_ext_dict)
 
         if mesh.flatten_and_rebuild_extrusions:
             mesh_dict["flattenAndRebuildExtrusions"] = []
-            for ext in mesh.flatten_and_rebuild_extrusions:
-                ext_dict = {
+            for flatten_ext in mesh.flatten_and_rebuild_extrusions:
+                flatten_ext_dict: dict[str, Any] = {
                     "layers": [
                         {
                             "relativeHeight": layer.relative_height,
                             "subLayerCount": layer.sublayer_count,
                         }
-                        for layer_group in ext.layers
+                        for layer_group in flatten_ext.layers
                         for layer in layer_group
                     ],
                 }
                 _export_entity_selection(
-                    ext_dict,
+                    flatten_ext_dict,
                     "volumes",
-                    ext.volumes,
-                    ext.volume_entity_ids,
+                    flatten_ext.volumes,
+                    flatten_ext.volume_entity_ids,
                     region_id_to_name,
                 )
-                if ext.direction_vector is not None:
-                    ext_dict["directionVector"] = {
-                        "x": ext.direction_vector.x,
-                        "y": ext.direction_vector.y,
-                        "z": ext.direction_vector.z,
+                if flatten_ext.direction_vector is not None:
+                    flatten_ext_dict["directionVector"] = {
+                        "x": flatten_ext.direction_vector.x,
+                        "y": flatten_ext.direction_vector.y,
+                        "z": flatten_ext.direction_vector.z,
                     }
-                if ext.quadrangles:
-                    ext_dict["useQuadrangles"] = ext.quadrangles
-                mesh_dict["flattenAndRebuildExtrusions"].append(ext_dict)
+                if flatten_ext.quadrangles:
+                    flatten_ext_dict["useQuadrangles"] = flatten_ext.quadrangles
+                mesh_dict["flattenAndRebuildExtrusions"].append(flatten_ext_dict)
 
         if mesh.auto_transfinite:
             mesh_dict["autoTransfinite"] = []
@@ -1395,8 +1714,10 @@ def _export_interactions(
         i_dict: dict[str, Any] = {
             "type": interaction.definition,
             "name": interaction.name,
-            "enabled": interaction.enabled,
         }
+        exported_enabled = export_enabled_value(interaction.enabled)
+        if exported_enabled is not None:
+            i_dict["enabled"] = exported_enabled
 
         if interaction.namespace is not None:
             i_dict["namespace"] = interaction.namespace
@@ -1537,7 +1858,6 @@ def _export_physics(  # pyright: ignore[reportUnusedFunction]
     project: Project,
     region_id_to_name: dict[str, str],
     physics_set_id_to_name: dict[str, str] | None = None,
-    default_physics_set_id: str | None = None,
 ) -> list[dict]:
     """Export all physics (with nested interactions) from a project.
 
@@ -1617,8 +1937,10 @@ def _export_outputs(
         o_dict: dict[str, Any] = {
             "type": otype,
             "name": output.name,
-            "enabled": output.enabled,
         }
+        exported_enabled = export_enabled_value(output.enabled)
+        if exported_enabled is not None:
+            o_dict["enabled"] = exported_enabled
 
         raw_interaction = output._interaction
         raw_targets = raw_interaction.targets if raw_interaction else []
@@ -1712,22 +2034,17 @@ def _export_field_initialization(
 
 def _export_simulations(
     project: Project,
-    mesh_id_to_name: dict[str, str],
-    override_id_to_name: dict[str, str],
-    physics_id_to_type: dict[str, str] | None = None,
-    region_id_to_name: dict[str, str] | None = None,
-    physics_set_id_to_name: dict[str, str] | None = None,
-    default_physics_set_id: str | None = None,
-    exported_physics_set_ids: set[str] | None = None,
+    ctx: _ExportSimulationsContext,
 ) -> list[dict]:
     """Export all simulations from a project."""
-    if physics_id_to_type is None:
-        physics_id_to_type = {}
-
     simulations = project.get_simulations()
     sim_id_to_name: dict[str, str] = {s.id: s.name for s in simulations if s.id}
     name_counts = Counter(s.name for s in simulations)
     duplicate_names = {name for name, count in name_counts.items() if count > 1}
+
+    project_files = project.get_files()
+    project_file_ids = {f.id for f in project_files}
+    project_file_id_to_name = {f.id: f.name for f in project_files}
 
     field_id_to_info: dict[str, tuple[str, str]] = {}
     for physic in project.get_physics():
@@ -1735,6 +2052,10 @@ def _export_simulations(
             field_id_to_info[field.id] = (field.definition, physic.definition)
 
     result = []
+
+    project_id = project.id
+    if project_id is None:
+        raise ValueError("Project must have an id to export simulations")
 
     for sim in simulations:
         sim_dict: dict[str, Any] = {
@@ -1756,20 +2077,20 @@ def _export_simulations(
             sim_dict["harmonics"] = sim.harmonics
 
         if sim.mesh_id:
-            sim_dict["mesh"] = mesh_id_to_name.get(sim.mesh_id, sim.mesh_id)
+            sim_dict["mesh"] = ctx.mesh_id_to_name.get(sim.mesh_id, sim.mesh_id)
 
         vo = sim.variable_overrides
         if vo is not None:
-            vo_name = override_id_to_name.get(vo.id, vo.name)
+            vo_name = ctx.override_id_to_name.get(vo.id, vo.name)
             sim_dict["variableOverride"] = vo_name
 
         physics_set_id = sim.physics_set_id
-        if physics_set_id is not None and physics_set_id_to_name is not None:
+        if physics_set_id is not None and ctx.physics_set_id_to_name is not None:
             if (
-                exported_physics_set_ids is None
-                or physics_set_id in exported_physics_set_ids
+                ctx.exported_physics_set_ids is None
+                or physics_set_id in ctx.exported_physics_set_ids
             ):
-                ps_name = physics_set_id_to_name.get(physics_set_id)
+                ps_name = ctx.physics_set_id_to_name.get(physics_set_id)
                 if ps_name is not None:
                     sim_dict["physicsSet"] = ps_name
 
@@ -1782,7 +2103,7 @@ def _export_simulations(
 
         if sim.physics and "physicsSet" not in sim_dict:
             sim_dict["physics"] = [
-                physics_id_to_type.get(pid, pid) for pid in sim.physics
+                ctx.physics_id_to_type.get(pid, pid) for pid in sim.physics
             ]
         if sim.transient_start_time is not None:
             sim_dict["transientStartTime"] = sim.transient_start_time
@@ -1842,11 +2163,31 @@ def _export_simulations(
                 for fi in sim.field_initializations
             ]
 
-        outputs = _export_outputs(sim, region_id_to_name or {})
+        outputs = _export_outputs(sim, ctx.region_id_to_name or {})
         if outputs:
             sim_dict["outputs"] = outputs
 
-        custom_scripts = [s for s in sim.get_scripts() if s.section_name is not None]
+        input_files = sim.get_input_files()
+        _export_simulation_input_files(
+            sim,
+            sim_dict,
+            project_id,
+            project_file_ids,
+            project_file_id_to_name,
+            sim_id_to_name,
+            input_files=input_files,
+            file_ctx=ctx.files,
+        )
+
+        scripts = sim.get_scripts()
+        _export_file_scripts(
+            sim,
+            sim_dict,
+            scripts,
+            file_ctx=ctx.files,
+        )
+
+        custom_scripts = [s for s in scripts if s.section_name is not None]
         if custom_scripts:
             sim_dict["customScripts"] = [
                 {
@@ -1867,6 +2208,8 @@ def export_project_data(
     include_meshes: bool = True,
     *,
     download_geometries: bool = False,
+    download_scripts: bool = False,
+    download_shared_files: bool = False,
     files_output_dir: str | Path = ".",
     file_overwrite_mode: FileOverwriteMode = FileOverwriteMode.SKIP,
 ) -> dict:
@@ -1891,10 +2234,16 @@ def export_project_data(
             Note: Exported meshes are definitions only; mesh data is not included.
         download_geometries: If True, download geometry import files (STEP, IGES, etc.)
             into ``files_output_dir``.
-        files_output_dir: Directory for downloaded geometry files when
-            ``download_geometries`` is True.
+        download_scripts: If True, write simulation script files into
+            ``files_output_dir``. When False (default), script ``filepath`` values in
+            the export dict are placeholders; script files are not written to disk.
+        download_shared_files: If True, write shared file content into
+            ``files_output_dir`` when inline JSON content is available. Shared file
+            metadata is always included in the export dict regardless of this flag.
+        files_output_dir: Directory for downloaded geometry, script, and shared files when
+            ``download_geometries``, ``download_scripts``, or ``download_shared_files`` is True.
             Resolved to an absolute path; created if missing.
-        file_overwrite_mode: Controls behavior when a geometry file already
+        file_overwrite_mode: Controls behavior when a geometry, script, or shared file already
             exists on disk. ``FileOverwriteMode.SKIP`` (default) prints a
             message and keeps the existing file, ``FileOverwriteMode.OVERWRITE``
             replaces it, and ``FileOverwriteMode.ERROR`` raises
@@ -1914,6 +2263,14 @@ def export_project_data(
         If the target path already exists on disk before this export would write it,
         behavior depends on ``file_overwrite_mode``.
 
+        When ``download_scripts`` is False (default), simulation script paths are
+        placeholders; you must supply script files at those paths when re-importing, or
+        set ``download_scripts=True`` to write them into ``files_output_dir``.
+
+        File-based simulation scripts require unique export paths. If multiple
+        simulations share a name and use identically named scripts, export raises
+        ``ValueError`` when the two-tier path scheme cannot disambiguate them.
+
     Example:
         >>> from allsolve import Project
         >>> project = Project.get("my-project-id")
@@ -1927,9 +2284,16 @@ def export_project_data(
     result: dict[str, Any] = {}
 
     out_dir: Path | None = None
-    if download_geometries:
+    if download_geometries or download_scripts or download_shared_files:
         out_dir = Path(files_output_dir).expanduser().resolve()
         out_dir.mkdir(parents=True, exist_ok=True)
+
+    file_ctx = _ExportFileContext(
+        files_output_dir=out_dir,
+        file_overwrite_mode=file_overwrite_mode,
+        download_scripts=download_scripts,
+        download_shared_files=download_shared_files,
+    )
 
     # Project metadata
     result["name"] = project.name
@@ -1943,7 +2307,7 @@ def export_project_data(
     if project.geometry_no_implicit_fragment:
         result["geometryNoImplicitFragment"] = project.geometry_no_implicit_fragment
     if project.pml_num_layers is not None or project.pml_thickness is not None:
-        pml_dict = {}
+        pml_dict: dict[str, Any] = {}
         if project.pml_num_layers is not None:
             pml_dict["numLayers"] = project.pml_num_layers
         if project.pml_thickness is not None:
@@ -1988,7 +2352,7 @@ def export_project_data(
         physics_sets,
         physics_set_id_to_name,
         physics_id_to_definition,
-        default_physics_set_id,
+        _,
         exported_physics_set_ids,
     ) = _export_physics_sets(project, region_id_to_name)
     if physics_sets:
@@ -2011,15 +2375,21 @@ def export_project_data(
 
         simulations = _export_simulations(
             project,
-            mesh_id_to_name,
-            override_id_to_name,
-            physics_id_to_definition,
-            region_id_to_name,
-            physics_set_id_to_name=physics_set_id_to_name,
-            default_physics_set_id=default_physics_set_id,
-            exported_physics_set_ids=exported_physics_set_ids,
+            _ExportSimulationsContext(
+                mesh_id_to_name=mesh_id_to_name,
+                override_id_to_name=override_id_to_name,
+                physics_id_to_type=physics_id_to_definition,
+                region_id_to_name=region_id_to_name,
+                physics_set_id_to_name=physics_set_id_to_name,
+                exported_physics_set_ids=exported_physics_set_ids,
+                files=file_ctx,
+            ),
         )
         if simulations:
             result["simulations"] = simulations
+
+    shared_files = _export_shared_files_catalog(file_ctx.shared_catalog_entries)
+    if shared_files:
+        result["sharedFiles"] = shared_files
 
     return result

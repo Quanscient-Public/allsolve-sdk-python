@@ -8,7 +8,12 @@ import allsolve_rawapi as rawapi
 
 from ..api import check_for_project_api_key, get_api, get_auth
 from ..util import NotInitializedError, prevent_deleted
-from .conversions import BooleanValue
+from .conversions import (
+    BooleanValue,
+    boolean_to_str,
+    enabled_from_expr,
+    enabled_to_expr,
+)
 
 if TYPE_CHECKING:
     from allsolve.region import Region
@@ -103,6 +108,17 @@ class InteractionBase:
     auto_determined_targets: set[str] = set()
     """Set of target param names that are auto-determined by the solver."""
 
+    @staticmethod
+    def _resolve_target_region_id(target: "Region | str | None") -> str | None:
+        if target is None:
+            return None
+        if isinstance(target, str):
+            return target
+        region_id = getattr(target, "id", None)
+        if region_id is None:
+            raise ValueError("target must be a region id string or a Region with an id")
+        return region_id
+
     @classmethod
     def _from_rawapi(
         cls,
@@ -125,7 +141,7 @@ class InteractionBase:
     def __init__(
         self,
         name: str | None = None,
-        enabled: "BooleanValue | None" = None,
+        enabled: BooleanValue | None = None,
         parameters: List[InteractionParameter] | None = None,
         *,
         namespace: str | None = None,
@@ -143,7 +159,9 @@ class InteractionBase:
         self._uncommitted_update: rawapi.InteractionUpdate | None = None
         if interaction is None:
             self._spec_name = name
-            self._spec_enabled = enabled
+            self._spec_enabled = (
+                None if enabled is None else enabled_from_expr(boolean_to_str(enabled))
+            )
             self._spec_namespace = namespace
             self._spec_target_region_ids: Dict[str, str] = {}
             if targets is not None:
@@ -162,21 +180,12 @@ class InteractionBase:
             self._definition_id = interaction.definition
             self._validate()
 
-    def _ensure_bound(self) -> rawapi.Interaction:
+    def __str__(self) -> str:
         if self._interaction is None:
-            raise NotInitializedError("Interaction is not initialized")
-        return self._interaction
-
-    @staticmethod
-    def _resolve_target_region_id(target: "Region | str | None") -> str | None:
-        if target is None:
-            return None
-        if isinstance(target, str):
-            return target
-        region_id = getattr(target, "id", None)
-        if region_id is None:
-            raise ValueError("target must be a region id string or a Region with an id")
-        return region_id
+            return f"Interaction(definition={self.definition})"
+        return (
+            f"Interaction(id={self.id}, name={self.name}, definition={self.definition})"
+        )
 
     @property
     def physics_definition(self) -> str | None:
@@ -221,21 +230,35 @@ class InteractionBase:
 
     @property
     @prevent_deleted
-    def enabled(self) -> bool:
+    def enabled(self) -> BooleanValue | None:
         """
-        Get whether the interaction is enabled.
+        Get the enabled state of the interaction.
+
+        Returns a bool for literal ``"1"``/``"0"`` expressions, otherwise the
+        expression string.
         """
+        if self._interaction is None:
+            return self._spec_enabled
         interaction = self._ensure_bound()
-        return interaction.enabled
+        return enabled_from_expr(interaction.enabled_expr)
 
     @enabled.setter
     @prevent_deleted
-    def enabled(self, enabled: bool) -> None:
+    def enabled(self, enabled: BooleanValue | None) -> None:
         """
-        Set whether the interaction is enabled.
-        Use save() to commit the change.
+        Set the enabled state of the interaction.
+
+        Can be a bool or a string expression. Use save() to commit the change.
         """
-        self._current_uncommitted_update().enabled = enabled
+        if self._interaction is None:
+            self._spec_enabled = (
+                None if enabled is None else enabled_from_expr(boolean_to_str(enabled))
+            )
+            return
+        if enabled is None:
+            self._current_uncommitted_update().enabled_expr = None
+        else:
+            self._current_uncommitted_update().enabled_expr = boolean_to_str(enabled)
 
     @property
     @prevent_deleted
@@ -255,45 +278,6 @@ class InteractionBase:
         Use save() to commit the change.
         """
         self._current_uncommitted_update().namespace = namespace
-
-    @prevent_deleted
-    def target_region_id(self, target_definition: str | None = None) -> str | None:
-        """
-        Get the targets of the interaction.
-        """
-        interaction = self._ensure_bound()
-        if interaction.targets is None:
-            return None
-        for target in interaction.targets:
-            if target_definition is None or target.definition == target_definition:
-                return target.region
-        return None
-
-    @prevent_deleted
-    def set_target_region_id(
-        self, region_id: str, target_definition: str | None = None
-    ) -> None:
-        """
-        Set the target region ID for a specific target definition.
-        Use save() to commit the change.
-
-        Parameters:
-            region_id: The region ID to set.
-            target_definition: The target definition to update. If None, updates the first target.
-        """
-        self._ensure_bound()
-        update = self._current_uncommitted_update()
-        if update.targets is None:
-            update.targets = []
-
-        # Try to find and update existing target
-        for target in update.targets:
-            if target_definition is None or target.definition == target_definition:
-                target.region = region_id
-                return
-
-        # If no matching target found
-        raise ValueError(f"Target definition '{target_definition}' not found")
 
     @property
     @prevent_deleted
@@ -338,6 +322,45 @@ class InteractionBase:
         ]
 
     @prevent_deleted
+    def target_region_id(self, target_definition: str | None = None) -> str | None:
+        """
+        Get the targets of the interaction.
+        """
+        interaction = self._ensure_bound()
+        if interaction.targets is None:
+            return None
+        for target in interaction.targets:
+            if target_definition is None or target.definition == target_definition:
+                return target.region
+        return None
+
+    @prevent_deleted
+    def set_target_region_id(
+        self, region_id: str, target_definition: str | None = None
+    ) -> None:
+        """
+        Set the target region ID for a specific target definition.
+        Use save() to commit the change.
+
+        Parameters:
+            region_id: The region ID to set.
+            target_definition: The target definition to update. If None, updates the first target.
+        """
+        self._ensure_bound()
+        update = self._current_uncommitted_update()
+        if update.targets is None:
+            update.targets = []
+
+        # Try to find and update existing target
+        for target in update.targets:
+            if target_definition is None or target.definition == target_definition:
+                target.region = region_id
+                return
+
+        # If no matching target found
+        raise ValueError(f"Target definition '{target_definition}' not found")
+
+    @prevent_deleted
     def save(self) -> None:
         """
         Save the changes to the cloud made by
@@ -365,43 +388,13 @@ class InteractionBase:
             name=interaction_update.name,
             namespace=interaction_update.namespace,
             definition=interaction.definition,
-            enabled=interaction_update.enabled,
+            enabled=interaction.enabled,
+            enabledExpr=interaction_update.enabled_expr,
             targets=interaction_update.targets,
             parameters=interaction_update.parameters,
             createdAt=interaction.created_at,
         )
         self._uncommitted_update = None
-
-    def _validate(self) -> None:
-        if self._physics_id is None:
-            raise ValueError("Interaction is not associated with a physics")
-
-    @prevent_deleted
-    def _current_uncommitted_update(self) -> rawapi.InteractionUpdate:
-        """Get the current uncommitted update for the Interaction."""
-        interaction = self._ensure_bound()
-        if self._uncommitted_update is None:
-            self._uncommitted_update = rawapi.InteractionUpdate(
-                name=interaction.name,
-                namespace=interaction.namespace,
-                enabled=interaction.enabled,
-                targets=[
-                    rawapi.InteractionTarget(
-                        definition=target.definition,
-                        region=target.region,
-                    )
-                    for target in (interaction.targets or [])
-                ],
-                parameters=[
-                    rawapi.InteractionParameter(
-                        definition=param.definition,
-                        value=param.value,
-                    )
-                    for param in (interaction.parameters or [])
-                ],
-            )
-
-        return self._uncommitted_update
 
     @prevent_deleted
     def delete(self) -> None:
@@ -420,12 +413,41 @@ class InteractionBase:
             )
         self._deleted = True
 
-    def __str__(self) -> str:
+    def _ensure_bound(self) -> rawapi.Interaction:
         if self._interaction is None:
-            return f"Interaction(definition={self.definition})"
-        return (
-            f"Interaction(id={self.id}, name={self.name}, definition={self.definition})"
-        )
+            raise NotInitializedError("Interaction is not initialized")
+        return self._interaction
+
+    def _validate(self) -> None:
+        if self._physics_id is None:
+            raise ValueError("Interaction is not associated with a physics")
+
+    @prevent_deleted
+    def _current_uncommitted_update(self) -> rawapi.InteractionUpdate:
+        """Get the current uncommitted update for the Interaction."""
+        interaction = self._ensure_bound()
+        if self._uncommitted_update is None:
+            self._uncommitted_update = rawapi.InteractionUpdate(
+                name=interaction.name,
+                namespace=interaction.namespace,
+                enabledExpr=interaction.enabled_expr,
+                targets=[
+                    rawapi.InteractionTarget(
+                        definition=target.definition,
+                        region=target.region,
+                    )
+                    for target in (interaction.targets or [])
+                ],
+                parameters=[
+                    rawapi.InteractionParameter(
+                        definition=param.definition,
+                        value=param.value,
+                    )
+                    for param in (interaction.parameters or [])
+                ],
+            )
+
+        return self._uncommitted_update
 
 
 class Interaction(InteractionBase):
@@ -439,7 +461,7 @@ class Interaction(InteractionBase):
         physics_id: str,
         name: str,
         definition: str,
-        enabled: "BooleanValue | None" = None,
+        enabled: BooleanValue | None = None,
         project_id: str | None = None,
         parameters: List[InteractionParameter] | None = None,
         interaction_targets: List[Tuple[str, str]] | None = None,
@@ -460,7 +482,7 @@ class Interaction(InteractionBase):
             physics_id: The ID of the physics this interaction belongs to.
             name: The name of the interaction.
             definition: The definition of the interaction (e.g., "clamp").
-            enabled: The enabled expression for the interaction (bool or string).
+            enabled: Optional enabled state (bool or expression string). Defaults to enabled.
             project_id: The ID of the project. Can be omitted if project API key is used.
             parameters: Optional list of interaction parameters.
             interaction_targets: Optional list of (definition_id, region_id) tuples.
@@ -476,13 +498,6 @@ class Interaction(InteractionBase):
             for defn, region in (interaction_targets or [])
         ]
 
-        if enabled is None:
-            enabled_bool = True
-        elif isinstance(enabled, bool):
-            enabled_bool = enabled
-        else:
-            enabled_bool = enabled != "0"
-
         with get_api() as api:
             interaction = api.create_interaction(
                 authorization=get_auth(),
@@ -492,7 +507,7 @@ class Interaction(InteractionBase):
                     name=name,
                     namespace=namespace,
                     definition=definition,
-                    enabled=enabled_bool,
+                    enabledExpr=enabled_to_expr(enabled),
                     targets=raw_targets,
                     parameters=(
                         [parameter._to_rawapi() for parameter in parameters or []]
@@ -564,7 +579,7 @@ class OutputInteraction(InteractionBase):
         definition: str,
         project_id: str | None = None,
         parameters: List[InteractionParameter] | None = None,
-        enabled: bool = True,
+        enabled: BooleanValue | None = None,
         interaction_targets: List[Tuple[str, str]] | None = None,
     ) -> Self:
         """
@@ -576,7 +591,7 @@ class OutputInteraction(InteractionBase):
             definition: The definition of the interaction (e.g., "fieldOutput").
             project_id: The ID of the project. Can be omitted if project API key is used.
             parameters: Optional list of interaction parameters.
-            enabled: Whether the interaction is enabled (default: True).
+            enabled: Optional enabled state (bool or expression string). Defaults to enabled.
             interaction_targets: Optional list of (definition_id, region_id) tuples.
 
         Returns:
@@ -597,7 +612,7 @@ class OutputInteraction(InteractionBase):
                 new_interaction=rawapi.NewInteraction(
                     name=name,
                     definition=definition,
-                    enabled=enabled,
+                    enabledExpr=enabled_to_expr(enabled),
                     targets=raw_targets,
                     parameters=(
                         [parameter._to_rawapi() for parameter in parameters or []]
@@ -619,13 +634,6 @@ class OutputInteraction(InteractionBase):
             raise ValueError("OutputInteraction is already initialized")
         if self._spec_name is None:
             raise ValueError("OutputInteraction name must be provided")
-        if self._spec_enabled is None:
-            enabled = True
-        elif isinstance(self._spec_enabled, bool):
-            enabled = self._spec_enabled
-        else:
-            enabled = str(self._spec_enabled) != "0"
-
         interaction_targets: List[Tuple[str, str]] = [
             (defn_id, self._spec_target_region_ids[param_name])
             for param_name, defn_id in self.target_definition_ids.items()
@@ -638,14 +646,14 @@ class OutputInteraction(InteractionBase):
             definition=self.definition,
             project_id=project_id,
             parameters=self._spec_parameters,
-            enabled=enabled,
+            enabled=self._spec_enabled,
             interaction_targets=interaction_targets or None,
         )
 
     def __init__(
         self,
         name: str | None = None,
-        enabled: bool = True,
+        enabled: BooleanValue | None = None,
         parameters: List[InteractionParameter] | None = None,
         *,
         targets: "Dict[str, Region | str | None] | None" = None,

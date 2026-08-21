@@ -19,6 +19,7 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 from typing import Any, ClassVar, Dict, List, Optional
+from allsolve_rawapi.models.job_status_reason import JobStatusReason
 from allsolve_rawapi.models.job_status_type import JobStatusType
 from allsolve_rawapi.models.mesh_file_override import MeshFileOverride
 from typing import Optional, Set
@@ -32,8 +33,9 @@ class MeshInstanceFile(BaseModel):
     id: StrictStr
     index: StrictInt
     job_status: Optional[JobStatusType] = Field(default=None, alias="jobStatus")
+    job_status_reason: Optional[JobStatusReason] = Field(default=None, alias="jobStatusReason")
     overrides: List[MeshFileOverride]
-    __properties: ClassVar[List[str]] = ["id", "index", "jobStatus", "overrides"]
+    __properties: ClassVar[List[str]] = ["id", "index", "jobStatus", "jobStatusReason", "overrides"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -96,6 +98,7 @@ class MeshInstanceFile(BaseModel):
             "id": obj.get("id"),
             "index": obj.get("index"),
             "jobStatus": obj.get("jobStatus"),
+            "jobStatusReason": obj.get("jobStatusReason"),
             "overrides": [MeshFileOverride.from_dict(_item) for _item in obj["overrides"]] if obj.get("overrides") is not None else None
         })
         return _obj

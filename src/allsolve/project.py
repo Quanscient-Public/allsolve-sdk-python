@@ -1981,7 +1981,9 @@ class Project:
         self,
         include_meshes: bool = True,
         download_geometries: bool = False,
-        files_output_dir: str | pathlib.Path = ".",
+        download_scripts: bool = False,
+        download_shared_files: bool = False,
+        files_output_dir: str | pathlib.Path | None = None,
         file_overwrite_mode: FileOverwriteMode = FileOverwriteMode.SKIP,
     ) -> dict:
         """
@@ -1997,9 +1999,18 @@ class Project:
                 Note: Exported meshes are definitions only; mesh data is not included.
             download_geometries: If True, download geometry import files into
                 ``files_output_dir``. See ``export_project_data``.
-            files_output_dir: Output directory when ``download_geometries`` is True.
-            file_overwrite_mode: Controls behavior when a geometry file already
-                exists on disk. ``FileOverwriteMode.SKIP`` (default) keeps the
+            download_scripts: If True, write simulation script files into
+                ``files_output_dir``. When False (default), script ``filepath`` values
+                in the export dict are placeholders; script files are not written to disk.
+            download_shared_files: If True, write shared file content into
+                ``files_output_dir`` when inline JSON content is available.
+                Shared file metadata is always included in the export dict
+                regardless of this flag.
+            files_output_dir: Output directory for downloaded files.
+                Required when ``download_geometries``, ``download_scripts``,
+                or ``download_shared_files`` is True.
+            file_overwrite_mode: Controls behavior when a geometry, script, or shared
+                file already exists on disk. ``FileOverwriteMode.SKIP`` (default) keeps the
                 existing file, ``FileOverwriteMode.OVERWRITE`` replaces it, and
                 ``FileOverwriteMode.ERROR`` raises ``FileExistsError``.
 
@@ -2008,8 +2019,15 @@ class Project:
 
         Note:
             Geometry file paths are placeholders unless ``download_geometries=True``.
-            When re-importing without downloaded files, provide the files
-            at the exported paths.
+            Simulation script file paths are placeholders unless
+            ``download_scripts=True``. Shared file paths are always included; shared
+            file bytes are written when ``download_shared_files=True`.
+            When re-importing without downloaded files,
+            provide the files at the exported paths.
+
+            File-based simulation scripts require unique export paths. If multiple
+            simulations share a name and use identically named scripts, export raises
+            ``ValueError`` when the two-tier path scheme cannot disambiguate them.
 
         Example:
             >>> project = Project.get("my-project-id")
@@ -2029,12 +2047,19 @@ class Project:
                 UserWarning,
                 stacklevel=2,
             )
+        if download_geometries or download_scripts or download_shared_files:
+            if files_output_dir is None:
+                raise ValueError(
+                    "files_output_dir is required when download_geometries, download_scripts, or download_shared_files is True"
+                )
 
         return export_project_data(
             self,
             include_meshes=include_meshes,
             download_geometries=download_geometries,
-            files_output_dir=files_output_dir,
+            download_scripts=download_scripts,
+            download_shared_files=download_shared_files,
+            files_output_dir=files_output_dir if files_output_dir is not None else ".",
             file_overwrite_mode=file_overwrite_mode,
         )
 
@@ -2044,6 +2069,8 @@ class Project:
         output_path: str,
         include_meshes: bool = True,
         download_geometries: bool = False,
+        download_scripts: bool = True,
+        download_shared_files: bool = True,
         files_output_dir: str | pathlib.Path | None = None,
         file_overwrite_mode: FileOverwriteMode = FileOverwriteMode.SKIP,
     ) -> None:
@@ -2054,15 +2081,21 @@ class Project:
             output_path: Path to write the YAML file.
             include_meshes: Whether to include mesh definitions (default True).
             download_geometries: If True, download geometry CAD files; see ``export()``.
-            files_output_dir: Directory for downloads. When ``download_geometries`` is True
-                and this is omitted, defaults to the parent directory of ``output_path``.
-            file_overwrite_mode: Controls behavior when a geometry file already
-                exists on disk. ``FileOverwriteMode.SKIP`` (default) keeps the
+            download_scripts: If True, write simulation script files beside the output
+                file (default True). See ``export()``.
+            download_shared_files: If True, write shared files beside the output file
+                when content is available (default True). See ``export()``.
+            files_output_dir: Directory for downloads. When ``download_geometries``,
+                ``download_scripts``, or ``download_shared_files`` is True and this is
+                omitted, defaults to the parent directory of ``output_path``.
+            file_overwrite_mode: Controls behavior when a geometry, script, or shared file
+                already exists on disk. ``FileOverwriteMode.SKIP`` (default) keeps the
                 existing file, ``FileOverwriteMode.OVERWRITE`` replaces it, and
                 ``FileOverwriteMode.ERROR`` raises ``FileExistsError``.
 
         Note:
-            See ``export()`` for CAD path and ``download_geometries`` behavior.
+            See ``export()`` for CAD path, ``download_geometries``, ``download_scripts``,
+            and ``download_shared_files`` behavior.
 
         Example:
             >>> project = Project.get("my-project-id")
@@ -2070,19 +2103,25 @@ class Project:
         """
         import yaml
 
-        if download_geometries:
+        if download_geometries or download_scripts or download_shared_files:
             effective_dir = files_output_dir
             if effective_dir is None:
                 effective_dir = pathlib.Path(output_path).expanduser().resolve().parent
             data = self.export(
                 include_meshes=include_meshes,
-                download_geometries=True,
+                download_geometries=download_geometries,
+                download_scripts=download_scripts,
+                download_shared_files=download_shared_files,
                 files_output_dir=effective_dir,
                 file_overwrite_mode=file_overwrite_mode,
             )
         else:
-            data = self.export(include_meshes=include_meshes)
-        with open(output_path, "w") as f:
+            data = self.export(
+                include_meshes=include_meshes,
+                download_scripts=download_scripts,
+                download_shared_files=download_shared_files,
+            )
+        with open(output_path, "w", encoding="utf-8") as f:
             yaml.dump(
                 data, f, default_flow_style=False, sort_keys=False, allow_unicode=True
             )
@@ -2094,6 +2133,8 @@ class Project:
         include_meshes: bool = True,
         indent: int = 2,
         download_geometries: bool = False,
+        download_scripts: bool = True,
+        download_shared_files: bool = True,
         files_output_dir: str | pathlib.Path | None = None,
         file_overwrite_mode: FileOverwriteMode = FileOverwriteMode.SKIP,
     ) -> None:
@@ -2105,33 +2146,45 @@ class Project:
             include_meshes: Whether to include mesh definitions (default True).
             indent: JSON indentation level (default 2).
             download_geometries: If True, download geometry CAD files; see ``export()``.
-            files_output_dir: Directory for downloads. When ``download_geometries`` is True
-                and this is omitted, defaults to the parent directory of ``output_path``.
-            file_overwrite_mode: Controls behavior when a geometry file already
-                exists on disk. ``FileOverwriteMode.SKIP`` (default) keeps the
+            download_scripts: If True, write simulation script files beside the output
+                file (default True). See ``export()``.
+            download_shared_files: If True, write shared files beside the output file
+                when content is available (default True). See ``export()``.
+            files_output_dir: Directory for downloads. When ``download_geometries``,
+                ``download_scripts``, or ``download_shared_files`` is True and this is
+                omitted, defaults to the parent directory of ``output_path``.
+            file_overwrite_mode: Controls behavior when a geometry, script, or shared file
+                already exists on disk. ``FileOverwriteMode.SKIP`` (default) keeps the
                 existing file, ``FileOverwriteMode.OVERWRITE`` replaces it, and
                 ``FileOverwriteMode.ERROR`` raises ``FileExistsError``.
 
         Note:
-            See ``export()`` for CAD path and ``download_geometries`` behavior.
+            See ``export()`` for CAD path, ``download_geometries``, ``download_scripts``,
+            and ``download_shared_files`` behavior.
 
         Example:
             >>> project = Project.get("my-project-id")
             >>> project.export_json("./my_project.json")
         """
-        if download_geometries:
+        if download_geometries or download_scripts or download_shared_files:
             effective_dir = files_output_dir
             if effective_dir is None:
                 effective_dir = pathlib.Path(output_path).expanduser().resolve().parent
             data = self.export(
                 include_meshes=include_meshes,
-                download_geometries=True,
+                download_geometries=download_geometries,
+                download_scripts=download_scripts,
+                download_shared_files=download_shared_files,
                 files_output_dir=effective_dir,
                 file_overwrite_mode=file_overwrite_mode,
             )
         else:
-            data = self.export(include_meshes=include_meshes)
-        with open(output_path, "w") as f:
+            data = self.export(
+                include_meshes=include_meshes,
+                download_scripts=download_scripts,
+                download_shared_files=download_shared_files,
+            )
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=indent)
 
     def __str__(self) -> str:

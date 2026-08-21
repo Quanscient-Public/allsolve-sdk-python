@@ -5,7 +5,7 @@ This script provides two types of visualization:
 1. A frequency response PNG plot (P above and U max vs. frequency)
    generated from the simulation value output CSV data using matplotlib.
 2. A time-domain pressure animation (MP4 video) for a single sweep step
-   reconstructed from "p harmonic 2" and "p harmonic 3" VTU field outputs
+   reconstructed from "p harmonic 2" and "p harmonic 3" field outputs
    using pyvista.
 
 Time-domain reconstruction (Allsolve convention: harm(2) = sine, harm(3) = cosine):
@@ -33,10 +33,11 @@ import imageio.v3 as iio
 PROJECT_NAME = "PMUT array demo"
 FIELD_COSINE = "p harmonic 2"
 FIELD_SINE = "p harmonic 3"
+RESULT_FILE_EXTENSIONS = (".vtu", ".hdf")
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "output")
-RESULTS_DIR = os.path.join(OUTPUT_DIR, "vtus")
+RESULTS_DIR = os.path.join(OUTPUT_DIR, "results")
 IMAGES_DIR = os.path.join(OUTPUT_DIR, "images")
 ANIMATION_DIR = os.path.join(OUTPUT_DIR, "animation")
 
@@ -47,6 +48,14 @@ FPS = 15
 # Sweep step to animate. Set to None to automatically pick the step
 # with the strongest pressure above the array (highest P above value).
 SWEEP_STEP: int | None = None
+
+
+def _list_result_files(results_dir: str) -> list[str]:
+    """Return field output files (.vtu or .hdf) in *results_dir*."""
+    files: list[str] = []
+    for ext in RESULT_FILE_EXTENSIONS:
+        files.extend(glob.glob(os.path.join(results_dir, f"*{ext}")))
+    return sorted(files)
 
 
 def main() -> None:
@@ -71,8 +80,8 @@ def main() -> None:
         freq_hz = _get_frequency(output_data, sweep_step)
         print(f"Animating sweep step {sweep_step}  (f = {freq_hz / 1e3:.1f} kHz)")
 
-        # 1. Download VTU files for the chosen sweep step
-        harm2_path, harm3_path = download_vtu_pair(sim, sweep_step)
+        # 1. Download field files for the chosen sweep step
+        harm2_path, harm3_path = download_result_pair(sim, sweep_step)
 
         # 2. Load meshes and extract scalar arrays
         mesh_harm2: pv.DataSet = pv.read(harm2_path)  # type: ignore[assignment]
@@ -81,7 +90,7 @@ def main() -> None:
         harm2_name = _find_scalar_field(mesh_harm2)
         harm3_name = _find_scalar_field(mesh_harm3)
         if harm2_name is None or harm3_name is None:
-            raise RuntimeError("Could not find scalar fields in VTU files")
+            raise RuntimeError("Could not find scalar fields in result files")
 
         harm2_arr = np.asarray(mesh_harm2.point_data[harm2_name]).ravel()
         harm3_arr = np.asarray(mesh_harm3.point_data[harm3_name]).ravel()
@@ -189,8 +198,8 @@ def _get_frequency(
     raise ValueError(f"No 'freq' override found for sweep step {sweep_step}")
 
 
-def download_vtu_pair(sim: allsolve.Simulation, sweep_step: int) -> tuple[str, str]:
-    """Download 'p harmonic 2' and 'p harmonic 3' VTUs for one sweep step.
+def download_result_pair(sim: allsolve.Simulation, sweep_step: int) -> tuple[str, str]:
+    """Download 'p harmonic 2' and 'p harmonic 3' files for one sweep step.
 
     Returns (harm2_path, harm3_path).
     """
@@ -211,10 +220,10 @@ def _download_field_if_needed(
     sweep_step: int,
     output_dir: str,
 ) -> str:
-    """Download a field VTU if not already present. Returns the VTU path."""
-    existing = glob.glob(os.path.join(output_dir, "*.vtu"))
+    """Download a field file if not already present. Returns the result file path."""
+    existing = _list_result_files(output_dir)
     if existing:
-        print(f"  Found {field_name} VTU in {output_dir}, skipping download.")
+        print(f"  Found {field_name} result file in {output_dir}, skipping download.")
         return existing[0]
 
     os.makedirs(output_dir, exist_ok=True)
@@ -225,13 +234,13 @@ def _download_field_if_needed(
         output_dir=output_dir,
     )
 
-    vtus = glob.glob(os.path.join(output_dir, "*.vtu"))
-    if not vtus:
+    result_files = _list_result_files(output_dir)
+    if not result_files:
         raise RuntimeError(
-            f"No VTU file found after downloading '{field_name}' "
+            f"No VTU or HDF file found after downloading '{field_name}' "
             f"(sweep step {sweep_step}) to {output_dir}"
         )
-    return vtus[0]
+    return result_files[0]
 
 
 def _find_scalar_field(mesh: pv.DataSet) -> str | None:

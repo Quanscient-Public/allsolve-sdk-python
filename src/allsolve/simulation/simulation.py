@@ -3,14 +3,19 @@
 
 from __future__ import annotations
 
-from typing_extensions import Self, List, TextIO
-import sys
-import pathlib
 import json
+import os
+import pathlib
+import sys
+import tempfile
 import time
 import uuid
 import warnings
 from enum import Enum
+from typing_extensions import Self, List, TextIO
+
+import zstandard as zstd
+import allsolve_rawapi as rawapi
 
 from allsolve.physics import OutputInteraction
 from allsolve.physics.physic import Field
@@ -19,8 +24,6 @@ from allsolve.physics_set import PhysicsSet, resolve_physics_set_id
 from allsolve.simulation.simulation_output_data import CsvExportFormat
 
 from . import SimulationOutputData
-import allsolve_rawapi as rawapi
-
 from ..resource_reservation import (
     ResourceReservation,
     build_start_job_request,
@@ -35,9 +38,18 @@ from ..api import (
     get_auth,
     get_http_session,
 )
-from ..http_transfer import CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S, validate_url_scheme
+from ..http_transfer import (
+    CONNECT_TIMEOUT_S,
+    TRANSFER_TIMEOUT_S,
+    stream_response_to_file,
+    validate_url_scheme,
+)
 from ..file import create_file, upload_file, upload_bytes
 from ..job import Job, OnError
+
+_ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
+_HDF5_MAGIC = b"\x89HDF\r\n\x1a\n"
+_DECOMPRESS_CHUNK_SIZE = 131072
 
 _GENERATED_HELPER_MODULES = (
     "utils",
@@ -56,6 +68,43 @@ def _import_to_string(imp: rawapi.PythonScriptImport) -> str:
         return f"import {imp.module} as {imp.module_alias}"
     else:
         return f"import {imp.module}"
+
+
+def _decompress_downloaded_hdf(file_path: pathlib.Path) -> None:
+    """Decompress zstd-compressed VTK-HDF output files in place.
+
+    Uses streaming decompression to avoid holding the entire file in memory.
+    """
+    if file_path.suffix.lower() != ".hdf":
+        return
+
+    with open(file_path, "rb") as f:
+        magic = f.read(len(_ZSTD_MAGIC))
+    if magic != _ZSTD_MAGIC:
+        return
+
+    fd, tmp_path = tempfile.mkstemp(dir=file_path.parent, suffix=".hdf.tmp")
+    try:
+        with open(fd, "wb") as dst:
+            decompressor = zstd.ZstdDecompressor()
+            with open(file_path, "rb") as src:
+                with decompressor.stream_reader(src) as reader:
+                    header = reader.read(_DECOMPRESS_CHUNK_SIZE)
+                    if not header.startswith(_HDF5_MAGIC):
+                        raise ValueError(
+                            f"Decompressed output file {file_path.name} "
+                            f"is not a valid HDF5 file"
+                        )
+                    dst.write(header)
+                    while True:
+                        chunk = reader.read(_DECOMPRESS_CHUNK_SIZE)
+                        if not chunk:
+                            break
+                        dst.write(chunk)
+        os.replace(tmp_path, file_path)
+    except BaseException:
+        os.unlink(tmp_path)
+        raise
 
 
 class CPU(Enum):
@@ -2134,8 +2183,9 @@ class Simulation(JobMixin):
                 r.raise_for_status()
 
                 with open(path.joinpath(filename), "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
+                    stream_response_to_file(r, f)
+
+            _decompress_downloaded_hdf(path.joinpath(filename))
 
     @prevent_deleted
     def save_output_field(
@@ -2290,7 +2340,7 @@ class Simulation(JobMixin):
                 imports_block + "\n\n" + script.code if imports_block else script.code
             )
             file_path = path / f"{script.module}.py"
-            file_path.write_text(content)
+            file_path.write_text(content, encoding="utf-8")
             written.append(str(file_path))
 
         return written

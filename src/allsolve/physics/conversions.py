@@ -153,6 +153,65 @@ def boolean_to_str(value: BooleanValue) -> str:
     return str(value)
 
 
+def enabled_from_expr(expr: str | None) -> BooleanValue | None:
+    """
+    Parse an enabled expression from the API to a Python bool or expression string.
+
+    Parameters:
+        expr: Enabled expression from rawapi ``enabled_expr``.
+
+    Returns:
+        True for ``"1"``, False for ``"0"``, the expression string otherwise,
+        or None when expr is None.
+    """
+    if expr is None:
+        return None
+    if expr == "1":
+        return True
+    if expr == "0":
+        return False
+    return expr
+
+
+def enabled_to_expr(value: BooleanValue | None) -> str:
+    """
+    Convert a Python enabled value to an API enabled expression string for **create** calls.
+
+    Parameters:
+        value: A bool, expression string, or None (defaults to ``"1"``).
+
+    Returns:
+        The enabled expression string for rawapi ``enabledExpr``.
+
+    Note:
+        This helper is used on the create path only (``Interaction.create``,
+        ``OutputInteraction.create``). ``NewInteraction.enabledExpr`` is required to
+        carry an explicit value, so ``None`` is mapped to ``"1"`` (enabled by default).
+    """
+    if value is None:
+        return "1"
+    return boolean_to_str(value)
+
+
+def export_enabled_value(enabled: BooleanValue | None) -> BooleanValue | None:
+    """
+    Return the enabled value to write to export YAML, or None to omit the field.
+
+    Parameters:
+        enabled: The interaction or output enabled value.
+
+    Returns:
+        None when enabled (omit from YAML), ``False`` or an expression string otherwise.
+    """
+    if enabled is None or enabled is True:
+        return None
+    if enabled == False or enabled == "0":
+        return False
+    if enabled == "1":
+        return None
+    return enabled
+
+
 def boolean_from_str(value: str) -> bool:
     """
     Parse a boolean string back to a Python bool.

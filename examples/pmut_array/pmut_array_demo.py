@@ -473,6 +473,13 @@ def run_mesh_and_simulation(
 ) -> None:
     mesh.run(print_logs=verbose)
     if mesh.get_status() != allsolve.Job.SUCCESS:
+        print("Mesh status:", mesh.get_status())
+        print("Mesh status reason:", mesh.get_status_reason())
+        try:
+            print("Mesh metrics:")
+            print(mesh.get_metrics())
+        except Exception:
+            pass
         raise ValueError(f"Mesh processing failed: {mesh.get_status()}")
 
     sim.run(print_logs=verbose)

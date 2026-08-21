@@ -620,24 +620,23 @@ class Material:
         if library_material is None:
             raise ValueError(f"Library material '{name}' not found")
 
-        return cls.create(
-            name=library_material.name,
-            color=library_material.color,
-            description=library_material.description,
-            abbreviation=library_material.abbreviation,
-            target_region=target_region,
-            properties=[
-                MaterialProperty.PhysicalProperty(
-                    value=p.value,
-                    definition=p.definition,
-                    alternative=p.alternative,
-                )
-                for p in library_material.properties
-                if p.value
-            ],
-            enabled=enabled,
-            project_id=project_id,
-        )
+        project_id = check_for_project_api_key(project_id)
+
+        with get_api() as api:
+            material = api.create_material(
+                authorization=get_auth(),
+                project_id=project_id,
+                new_material=rawapi.NewMaterial(
+                    name=library_material.name,
+                    color=library_material.color,
+                    description=library_material.description,
+                    properties=library_material.properties,
+                    target=target_region.id if target_region else None,
+                    abbreviation=library_material.abbreviation,
+                    enabled=enabled if enabled else None,
+                ),
+            )
+        return cls(project_id, material)
 
     @classmethod
     def _convert_orientation_to_string(

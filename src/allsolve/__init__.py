@@ -64,6 +64,8 @@ __all__ = [
     # mesh
     "Mesh",
     "MeshInstance",
+    "MeshMetrics",
+    "ElementCounts",
     "MeshSettings",
     "MeshDensity",
     "MeshRefinement",
@@ -259,6 +261,8 @@ from .geometry import (
 from .mesh import (
     Mesh,
     MeshInstance,
+    MeshMetrics,
+    ElementCounts,
     MeshSettings,
     MeshDensity,
     MeshRefinement,

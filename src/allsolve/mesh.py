@@ -363,16 +363,18 @@ class MeshSettings:
                 "mesh_size_min/mesh_size_max"
             )
 
-        if (
-            use_mesh_refiner is True
-            or mesh_size_min is not None
-            or mesh_size_max is not None
-            or min_size_factor is not None
-            or max_size_factor is not None
+        has_user_defined_density = (
+            has_mesh_sizes
+            or has_size_factors
             or scale_factor is not None
             or curvature_enhancement is not None
-            or curved_mesh is True
             or target_width_to_height_ratio is not None
+        )
+
+        if (
+            use_mesh_refiner is True
+            or has_user_defined_density
+            or curved_mesh is True
             or (refinements is not None and len(refinements) > 0)
             or extrusion is not None
             or slanted_extrusions is not None
@@ -380,7 +382,8 @@ class MeshSettings:
             or flatten_and_rebuild_extrusions is not None
             or (auto_transfinite is not None and len(auto_transfinite) > 0)
         ):
-            self.density = rawapi.MeshDensity.USERDEFINED
+            if has_user_defined_density:
+                self.density = rawapi.MeshDensity.USERDEFINED
             self.parameters = rawapi.MeshParameters(
                 meshAlgorithm=(
                     rawapi.MeshAlgorithm.MESH_MINUS_REFINER
@@ -675,6 +678,83 @@ class _MockJob(Job):
         return self._static_status_reason
 
 
+class ElementCounts:
+    """Per-element-type counts for a meshed FEM model."""
+
+    def __init__(self, type: str, total: int, low_quality: int) -> None:
+        self.type = type
+        self.total = total
+        self.low_quality = low_quality
+
+    def __str__(self) -> str:
+        return f"{self.type}: total={self.total}, low_quality={self.low_quality}"
+
+    def __repr__(self) -> str:
+        return (
+            f"ElementCounts(type={self.type!r}, total={self.total}, "
+            f"low_quality={self.low_quality})"
+        )
+
+
+class MeshMetrics:
+    """FEM mesh metrics (node/element counts and quality breakdown)."""
+
+    def __init__(
+        self,
+        nodes: int,
+        elements: int,
+        element_counts: list[ElementCounts] | None = None,
+    ) -> None:
+        self.nodes = nodes
+        self.elements = elements
+        self.element_counts = element_counts
+
+    def __str__(self) -> str:
+        lines = [
+            f"Nodes: {self.nodes}",
+            f"Elements: {self.elements}",
+        ]
+        if self.element_counts:
+            lines.append("Element counts:")
+            for entry in self.element_counts:
+                lines.append(f"  {entry}")
+        return "\n".join(lines)
+
+    def __repr__(self) -> str:
+        return (
+            f"MeshMetrics(nodes={self.nodes}, elements={self.elements}, "
+            f"element_counts={self.element_counts!r})"
+        )
+
+
+def _mesh_metrics_from_rawapi(raw: rawapi.MeshMetrics) -> MeshMetrics:
+    element_counts: list[ElementCounts] | None = None
+    if raw.element_counts is not None:
+        element_counts = [
+            ElementCounts(
+                type=entry.type,
+                total=entry.total,
+                low_quality=entry.low_quality,
+            )
+            for entry in raw.element_counts
+        ]
+    return MeshMetrics(
+        nodes=raw.nodes,
+        elements=raw.elements,
+        element_counts=element_counts,
+    )
+
+
+def _fetch_mesh_metrics(project_id: str, mesh_file_id: str) -> MeshMetrics:
+    with get_api() as api:
+        raw = api.get_mesh_metrics(
+            authorization=get_auth(),
+            project_id=project_id,
+            mesh_file_id=mesh_file_id,
+        )
+    return _mesh_metrics_from_rawapi(raw)
+
+
 def _resolve_mesh_file(
     files: list[rawapi.MeshInstanceFile] | None,
     sweep_index: int,
@@ -801,6 +881,56 @@ class MeshInstance(JobMixin):
             self.refresh()
         mesh_file = _resolve_mesh_file(self._raw_instance.files, sweep_index)
         return mesh_file.job_status
+
+    def get_sweep_status_reason(
+        self,
+        sweep_index: int = 0,
+        *,
+        refresh: bool = True,
+    ) -> str | None:
+        """Return the meshing job status reason for one sweep step.
+
+        Parameters:
+            sweep_index: The sweep step index (matches :attr:`MeshInstanceFile.index`).
+            refresh: If True, refresh mesh data from the server before reading.
+
+        Returns:
+            The per-file job status reason (e.g. ``lowQualityData``), or ``None``
+            if the backend omitted ``job_status_reason`` for that file.
+
+        Raises:
+            ValueError: If no file exists for *sweep_index*.
+        """
+        if refresh:
+            self.refresh()
+        mesh_file = _resolve_mesh_file(self._raw_instance.files, sweep_index)
+        reason = mesh_file.job_status_reason
+        if reason is None:
+            return None
+        return reason.value
+
+    def get_metrics(
+        self,
+        sweep_index: int = 0,
+        *,
+        refresh: bool = False,
+    ) -> MeshMetrics:
+        """Fetch mesh metrics for one sweep step.
+
+        Parameters:
+            sweep_index: The sweep step index (matches :attr:`MeshInstanceFile.index`).
+            refresh: If True, refresh mesh data from the server before fetching metrics.
+
+        Returns:
+            Node/element counts and optional per-type quality breakdown.
+
+        Raises:
+            ValueError: If no file exists for *sweep_index*.
+        """
+        if refresh:
+            self.refresh()
+        mesh_file = _resolve_mesh_file(self._raw_instance.files, sweep_index)
+        return _fetch_mesh_metrics(self._mesh._project_id, mesh_file.id)
 
     def get_sweep_count(self, *, refresh: bool = False) -> int:
         """Return the number of mesh files (sweep steps) on this instance.
@@ -1588,7 +1718,7 @@ class Mesh(JobMixin):
 
     @slanted_extrusions.setter
     @prevent_deleted
-    def set_slanted_extrusions(
+    def slanted_extrusions(
         self, slanted_extrusions: List[SlantedExtrusion] | None
     ) -> None:
         """Set the slanted extrusions of the mesh. Use save() to commit the change."""
@@ -1662,7 +1792,7 @@ class Mesh(JobMixin):
 
     @path_extrusions.setter
     @prevent_deleted
-    def set_path_extrusions(self, path_extrusions: List[PathExtrusion] | None) -> None:
+    def path_extrusions(self, path_extrusions: List[PathExtrusion] | None) -> None:
         """Set the path extrusions of the mesh. Use save() to commit the change."""
         self._on_set_parameter(
             set_user_defined=path_extrusions is not None and len(path_extrusions) > 0
@@ -1741,7 +1871,7 @@ class Mesh(JobMixin):
 
     @flatten_and_rebuild_extrusions.setter
     @prevent_deleted
-    def set_flatten_and_rebuild_extrusions(
+    def flatten_and_rebuild_extrusions(
         self, flatten_and_rebuild_extrusions: List[FlattenAndRebuildExtrusion] | None
     ) -> None:
         """Set the flatten and rebuild extrusions of the mesh. Use save() to commit the change."""
@@ -2044,6 +2174,14 @@ class Mesh(JobMixin):
         return super().get_status()
 
     @prevent_deleted
+    def get_status_reason(self) -> str | None:
+        """Get the status reason of the default mesh instance."""
+        job = self._get_job()
+        if job is None:
+            return ""
+        return job.get_status_reason()
+
+    @prevent_deleted
     def is_running(self, refresh_delay_s: float | None = None) -> bool:
         """Check if the default mesh instance is running.
 
@@ -2140,6 +2278,46 @@ class Mesh(JobMixin):
             filename=filename,
             sweep_index=sweep_index,
         )
+
+    @prevent_deleted
+    def get_metrics(
+        self,
+        *,
+        refresh: bool = False,
+    ) -> MeshMetrics:
+        """Fetch mesh metrics for the default mesh instance.
+
+        Parameters:
+            refresh: If True, refresh mesh data from the server before fetching metrics.
+
+        Returns:
+            Node/element counts and optional per-type quality breakdown.
+
+        Raises:
+            ValueError: If no file exists.
+        """
+        return self._get_metrics_for_instance(
+            variable_overrides_id=None,
+            sweep_index=0,
+            refresh=refresh,
+        )
+
+    def _get_metrics_for_instance(
+        self,
+        variable_overrides_id: str | None,
+        sweep_index: int = 0,
+        *,
+        refresh: bool = False,
+    ) -> MeshMetrics:
+        """Fetch mesh metrics for a specific instance (default or override)."""
+        if refresh:
+            self.refresh()
+        mesh_instance = _find_raw_instance(
+            self._mesh,
+            variable_overrides_id=variable_overrides_id,
+        )
+        mesh_file = _resolve_mesh_file(mesh_instance.files, sweep_index)
+        return _fetch_mesh_metrics(self._project_id, mesh_file.id)
 
     def _save_mesh_file_for_instance(
         self,

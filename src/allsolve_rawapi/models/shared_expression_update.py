@@ -40,13 +40,10 @@ class SharedExpressionUpdate(BaseModel):
     cubic_interpolation: Optional[StrictBool] = Field(default=None, description="If the expression is of type `interpolatedFunction` this flag indicates whether the values should be interpolated linearly or using a natural cubic spline. ", alias="cubicInterpolation")
     __properties: ClassVar[List[str]] = ["name", "type", "description", "origin", "args", "expression", "values", "cubicInterpolation"]
 
-    @field_validator('name')
+    @field_validator('name', mode="before")
     def name_validate_regular_expression(cls, value):
         """Validates the regular expression"""
-        if not isinstance(value, str):
-            value = str(value)
-
-        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,254}$", value):
+        if isinstance(value, str) and not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,254}$", value):
             raise ValueError(r"must validate the regular expression /^[a-zA-Z_][a-zA-Z0-9_]{0,254}$/")
         return value
 

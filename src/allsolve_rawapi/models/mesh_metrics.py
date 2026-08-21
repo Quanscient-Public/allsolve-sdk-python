@@ -18,7 +18,8 @@ import re  # noqa: F401
 import json
 
 from pydantic import BaseModel, ConfigDict, Field, StrictInt
-from typing import Any, ClassVar, Dict, List
+from typing import Any, ClassVar, Dict, List, Optional
+from allsolve_rawapi.models.element_counts import ElementCounts
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -29,7 +30,8 @@ class MeshMetrics(BaseModel):
     """ # noqa: E501
     nodes: StrictInt = Field(description="Number of nodes in the FEM mesh.")
     elements: StrictInt = Field(description="Number of elements in the FEM mesh.")
-    __properties: ClassVar[List[str]] = ["nodes", "elements"]
+    element_counts: Optional[List[ElementCounts]] = Field(default=None, alias="elementCounts")
+    __properties: ClassVar[List[str]] = ["nodes", "elements", "elementCounts"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -70,6 +72,13 @@ class MeshMetrics(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
+        # override the default output from pydantic by calling `to_dict()` of each item in element_counts (list)
+        _items = []
+        if self.element_counts:
+            for _item_element_counts in self.element_counts:
+                if _item_element_counts:
+                    _items.append(_item_element_counts.to_dict())
+            _dict['elementCounts'] = _items
         return _dict
 
     @classmethod
@@ -83,7 +92,8 @@ class MeshMetrics(BaseModel):
 
         _obj = cls.model_validate({
             "nodes": obj.get("nodes"),
-            "elements": obj.get("elements")
+            "elements": obj.get("elements"),
+            "elementCounts": [ElementCounts.from_dict(_item) for _item in obj["elementCounts"]] if obj.get("elementCounts") is not None else None
         })
         return _obj
 

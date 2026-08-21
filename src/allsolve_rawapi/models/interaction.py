@@ -35,22 +35,20 @@ class Interaction(BaseModel):
     name: StrictStr
     namespace: Optional[Annotated[str, Field(strict=True)]] = None
     definition: StrictStr = Field(description="Id of an InteractionDefinition")
-    enabled: StrictBool
+    enabled: StrictBool = Field(description="Whether the interaction is enabled. Deprecated in favor of enabledExpr. This will be true when enabledExpr is the literal \"1\" and false when it is the literal \"0\". For other enabledExpr values, this will blindly return true, which may be incorrect. ")
+    enabled_expr: Optional[Annotated[str, Field(strict=True, max_length=5000)]] = Field(default=None, alias="enabledExpr")
     targets: List[InteractionTarget]
     parameters: List[InteractionParameter]
     created_at: datetime = Field(alias="createdAt")
-    __properties: ClassVar[List[str]] = ["id", "name", "namespace", "definition", "enabled", "targets", "parameters", "createdAt"]
+    __properties: ClassVar[List[str]] = ["id", "name", "namespace", "definition", "enabled", "enabledExpr", "targets", "parameters", "createdAt"]
 
-    @field_validator('namespace')
+    @field_validator('namespace', mode="before")
     def namespace_validate_regular_expression(cls, value):
         """Validates the regular expression"""
         if value is None:
             return value
 
-        if not isinstance(value, str):
-            value = str(value)
-
-        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,254}$", value):
+        if isinstance(value, str) and not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,254}$", value):
             raise ValueError(r"must validate the regular expression /^[a-zA-Z_][a-zA-Z0-9_]{0,254}$/")
         return value
 
@@ -124,6 +122,7 @@ class Interaction(BaseModel):
             "namespace": obj.get("namespace"),
             "definition": obj.get("definition"),
             "enabled": obj.get("enabled"),
+            "enabledExpr": obj.get("enabledExpr"),
             "targets": [InteractionTarget.from_dict(_item) for _item in obj["targets"]] if obj.get("targets") is not None else None,
             "parameters": [InteractionParameter.from_dict(_item) for _item in obj["parameters"]] if obj.get("parameters") is not None else None,
             "createdAt": obj.get("createdAt")

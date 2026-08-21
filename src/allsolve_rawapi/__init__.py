@@ -89,6 +89,7 @@ __all__ = [
     "CustomScriptSectionName",
     "DisabledScriptSection",
     "DistributedSolverMode",
+    "ElementCounts",
     "EntitySelection",
     "EntityType",
     "ErrorResponse",
@@ -306,6 +307,7 @@ from allsolve_rawapi.models.created_geometry_element import CreatedGeometryEleme
 from allsolve_rawapi.models.custom_script_section_name import CustomScriptSectionName as CustomScriptSectionName
 from allsolve_rawapi.models.disabled_script_section import DisabledScriptSection as DisabledScriptSection
 from allsolve_rawapi.models.distributed_solver_mode import DistributedSolverMode as DistributedSolverMode
+from allsolve_rawapi.models.element_counts import ElementCounts as ElementCounts
 from allsolve_rawapi.models.entity_selection import EntitySelection as EntitySelection
 from allsolve_rawapi.models.entity_type import EntityType as EntityType
 from allsolve_rawapi.models.error_response import ErrorResponse as ErrorResponse

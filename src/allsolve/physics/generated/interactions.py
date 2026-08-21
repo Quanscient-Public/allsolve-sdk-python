@@ -40,6 +40,7 @@ class SolidMechanicsLoad(Interaction):
         name: str,
         force: VectorValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a load interaction.
@@ -48,7 +49,7 @@ class SolidMechanicsLoad(Interaction):
             name: Name of the interaction.
             force: A force vector with the same dimensions as the project. For a 3D project you'd give a vector like [1.5; 10; 0].
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -74,6 +75,7 @@ class SolidMechanicsConstraint(Interaction):
         name: str,
         solid_mechanics_constraint: MatrixValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -82,7 +84,7 @@ class SolidMechanicsConstraint(Interaction):
             name: Name of the interaction.
             solid_mechanics_constraint: A 3x2 matrix for a 3D project, 2x2 for 2D etc. The first column is a 0 or 1 indicating which dimensions have a value. The second column holds the actual values. For example [0, 0; 1, 42; 0, 0] means Y dimension has a constraint 42 and other dimensions don't have a constraint.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -110,6 +112,7 @@ class SolidMechanicsClamp(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a clamp interaction.
@@ -117,7 +120,7 @@ class SolidMechanicsClamp(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -140,8 +143,8 @@ class SolidMechanicsLump(Interaction):
         name: str,
         namespace: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         solid_mechanics_lump_actuation_mode: (
             SolidMechanicsLumpActuationMode | str
         ) = SolidMechanicsLumpActuationMode.DISPLACEMENT,
@@ -155,7 +158,7 @@ class SolidMechanicsLump(Interaction):
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             solid_mechanics_lump_actuation_mode: solid mechanics lump actuation mode
             solid_mechanics_lump_displacement: The primal displacement port
             solid_mechanics_lump_force: The dual force port
@@ -243,8 +246,8 @@ class SolidMechanicsThermalExpansion(Interaction):
         self,
         name: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         thermal_expansion_reference_temperature: ScalarValue = "273",
     ) -> None:
         """Create a thermal expansion interaction.
@@ -252,7 +255,7 @@ class SolidMechanicsThermalExpansion(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             thermal_expansion_reference_temperature: thermal expansion reference temperature
         """
         parameters: List[InteractionParameter] = []
@@ -281,6 +284,7 @@ class SolidMechanicsPiezoelectricity(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a piezoelectricity interaction.
@@ -288,7 +292,7 @@ class SolidMechanicsPiezoelectricity(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -308,13 +312,14 @@ class SolidMechanicsElectricForce(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a electric force interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -333,13 +338,14 @@ class SolidMechanicsMagneticForce(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a magnetic force interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -358,13 +364,14 @@ class SolidMechanicsLargeDisplacement(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a large displacement interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -386,6 +393,7 @@ class SolidMechanicsPressure(Interaction):
         name: str,
         solid_mechanics_pressure: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a pressure interaction.
@@ -394,7 +402,7 @@ class SolidMechanicsPressure(Interaction):
             name: Name of the interaction.
             solid_mechanics_pressure: solid mechanics pressure
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -422,6 +430,7 @@ class SolidMechanicsPrestress(Interaction):
         name: str,
         solid_mechanics_prestress: MatrixValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a prestress interaction.
@@ -430,7 +439,7 @@ class SolidMechanicsPrestress(Interaction):
             name: Name of the interaction.
             solid_mechanics_prestress: solid mechanics prestress
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -463,8 +472,8 @@ class SolidMechanicsPeriodicity(Interaction):
         solid_mechanics_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         solid_mechanics_periodicity_type: (
             SolidMechanicsPeriodicityType | str
         ) = SolidMechanicsPeriodicityType.TRANSLATION,
@@ -480,7 +489,7 @@ class SolidMechanicsPeriodicity(Interaction):
             solid_mechanics_periodicity_anti_periodicity: solid mechanics periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             solid_mechanics_periodicity_type: solid mechanics periodicity type
             solid_mechanics_periodicity_translation_direction: solid mechanics periodicity translation direction
             solid_mechanics_periodicity_translation_distance: solid mechanics periodicity translation distance
@@ -593,6 +602,7 @@ class SolidMechanicsSymmetry(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a symmetry interaction.
@@ -600,7 +610,7 @@ class SolidMechanicsSymmetry(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -624,6 +634,7 @@ class SolidMechanicsProportionalDamping(Interaction):
         solid_mechanics_proportional_damping_alpha: ScalarValue,
         solid_mechanics_proportional_damping_beta: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a proportional damping interaction.
@@ -633,7 +644,7 @@ class SolidMechanicsProportionalDamping(Interaction):
             solid_mechanics_proportional_damping_alpha: solid mechanics proportional damping alpha
             solid_mechanics_proportional_damping_beta: solid mechanics proportional damping beta
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -665,13 +676,14 @@ class SolidMechanicsGeometricNonlinearity(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a geometric nonlinearity interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -701,8 +713,8 @@ class SolidMechanicsContact(Interaction):
         gamma_1_side: "Region | str",
         gamma_2: "Region | str",
         gamma_2_side: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         solid_mechanics_contact_stiction: ScalarValue = "0",
     ) -> None:
         """Create a contact interaction.
@@ -714,7 +726,7 @@ class SolidMechanicsContact(Interaction):
             gamma_1_side: Target region for gamma_1_side.
             gamma_2: Target region for gamma_2.
             gamma_2_side: Target region for gamma_2_side.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             solid_mechanics_contact_stiction: solid mechanics contact stiction
         """
         parameters: List[InteractionParameter] = []
@@ -743,6 +755,36 @@ class SolidMechanicsContact(Interaction):
         )
 
 
+class SolidMechanicsViscohyperelasticity(Interaction):
+    """Viscohyperelasticity interaction."""
+
+    definition_id = "solidMechanicsViscohyperelasticity"
+    physics_definition_id = "solidMechanics"
+    target_definition_ids = {"target": "solidMechanicsViscohyperelasticityTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        target: "Region | str",
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a viscohyperelasticity interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
 class CurrentFlowConstraint(Interaction):
     """Constraint interaction."""
 
@@ -755,6 +797,7 @@ class CurrentFlowConstraint(Interaction):
         name: str,
         current_flow_constraint: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -763,7 +806,7 @@ class CurrentFlowConstraint(Interaction):
             name: Name of the interaction.
             current_flow_constraint: Constraint value in volts.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -791,6 +834,7 @@ class CurrentFlowCurrentDensity(Interaction):
         name: str,
         current_density: VectorValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a current density source interaction.
@@ -799,7 +843,7 @@ class CurrentFlowCurrentDensity(Interaction):
             name: Name of the interaction.
             current_density: A current density vector with the same dimensions as the project. For a 3D project you'd give a vector like [1.5; 10; 0].
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -827,8 +871,8 @@ class CurrentFlowLump(Interaction):
         name: str,
         namespace: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         current_flow_lump_actuation_mode: (
             CurrentFlowLumpActuationMode | str
         ) = CurrentFlowLumpActuationMode.VOLTAGE,
@@ -842,7 +886,7 @@ class CurrentFlowLump(Interaction):
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             current_flow_lump_actuation_mode: current flow lump actuation mode
             current_flow_lump_voltage: The primal voltage port
             current_flow_lump_current: The dual current port
@@ -937,8 +981,8 @@ class CurrentFlowLumpVICut(Interaction):
         namespace: str,
         circulation_loop: "Region | str",
         orientation_point: "Region | str | None" = None,
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         current_flow_lump_v_i_cut_actuation_mode: (
             CurrentFlowLumpVICutActuationMode | str
         ) = CurrentFlowLumpVICutActuationMode.CURRENT,
@@ -953,7 +997,7 @@ class CurrentFlowLumpVICut(Interaction):
             namespace: Namespace for the lump interaction.
             circulation_loop: Target region for circulation_loop.
             orientation_point: Target region for orientation_point.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             current_flow_lump_v_i_cut_actuation_mode: current flow lump v i cut actuation mode
             current_flow_lump_v_i_cut_voltage: The primal voltage port
             current_flow_lump_v_i_cut_current: The dual current port
@@ -1049,8 +1093,8 @@ class CurrentFlowPeriodicity(Interaction):
         current_flow_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         current_flow_periodicity_type: (
             CurrentFlowPeriodicityType | str
         ) = CurrentFlowPeriodicityType.TRANSLATION,
@@ -1066,7 +1110,7 @@ class CurrentFlowPeriodicity(Interaction):
             current_flow_periodicity_anti_periodicity: current flow periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             current_flow_periodicity_type: current flow periodicity type
             current_flow_periodicity_translation_direction: current flow periodicity translation direction
             current_flow_periodicity_translation_distance: current flow periodicity translation distance
@@ -1177,8 +1221,8 @@ class AcousticWavesPml(Interaction):
         self,
         name: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         acoustic_waves_pml_type: AcousticWavesPmlType | str = AcousticWavesPmlType.AML,
     ) -> None:
         """Create a perfectly matched layer interaction.
@@ -1186,7 +1230,7 @@ class AcousticWavesPml(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             acoustic_waves_pml_type: acoustic waves pml type
         """
         parameters: List[InteractionParameter] = []
@@ -1220,6 +1264,7 @@ class AcousticWavesConstraint(Interaction):
         name: str,
         acoustic_waves_constraint: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -1228,7 +1273,7 @@ class AcousticWavesConstraint(Interaction):
             name: Name of the interaction.
             acoustic_waves_constraint: Pressure value in pascals
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -1254,13 +1299,14 @@ class AcousticWavesAcousticStructure(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a acoustic structure interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -1279,13 +1325,14 @@ class AcousticWavesAcousticStructureForElasticWaves(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a acoustic structure interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -1306,6 +1353,7 @@ class AcousticWavesAbsorbingBoundary(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a absorbing boundary interaction.
@@ -1313,7 +1361,7 @@ class AcousticWavesAbsorbingBoundary(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -1340,8 +1388,8 @@ class AcousticWavesPeriodicity(Interaction):
         acoustic_waves_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         acoustic_waves_periodicity_type: (
             AcousticWavesPeriodicityType | str
         ) = AcousticWavesPeriodicityType.TRANSLATION,
@@ -1357,7 +1405,7 @@ class AcousticWavesPeriodicity(Interaction):
             acoustic_waves_periodicity_anti_periodicity: acoustic waves periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             acoustic_waves_periodicity_type: acoustic waves periodicity type
             acoustic_waves_periodicity_translation_direction: acoustic waves periodicity translation direction
             acoustic_waves_periodicity_translation_distance: acoustic waves periodicity translation distance
@@ -1471,6 +1519,7 @@ class AcousticWavesAcousticDamping(Interaction):
         name: str,
         acoustic_waves_acoustic_damping_damping_value: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a acoustic damping interaction.
@@ -1479,7 +1528,7 @@ class AcousticWavesAcousticDamping(Interaction):
             name: Name of the interaction.
             acoustic_waves_acoustic_damping_damping_value: acoustic waves acoustic damping damping value
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -1508,6 +1557,7 @@ class AcousticWavesNormalAcceleration(Interaction):
         name: str,
         acoustic_waves_normal_acceleration: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a normal acceleration interaction.
@@ -1516,7 +1566,7 @@ class AcousticWavesNormalAcceleration(Interaction):
             name: Name of the interaction.
             acoustic_waves_normal_acceleration: acoustic waves normal acceleration
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -1548,6 +1598,7 @@ class AcousticWavesContinuity(Interaction):
         name: str,
         continuity_target_1: "Region | str",
         continuity_target_2: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a continuity interaction.
@@ -1556,7 +1607,7 @@ class AcousticWavesContinuity(Interaction):
             name: Name of the interaction.
             continuity_target_1: Target region for continuity_target_1.
             continuity_target_2: Target region for continuity_target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -1582,6 +1633,7 @@ class ElectromagneticWavesConstraint(Interaction):
         name: str,
         electromagnetic_waves_constraint: VectorValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -1590,7 +1642,7 @@ class ElectromagneticWavesConstraint(Interaction):
             name: Name of the interaction.
             electromagnetic_waves_constraint: A 3x1 vector for a 3D project, 2x1 for 2D etc.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -1618,8 +1670,8 @@ class ElectromagneticWavesPml(Interaction):
         self,
         name: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         electromagnetic_waves_pml_type: (
             ElectromagneticWavesPmlType | str
         ) = ElectromagneticWavesPmlType.AML,
@@ -1629,7 +1681,7 @@ class ElectromagneticWavesPml(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             electromagnetic_waves_pml_type: electromagnetic waves pml type
         """
         parameters: List[InteractionParameter] = []
@@ -1665,8 +1717,8 @@ class ElectromagneticWavesRectangularPort(Interaction):
         electromagnetic_waves_rectangular_port_y_mode_number: ScalarValue,
         electromagnetic_waves_rectangular_port_driving_signal: ScalarValue,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         electromagnetic_waves_rectangular_port_mode_type: (
             ElectromagneticWavesRectangularPortModeType | str
         ) = ElectromagneticWavesRectangularPortModeType.T_E,
@@ -1680,7 +1732,7 @@ class ElectromagneticWavesRectangularPort(Interaction):
             electromagnetic_waves_rectangular_port_y_mode_number: Y mode number
             electromagnetic_waves_rectangular_port_driving_signal: Driving signal
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             electromagnetic_waves_rectangular_port_mode_type: Mode type
             electromagnetic_waves_rectangular_port_drive: electromagnetic waves rectangular port drive
         """
@@ -1740,6 +1792,7 @@ class ElectromagneticWavesPerfectConductor(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a perfect conductor interaction.
@@ -1747,7 +1800,7 @@ class ElectromagneticWavesPerfectConductor(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -1775,8 +1828,8 @@ class ElectromagneticWavesEigenmodePort(Interaction):
         electromagnetic_waves_eigenmode_port_driving_signal: ScalarValue,
         port_target: "Region | str",
         mode_pec: "Region | str | None" = None,
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         electromagnetic_waves_eigenmode_port_num_eigenmodes: ScalarValue = "5",
         electromagnetic_waves_eigenmode_port_eigenmode_index: ScalarValue = "0",
         electromagnetic_waves_eigenmode_port_target_eigenvalue_type: (
@@ -1797,7 +1850,7 @@ class ElectromagneticWavesEigenmodePort(Interaction):
             electromagnetic_waves_eigenmode_port_driving_signal: Driving signal
             port_target: Target region for port_target.
             mode_pec: Target region for mode_pec.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             electromagnetic_waves_eigenmode_port_num_eigenmodes: Number of eigenmodes to find
             electromagnetic_waves_eigenmode_port_eigenmode_index: Selected eigenmode index
             electromagnetic_waves_eigenmode_port_target_eigenvalue_type: Target eigenvalue type
@@ -1911,6 +1964,7 @@ class ElectromagneticWavesDielectricLoss(Interaction):
         name: str,
         electromagnetic_waves_dielectric_loss_loss_tangent: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a dielectric loss interaction.
@@ -1919,7 +1973,7 @@ class ElectromagneticWavesDielectricLoss(Interaction):
             name: Name of the interaction.
             electromagnetic_waves_dielectric_loss_loss_tangent: Ratio ε''/ε'
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -1954,8 +2008,8 @@ class ElectromagneticWavesLumpVI(Interaction):
         port_target: "Region | str",
         one_volt_electrode: "Region | str",
         ground_electrode: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         electromagnetic_waves_lump_v_i_actuation_mode: (
             ElectromagneticWavesLumpVIActuationMode | str
         ) = ElectromagneticWavesLumpVIActuationMode.VOLTAGE,
@@ -1978,7 +2032,7 @@ class ElectromagneticWavesLumpVI(Interaction):
             port_target: Target region for port_target.
             one_volt_electrode: Target region for one_volt_electrode.
             ground_electrode: Target region for ground_electrode.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             electromagnetic_waves_lump_v_i_actuation_mode: electromagnetic waves lump v i actuation mode
             electromagnetic_waves_lump_v_i_voltage: The primal voltage port
             electromagnetic_waves_lump_v_i_current: The dual current port
@@ -2201,8 +2255,8 @@ class ElectromagneticWavesPeriodicity(Interaction):
         electromagnetic_waves_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         electromagnetic_waves_periodicity_type: (
             ElectromagneticWavesPeriodicityType | str
         ) = ElectromagneticWavesPeriodicityType.TRANSLATION,
@@ -2222,7 +2276,7 @@ class ElectromagneticWavesPeriodicity(Interaction):
             electromagnetic_waves_periodicity_anti_periodicity: electromagnetic waves periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             electromagnetic_waves_periodicity_type: electromagnetic waves periodicity type
             electromagnetic_waves_periodicity_translation_direction: electromagnetic waves periodicity translation direction
             electromagnetic_waves_periodicity_translation_distance: electromagnetic waves periodicity translation distance
@@ -2341,6 +2395,7 @@ class ElectromagneticWavesAbsorbingBoundary(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a absorbing boundary interaction.
@@ -2348,7 +2403,7 @@ class ElectromagneticWavesAbsorbingBoundary(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -2370,8 +2425,8 @@ class ElectromagneticWavesBoundaryAdmittance(Interaction):
         self,
         name: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         electromagnetic_waves_boundary_admittance_type: (
             ElectromagneticWavesBoundaryAdmittanceType | str
         ) = ElectromagneticWavesBoundaryAdmittanceType.ADMITTANCE,
@@ -2389,7 +2444,7 @@ class ElectromagneticWavesBoundaryAdmittance(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             electromagnetic_waves_boundary_admittance_type: electromagnetic waves boundary admittance type
             electromagnetic_waves_boundary_admittance_yr: electromagnetic waves boundary admittance yr
             electromagnetic_waves_boundary_admittance_yi: electromagnetic waves boundary admittance yi
@@ -2497,6 +2552,7 @@ class ElectrostaticsConstraint(Interaction):
         name: str,
         electrostatics_constraint: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -2505,7 +2561,7 @@ class ElectrostaticsConstraint(Interaction):
             name: Name of the interaction.
             electrostatics_constraint: Constraint value in volts.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -2533,6 +2589,7 @@ class ElectrostaticsPiezoelectricity(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a piezoelectricity interaction.
@@ -2540,7 +2597,7 @@ class ElectrostaticsPiezoelectricity(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -2563,8 +2620,8 @@ class ElectrostaticsLump(Interaction):
         name: str,
         namespace: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         electrostatics_lump_actuation_mode: (
             ElectrostaticsLumpActuationMode | str
         ) = ElectrostaticsLumpActuationMode.VOLTAGE,
@@ -2578,7 +2635,7 @@ class ElectrostaticsLump(Interaction):
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             electrostatics_lump_actuation_mode: electrostatics lump actuation mode
             electrostatics_lump_voltage: The primal voltage port
             electrostatics_lump_charge: The dual charge port
@@ -2664,13 +2721,14 @@ class ElectrostaticsLargeDisplacement(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a large displacement interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -2691,6 +2749,7 @@ class ElectrostaticsElasticWavesPiezoelectricity(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a piezoelectricity interaction.
@@ -2698,7 +2757,7 @@ class ElectrostaticsElasticWavesPiezoelectricity(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -2725,8 +2784,8 @@ class ElectrostaticsPeriodicity(Interaction):
         electrostatics_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         electrostatics_periodicity_type: (
             ElectrostaticsPeriodicityType | str
         ) = ElectrostaticsPeriodicityType.TRANSLATION,
@@ -2742,7 +2801,7 @@ class ElectrostaticsPeriodicity(Interaction):
             electrostatics_periodicity_anti_periodicity: electrostatics periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             electrostatics_periodicity_type: electrostatics periodicity type
             electrostatics_periodicity_translation_direction: electrostatics periodicity translation direction
             electrostatics_periodicity_translation_distance: electrostatics periodicity translation distance
@@ -2855,6 +2914,7 @@ class MagnetismAMagneticWall(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a magnetic wall interaction.
@@ -2862,7 +2922,7 @@ class MagnetismAMagneticWall(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -2882,13 +2942,14 @@ class MagnetismAElectromagneticCoupling(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a a-v coupling interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -2910,6 +2971,7 @@ class MagnetismABackgroundField(Interaction):
         name: str,
         magnetism_a_background_field: VectorValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a remanence interaction.
@@ -2918,7 +2980,7 @@ class MagnetismABackgroundField(Interaction):
             name: Name of the interaction.
             magnetism_a_background_field: magnetism a background field
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -2951,8 +3013,8 @@ class MagnetismAPeriodicity(Interaction):
         magnetism_a_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         magnetism_a_periodicity_type: (
             MagnetismAPeriodicityType | str
         ) = MagnetismAPeriodicityType.TRANSLATION,
@@ -2968,7 +3030,7 @@ class MagnetismAPeriodicity(Interaction):
             magnetism_a_periodicity_anti_periodicity: magnetism a periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             magnetism_a_periodicity_type: magnetism a periodicity type
             magnetism_a_periodicity_translation_direction: magnetism a periodicity translation direction
             magnetism_a_periodicity_translation_distance: magnetism a periodicity translation distance
@@ -3080,6 +3142,7 @@ class MagnetismPhiConstraint(Interaction):
         name: str,
         magnetism_phi_constraint: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -3088,7 +3151,7 @@ class MagnetismPhiConstraint(Interaction):
             name: Name of the interaction.
             magnetism_phi_constraint: Constraint value in Amperes.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -3116,6 +3179,7 @@ class MagnetismPhiBackgroundField(Interaction):
         name: str,
         magnetism_phi_background_field: VectorValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a remanence interaction.
@@ -3124,7 +3188,7 @@ class MagnetismPhiBackgroundField(Interaction):
             name: Name of the interaction.
             magnetism_phi_background_field: magnetism phi background field
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -3153,8 +3217,8 @@ class MagnetismPhiLumpPhiPhiB(Interaction):
         name: str,
         namespace: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         magnetism_phi_lump_phi_phi_b_actuation_mode: (
             MagnetismPhiLumpPhiPhiBActuationMode | str
         ) = MagnetismPhiLumpPhiPhiBActuationMode.MAGENTIC_SCALAR_POTENTIAL,
@@ -3170,7 +3234,7 @@ class MagnetismPhiLumpPhiPhiB(Interaction):
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             magnetism_phi_lump_phi_phi_b_actuation_mode: magnetism phi lump phi phi b actuation mode
             magnetism_phi_lump_phi_phi_b_magnetic_scalar_potential: The primal magnetic scalar potential port
             magnetism_phi_lump_phi_phi_b_magnetic_flux_b: The dual magnetic flux port
@@ -3265,8 +3329,8 @@ class MagnetismPhiLumpIV(Interaction):
         namespace: str,
         circulation_loop: "Region | str",
         orientation_point: "Region | str | None" = None,
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         magnetism_phi_lump_i_v_actuation_mode: (
             MagnetismPhiLumpIVActuationMode | str
         ) = MagnetismPhiLumpIVActuationMode.CURRENT,
@@ -3281,7 +3345,7 @@ class MagnetismPhiLumpIV(Interaction):
             namespace: Namespace for the lump interaction.
             circulation_loop: Target region for circulation_loop.
             orientation_point: Target region for orientation_point.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             magnetism_phi_lump_i_v_actuation_mode: magnetism phi lump i v actuation mode
             magnetism_phi_lump_i_v_current: The primal current port port
             magnetism_phi_lump_i_v_voltage: The dual voltage port
@@ -3373,6 +3437,7 @@ class MagnetismPhiExternalField(Interaction):
         name: str,
         magnetism_phi_external_field: VectorValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a external field interaction.
@@ -3381,7 +3446,7 @@ class MagnetismPhiExternalField(Interaction):
             name: Name of the interaction.
             magnetism_phi_external_field: magnetism phi external field
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -3414,8 +3479,8 @@ class MagnetismPhiPeriodicity(Interaction):
         magnetism_phi_periodicity_anti_periodicity: BooleanValue,
         periodicity_target_1: "Region | str",
         periodicity_target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         magnetism_phi_periodicity_type: (
             MagnetismPhiPeriodicityType | str
         ) = MagnetismPhiPeriodicityType.TRANSLATION,
@@ -3431,7 +3496,7 @@ class MagnetismPhiPeriodicity(Interaction):
             magnetism_phi_periodicity_anti_periodicity: magnetism phi periodicity anti periodicity
             periodicity_target_1: Target region for periodicity_target_1.
             periodicity_target_2: Target region for periodicity_target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             magnetism_phi_periodicity_type: magnetism phi periodicity type
             magnetism_phi_periodicity_translation_direction: magnetism phi periodicity translation direction
             magnetism_phi_periodicity_translation_distance: magnetism phi periodicity translation distance
@@ -3551,6 +3616,7 @@ class MagnetismPhiContinuity(Interaction):
         name: str,
         continuity_target_1: "Region | str",
         continuity_target_2: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a continuity interaction.
@@ -3559,7 +3625,7 @@ class MagnetismPhiContinuity(Interaction):
             name: Name of the interaction.
             continuity_target_1: Target region for continuity_target_1.
             continuity_target_2: Target region for continuity_target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -3585,6 +3651,7 @@ class MagnetismHConstraint(Interaction):
         name: str,
         magnetism_h_constraint: VectorValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -3593,7 +3660,7 @@ class MagnetismHConstraint(Interaction):
             name: Name of the interaction.
             magnetism_h_constraint: Constraint value in Amperes per meter.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -3619,13 +3686,14 @@ class MagnetismHHPhiCoupling(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a h phi coupling interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -3646,6 +3714,7 @@ class MagnetismHElectricalInsulator(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a electrical insulator interaction.
@@ -3653,7 +3722,7 @@ class MagnetismHElectricalInsulator(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -3680,8 +3749,8 @@ class MagnetismHPeriodicity(Interaction):
         magnetism_h_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         magnetism_h_periodicity_type: (
             MagnetismHPeriodicityType | str
         ) = MagnetismHPeriodicityType.TRANSLATION,
@@ -3697,7 +3766,7 @@ class MagnetismHPeriodicity(Interaction):
             magnetism_h_periodicity_anti_periodicity: magnetism h periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             magnetism_h_periodicity_type: magnetism h periodicity type
             magnetism_h_periodicity_translation_direction: magnetism h periodicity translation direction
             magnetism_h_periodicity_translation_distance: magnetism h periodicity translation distance
@@ -3809,6 +3878,7 @@ class LaminarFlowVelocityConstraint(Interaction):
         name: str,
         laminar_flow_velocity_constraint: MatrixValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a velocity constraint interaction.
@@ -3817,7 +3887,7 @@ class LaminarFlowVelocityConstraint(Interaction):
             name: Name of the interaction.
             laminar_flow_velocity_constraint: A 3x2 matrix for a 3D project, 2x2 for 2D etc. The first column is a 0 or 1 indicating which dimensions have a value. The second column holds the actual values. For example [0, 0; 1, 42; 0, 0] means Y dimension has a constraint 42 and other dimensions don't have a constraint.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -3846,6 +3916,7 @@ class LaminarFlowPressureConstraint(Interaction):
         name: str,
         laminar_flow_pressure_constraint: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a pressure constraint interaction.
@@ -3854,7 +3925,7 @@ class LaminarFlowPressureConstraint(Interaction):
             name: Name of the interaction.
             laminar_flow_pressure_constraint: laminar flow pressure constraint
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -3880,13 +3951,14 @@ class LaminarFlowThermalFluid(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a thermal fluid interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -3908,6 +3980,7 @@ class LaminarFlowForce(Interaction):
         name: str,
         laminar_flow_force: VectorValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a force interaction.
@@ -3916,7 +3989,7 @@ class LaminarFlowForce(Interaction):
             name: Name of the interaction.
             laminar_flow_force: laminar flow force
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -3948,8 +4021,8 @@ class LaminarFlowVelocityPeriodicity(Interaction):
         laminar_flow_velocity_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         laminar_flow_velocity_periodicity_type: (
             LaminarFlowVelocityPeriodicityType | str
         ) = LaminarFlowVelocityPeriodicityType.TRANSLATION,
@@ -3969,7 +4042,7 @@ class LaminarFlowVelocityPeriodicity(Interaction):
             laminar_flow_velocity_periodicity_anti_periodicity: laminar flow velocity periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             laminar_flow_velocity_periodicity_type: laminar flow velocity periodicity type
             laminar_flow_velocity_periodicity_translation_direction: laminar flow velocity periodicity translation direction
             laminar_flow_velocity_periodicity_translation_distance: laminar flow velocity periodicity translation distance
@@ -4093,8 +4166,8 @@ class LaminarFlowPressurePeriodicity(Interaction):
         laminar_flow_pressure_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         laminar_flow_pressure_periodicity_type: (
             LaminarFlowPressurePeriodicityType | str
         ) = LaminarFlowPressurePeriodicityType.TRANSLATION,
@@ -4114,7 +4187,7 @@ class LaminarFlowPressurePeriodicity(Interaction):
             laminar_flow_pressure_periodicity_anti_periodicity: laminar flow pressure periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             laminar_flow_pressure_periodicity_type: laminar flow pressure periodicity type
             laminar_flow_pressure_periodicity_translation_direction: laminar flow pressure periodicity translation direction
             laminar_flow_pressure_periodicity_translation_distance: laminar flow pressure periodicity translation distance
@@ -4231,13 +4304,14 @@ class LaminarFlowLargeDisplacement(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a large displacement interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -4257,7 +4331,8 @@ class LaminarFlowFluidStructure(Interaction):
     def __init__(
         self,
         name: str,
-        target: "Region | str",
+        target: "Region | str | None" = None,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a fluid structure interaction.
@@ -4265,7 +4340,7 @@ class LaminarFlowFluidStructure(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -4287,6 +4362,7 @@ class LaminarFlowVelocitySymmetry(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a velocity symmetry interaction.
@@ -4294,7 +4370,7 @@ class LaminarFlowVelocitySymmetry(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -4316,6 +4392,7 @@ class LaminarFlowPressureSymmetry(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a pressure symmetry interaction.
@@ -4323,7 +4400,7 @@ class LaminarFlowPressureSymmetry(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -4346,8 +4423,8 @@ class LaminarFlowLumpPM(Interaction):
         name: str,
         namespace: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         laminar_flow_lump_p_m_actuation_mode: (
             LaminarFlowLumpPMActuationMode | str
         ) = LaminarFlowLumpPMActuationMode.PRESSURE,
@@ -4361,7 +4438,7 @@ class LaminarFlowLumpPM(Interaction):
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             laminar_flow_lump_p_m_actuation_mode: laminar flow lump p m actuation mode
             laminar_flow_lump_p_m_pressure: The primal pressure port
             laminar_flow_lump_p_m_mass_flow_rate: The dual mass flow rate port
@@ -4450,8 +4527,8 @@ class LaminarFlowLumpVFv(Interaction):
         name: str,
         namespace: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         laminar_flow_lump_v_fv_actuation_mode: (
             LaminarFlowLumpVFvActuationMode | str
         ) = LaminarFlowLumpVFvActuationMode.VELOCITY,
@@ -4465,7 +4542,7 @@ class LaminarFlowLumpVFv(Interaction):
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             laminar_flow_lump_v_fv_actuation_mode: laminar flow lump v fv actuation mode
             laminar_flow_lump_v_fv_velocity: The primal velocity port
             laminar_flow_lump_v_fv_viscous_force: The dual viscous force port
@@ -4554,6 +4631,7 @@ class LaminarFlowLinear(Interaction):
         name: str,
         laminar_flow_linear_compressible: BooleanValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a linear interaction.
@@ -4562,7 +4640,7 @@ class LaminarFlowLinear(Interaction):
             name: Name of the interaction.
             laminar_flow_linear_compressible: laminar flow linear compressible
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -4591,6 +4669,7 @@ class HeatTransferTemperatureConstraint(Interaction):
         name: str,
         temperature_constraint: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -4599,7 +4678,7 @@ class HeatTransferTemperatureConstraint(Interaction):
             name: Name of the interaction.
             temperature_constraint: Temperature value in kelvins.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -4627,6 +4706,7 @@ class HeatTransferHeatSource(Interaction):
         name: str,
         heat_source_power_density: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a heat source interaction.
@@ -4635,7 +4715,7 @@ class HeatTransferHeatSource(Interaction):
             name: Name of the interaction.
             heat_source_power_density: Heat source power density
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -4663,6 +4743,7 @@ class HeatTransferJouleHeating(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a joule heating interaction.
@@ -4670,7 +4751,7 @@ class HeatTransferJouleHeating(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -4697,8 +4778,8 @@ class HeatTransferPeriodicity(Interaction):
         heat_transfer_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         heat_transfer_periodicity_type: (
             HeatTransferPeriodicityType | str
         ) = HeatTransferPeriodicityType.TRANSLATION,
@@ -4714,7 +4795,7 @@ class HeatTransferPeriodicity(Interaction):
             heat_transfer_periodicity_anti_periodicity: heat transfer periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             heat_transfer_periodicity_type: heat transfer periodicity type
             heat_transfer_periodicity_translation_direction: heat transfer periodicity translation direction
             heat_transfer_periodicity_translation_distance: heat transfer periodicity translation distance
@@ -4829,6 +4910,7 @@ class HeatTransferConvection(Interaction):
         heat_transfer_convection_heat_transfer_coefficient: ScalarValue,
         heat_transfer_convection_fluid_temperature: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a convection interaction.
@@ -4838,7 +4920,7 @@ class HeatTransferConvection(Interaction):
             heat_transfer_convection_heat_transfer_coefficient: heat transfer convection heat transfer coefficient
             heat_transfer_convection_fluid_temperature: heat transfer convection fluid temperature
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -4873,8 +4955,8 @@ class HeatTransferLumpTPhi(Interaction):
         name: str,
         namespace: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         heat_transfer_lump_t_phi_actuation_mode: (
             HeatTransferLumpTPhiActuationMode | str
         ) = HeatTransferLumpTPhiActuationMode.TEMPERATURE,
@@ -4888,7 +4970,7 @@ class HeatTransferLumpTPhi(Interaction):
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             heat_transfer_lump_t_phi_actuation_mode: heat transfer lump t phi actuation mode
             heat_transfer_lump_t_phi_temperature: The primal temperature port
             heat_transfer_lump_t_phi_heat_power: The dual heat power port
@@ -4977,6 +5059,7 @@ class HeatFluidConstraint(Interaction):
         name: str,
         heat_fluid_constraint: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -4985,7 +5068,7 @@ class HeatFluidConstraint(Interaction):
             name: Name of the interaction.
             heat_fluid_constraint: Temperature value in kelvins
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -5013,6 +5096,7 @@ class HeatFluidHeatSource(Interaction):
         name: str,
         heat_fluid_heat_source_power_density: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a heat source interaction.
@@ -5021,7 +5105,7 @@ class HeatFluidHeatSource(Interaction):
             name: Name of the interaction.
             heat_fluid_heat_source_power_density: Heat source power density
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -5054,8 +5138,8 @@ class HeatFluidPeriodicity(Interaction):
         heat_fluid_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         heat_fluid_periodicity_type: (
             HeatFluidPeriodicityType | str
         ) = HeatFluidPeriodicityType.TRANSLATION,
@@ -5071,7 +5155,7 @@ class HeatFluidPeriodicity(Interaction):
             heat_fluid_periodicity_anti_periodicity: heat fluid periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             heat_fluid_periodicity_type: heat fluid periodicity type
             heat_fluid_periodicity_translation_direction: heat fluid periodicity translation direction
             heat_fluid_periodicity_translation_distance: heat fluid periodicity translation distance
@@ -5183,6 +5267,7 @@ class ElasticWavesLoad(Interaction):
         name: str,
         elastic_waves_force: VectorValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a load interaction.
@@ -5191,7 +5276,7 @@ class ElasticWavesLoad(Interaction):
             name: Name of the interaction.
             elastic_waves_force: A force vector with the same dimensions as the project. For a 3D project you'd give a vector like [1.5; 10; 0].
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -5219,6 +5304,7 @@ class ElasticWavesConstraint(Interaction):
         name: str,
         elastic_waves_constraint: MatrixValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -5227,7 +5313,7 @@ class ElasticWavesConstraint(Interaction):
             name: Name of the interaction.
             elastic_waves_constraint: A 3x2 matrix for a 3D project, 2x2 for 2D etc. The first column is a 0 or 1 indicating which dimensions have a value. The second column holds the actual values. For example [0, 0; 1, 42; 0, 0] means Y dimension has a constraint 42 and other dimensions don't have a constraint.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -5255,6 +5341,7 @@ class ElasticWavesClamp(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a clamp interaction.
@@ -5262,7 +5349,7 @@ class ElasticWavesClamp(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -5285,8 +5372,8 @@ class ElasticWavesLump(Interaction):
         name: str,
         namespace: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         elastic_waves_lump_actuation_mode: (
             ElasticWavesLumpActuationMode | str
         ) = ElasticWavesLumpActuationMode.DISPLACEMENT,
@@ -5300,7 +5387,7 @@ class ElasticWavesLump(Interaction):
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             elastic_waves_lump_actuation_mode: elastic waves lump actuation mode
             elastic_waves_lump_displacement: The primal displacement port
             elastic_waves_lump_force: The dual force port
@@ -5388,6 +5475,7 @@ class ElasticWavesPiezoelectricity(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a piezoelectricity interaction.
@@ -5395,7 +5483,7 @@ class ElasticWavesPiezoelectricity(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -5417,8 +5505,8 @@ class ElasticWavesPml(Interaction):
         self,
         name: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         elastic_waves_pml_type: ElasticWavesPmlType | str = ElasticWavesPmlType.AML,
     ) -> None:
         """Create a perfectly matched layer interaction.
@@ -5426,7 +5514,7 @@ class ElasticWavesPml(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             elastic_waves_pml_type: elastic waves pml type
         """
         parameters: List[InteractionParameter] = []
@@ -5459,8 +5547,8 @@ class ElasticWavesThermalExpansion(Interaction):
         self,
         name: str,
         target: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         elastic_waves_thermal_expansion_reference_temperature: ScalarValue = "273",
     ) -> None:
         """Create a thermal expansion interaction.
@@ -5468,7 +5556,7 @@ class ElasticWavesThermalExpansion(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             elastic_waves_thermal_expansion_reference_temperature: elastic waves thermal expansion reference temperature
         """
         parameters: List[InteractionParameter] = []
@@ -5497,6 +5585,7 @@ class ElasticWavesViscoelasticity(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a viscoelasticity interaction.
@@ -5504,7 +5593,7 @@ class ElasticWavesViscoelasticity(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -5527,6 +5616,7 @@ class ElasticWavesPressure(Interaction):
         name: str,
         elastic_waves_pressure: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a pressure interaction.
@@ -5535,7 +5625,7 @@ class ElasticWavesPressure(Interaction):
             name: Name of the interaction.
             elastic_waves_pressure: elastic waves pressure
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -5567,8 +5657,8 @@ class ElasticWavesPeriodicity(Interaction):
         elastic_waves_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         elastic_waves_periodicity_type: (
             ElasticWavesPeriodicityType | str
         ) = ElasticWavesPeriodicityType.TRANSLATION,
@@ -5584,7 +5674,7 @@ class ElasticWavesPeriodicity(Interaction):
             elastic_waves_periodicity_anti_periodicity: elastic waves periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             elastic_waves_periodicity_type: elastic waves periodicity type
             elastic_waves_periodicity_translation_direction: elastic waves periodicity translation direction
             elastic_waves_periodicity_translation_distance: elastic waves periodicity translation distance
@@ -5697,6 +5787,7 @@ class ElasticWavesAbsorbingBoundary(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a absorbing boundary interaction.
@@ -5704,7 +5795,7 @@ class ElasticWavesAbsorbingBoundary(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -5726,6 +5817,7 @@ class ElasticWavesSymmetry(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a symmetry interaction.
@@ -5733,7 +5825,7 @@ class ElasticWavesSymmetry(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -5753,13 +5845,14 @@ class ElasticWavesElectricForce(Interaction):
     def __init__(
         self,
         name: str,
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a electric force interaction.
 
         Parameters:
             name: Name of the interaction.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -5782,6 +5875,7 @@ class ElasticWavesProportionalDamping(Interaction):
         elastic_waves_proportional_damping_alpha: ScalarValue,
         elastic_waves_proportional_damping_beta: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a proportional damping interaction.
@@ -5791,7 +5885,7 @@ class ElasticWavesProportionalDamping(Interaction):
             elastic_waves_proportional_damping_alpha: elastic waves proportional damping alpha
             elastic_waves_proportional_damping_beta: elastic waves proportional damping beta
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -5829,6 +5923,7 @@ class ElasticWavesContinuity(Interaction):
         name: str,
         continuity_target_1: "Region | str",
         continuity_target_2: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a continuity interaction.
@@ -5837,7 +5932,7 @@ class ElasticWavesContinuity(Interaction):
             name: Name of the interaction.
             continuity_target_1: Target region for continuity_target_1.
             continuity_target_2: Target region for continuity_target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -5864,6 +5959,7 @@ class ElasticWavesViscousDamping(Interaction):
         elastic_waves_viscous_damping_bulk_viscosity: ScalarValue,
         elastic_waves_viscous_damping_shear_viscosity: ScalarValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a viscous damping interaction.
@@ -5873,7 +5969,7 @@ class ElasticWavesViscousDamping(Interaction):
             elastic_waves_viscous_damping_bulk_viscosity: elastic waves viscous damping bulk viscosity
             elastic_waves_viscous_damping_shear_viscosity: elastic waves viscous damping shear viscosity
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -5908,6 +6004,7 @@ class MeshDeformationConstraint(Interaction):
         name: str,
         mesh_deformation_constraint: MatrixValue,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a constraint interaction.
@@ -5916,7 +6013,7 @@ class MeshDeformationConstraint(Interaction):
             name: Name of the interaction.
             mesh_deformation_constraint: A 3x2 matrix for a 3D project, 2x2 for 2D etc. The first column is a 0 or 1 indicating which dimensions have a value. The second column holds the actual values. For example [0, 0; 1, 42; 0, 0] means Y dimension has a constraint 42 and other dimensions don't have a constraint.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -5944,6 +6041,7 @@ class MeshDeformationClamp(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a clamp interaction.
@@ -5951,7 +6049,7 @@ class MeshDeformationClamp(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(
@@ -5978,8 +6076,8 @@ class MeshDeformationPeriodicity(Interaction):
         mesh_deformation_periodicity_anti_periodicity: BooleanValue,
         target_1: "Region | str",
         target_2: "Region | str",
-        enabled: BooleanValue | None = None,
         *,
+        enabled: BooleanValue | None = None,
         mesh_deformation_periodicity_type: (
             MeshDeformationPeriodicityType | str
         ) = MeshDeformationPeriodicityType.TRANSLATION,
@@ -5995,7 +6093,7 @@ class MeshDeformationPeriodicity(Interaction):
             mesh_deformation_periodicity_anti_periodicity: mesh deformation periodicity anti periodicity
             target_1: Target region for target_1.
             target_2: Target region for target_2.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
             mesh_deformation_periodicity_type: mesh deformation periodicity type
             mesh_deformation_periodicity_translation_direction: mesh deformation periodicity translation direction
             mesh_deformation_periodicity_translation_distance: mesh deformation periodicity translation distance
@@ -6108,6 +6206,7 @@ class MeshDeformationSymmetry(Interaction):
         self,
         name: str,
         target: "Region | str",
+        *,
         enabled: BooleanValue | None = None,
     ) -> None:
         """Create a symmetry interaction.
@@ -6115,7 +6214,7 @@ class MeshDeformationSymmetry(Interaction):
         Parameters:
             name: Name of the interaction.
             target: Target region.
-            enabled: Whether the interaction is enabled.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
         super().__init__(

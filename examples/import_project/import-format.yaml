@@ -6,6 +6,10 @@ dimension: 3
 #   type: step
 #   filename: ./cube.step
 labels: [] # labels are optional
+# geometryNoImplicitFragment: false  # optional
+# pmlSettings:  # optional
+#   numLayers: 4
+#   thickness: 0.1
 # Print messages from jobs etc while importing, defaults to false if not given
 verbose: true
 geometries:
@@ -27,7 +31,7 @@ geometries:
   #     y: 0
   #     z: 0
   #   alignment: center  # optional, one of: center, corner
-  #   enabled: "1" # optional. Can be a string expression like "eq(my_variable, 1)"
+  #   enabled: "1" # optional. Can be a string expression like "my_variable == 1"
   # - type: cylinder
   #   name: my_cylinder
   #   position:
@@ -165,6 +169,8 @@ geometries:
   #       type: 0
   #       absoluteZ0: 0.0
   #       thickness: 1.0
+  #       previousLayerIndex: 0  # optional
+  #       name: metal  # optional
   #     - layer: 2
   #       type: 0
   #       absoluteZ0: 1.0
@@ -228,6 +234,8 @@ geometries:
   #   entityTags: [1]  # optional
   #   cadNames: ["box1"]  # optional
   #   cadPaths: [["Assembly", "Part1"]]  # optional
+  #   copyObject: false  # optional, default false
+  #   repeat: 1  # optional
   # - type: rotate
   #   name: rotated_shape
   #   axis:
@@ -242,6 +250,8 @@ geometries:
   #   entityTags: [1]  # optional
   #   cadNames: ["box1"]  # optional
   #   cadPaths: [["Assembly", "Part1"]]  # optional
+  #   copyObject: false  # optional, default false
+  #   repeat: 1  # optional
   # - type: grid
   #   name: grid_shape
   #   translation:
@@ -306,6 +316,19 @@ regions:
     regions:
       - drive
       - gnd
+  # Other region types:
+  # - name: tagged_volume
+  #   type: basic
+  #   entityType: volume
+  #   entityTags: [1, 2, 3]
+  # - name: selector_volume
+  #   type: geometrySelector
+  #   entityType: volume
+  #   boundingBox:
+  #     min: {x: 0, y: 0, z: 0}
+  #     max: {x: 1, y: 1, z: 1}
+  #   maxSize: {x: 0.1, y: 0.1, z: 0.1}  # optional
+  #   minSize: {x: 0.01, y: 0.01, z: 0.01}  # optional
 variables:
   - description: ""
     expression: 1
@@ -313,6 +336,8 @@ variables:
   - description: ""
     expression: 10 * pres # Preceding variables can be referenced
     name: test2
+  # Library variable
+  # - name: epsilon0
 functions:
   - name: testfunc
     type: interpolated
@@ -321,6 +346,7 @@ functions:
         values: [0, 1, 2, 3, 4]
     description: ""
     values: [1, 2, 3, 5, 7]
+    # cubicInterpolation: false  # optional, interpolated only
   - name: fromcsv # spline function fromcsv(column2, column3, ...) = column1
     type: interpolated
     description: ""
@@ -332,6 +358,9 @@ functions:
     description: ""
     name: testregular
     type: regular
+  # Library function:
+  # - name: sin
+  #   type: library
 materials:
   - abbreviation: Al # optional
     color: "#888B8D" # optional, defaults to #000000
@@ -389,7 +418,7 @@ materials:
       youngsModulus: [0] # maps to par.Ep()
       relaxationTime: [0] # maps to par.taup()
     # orientation: "[0, 0, 0]" # optional
-    # enabled: "1" # optional. Can be a string expression like "eq(my_variable, 1)"
+    # enabled: "1" # optional. Can be a string expression like "my_variable == 1"
   - color: "#535050"
     description: Air
     name: Air
@@ -412,6 +441,7 @@ materials:
 # Each physics set entry contains its own 'physics' list.
 # physicsSets:
 #   - name: Physics 1  # default set
+#     description: Optional description
 #     physics:
 #       - type: solidMechanics
 #         target: cubes
@@ -443,9 +473,11 @@ materials:
 #     interactions:
 #       - type: acousticStructure
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
+#         namespace: my_ns  # optional
 #       - type: acousticStructureForElasticWaves
 #       - type: acousticWavesAbsorbingBoundary # target: some_surface_region
+#       - type: acousticWavesAcousticExtrapolation # target: some_surface_region
 #       - type: acousticWavesAcousticDamping # target: some_surface_region; acousticWavesAcousticDampingDampingValue: 0.1
 #       - type: acousticWavesConstraint # target: some_surface_region; acousticWavesConstraint: 0
 #       - type: acousticWavesContinuity # targets: {continuityTarget1: region_a, continuityTarget2: region_b}
@@ -459,7 +491,7 @@ materials:
 #     interactions:
 #       - type: currentDensity # target: some_surface_region; currentDensity: "[0; 0; 1]"
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: currentFlowConstraint # target: some_surface_region; currentFlowConstraint: 0
 #       - type: currentFlowLump # target: some_surface_region; currentFlowLumpActuationMode: currentFlowLumpActuationModeVoltage; currentFlowLumpVoltage: 1
 #       - type: currentFlowLumpVICut # target: loop_region (orientationPoint is auto-determined); currentFlowLumpVICutActuationMode: currentFlowLumpVICutActuationModeCurrent; currentFlowLumpVICutCurrent: 0.1
@@ -471,7 +503,7 @@ materials:
 #     interactions:
 #       - type: elasticWavesAbsorbingBoundary # target: some_surface_region
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: elasticWavesClamp # target: some_surface_region
 #       - type: elasticWavesConstraint # target: some_surface_region; elasticWavesConstraint: "[[1,0,0],[0,1,0],[0,0,1]]"
 #       - type: elasticWavesContinuity # targets: {continuityTarget1: region_a, continuityTarget2: region_b}
@@ -494,7 +526,7 @@ materials:
 #     interactions:
 #       - type: electromagneticWavesAbsorbingBoundary # target: some_surface_region
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: electromagneticWavesBoundaryAdmittance # target: some_surface_region; electromagneticWavesBoundaryAdmittanceType: electromagneticWavesBoundaryAdmittanceTypeAdmittance; electromagneticWavesBoundaryAdmittanceYr: 1; electromagneticWavesBoundaryAdmittanceYi: 0
 #       - type: electromagneticWavesConstraint # target: some_surface_region; electromagneticWavesConstraint: "[0; 0; 0]"
 #       - type: electromagneticWavesDielectricLoss # target: some_surface_region; electromagneticWavesDielectricLossLossTangent: 0.01
@@ -511,7 +543,7 @@ materials:
 #     interactions:
 #       - type: elasticWavesPiezoelectricity # target: some_surface_region
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: electrostaticsConstraint # target: some_surface_region; electrostaticsConstraint: 0
 #       - type: electrostaticsLargeDisplacement
 #       - type: electrostaticsLump # target: some_surface_region; electrostaticsLumpActuationMode: electrostaticsLumpActuationModeVoltage; electrostaticsLumpVoltage: 1
@@ -524,7 +556,7 @@ materials:
 #     interactions:
 #       - type: heatFluidConstraint # target: some_surface_region; heatFluidConstraint: 293
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: heatFluidHeatSource # target: some_surface_region; heatFluidHeatSourcePowerDensity: 1000
 #       - type: heatFluidPeriodicity # targets: {target1: region_a, target2: region_b}; heatFluidPeriodicityType: heatFluidPeriodicityTypeTranslation; heatFluidPeriodicityTranslationDistance: 1
 #
@@ -534,7 +566,7 @@ materials:
 #     interactions:
 #       - type: heatSource # target: some_surface_region; heatSourcePowerDensity: 1000
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: heatTransferConvection # target: some_surface_region; heatTransferConvectionHeatTransferCoefficient: 10; heatTransferConvectionFluidTemperature: 293
 #       - type: heatTransferLumpTPhi # target: some_surface_region; heatTransferLumpTPhiActuationMode: heatTransferLumpTPhiActuationModeTemperature; heatTransferLumpTPhiTemperature: 293
 #       - type: heatTransferPeriodicity # targets: {target1: region_a, target2: region_b}; heatTransferPeriodicityType: heatTransferPeriodicityTypeTranslation; heatTransferPeriodicityTranslationDistance: 1
@@ -547,7 +579,7 @@ materials:
 #     interactions:
 #       - type: laminarFlowFluidStructure # target: some_surface_region
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: laminarFlowForce # target: some_surface_region; laminarFlowForce: "[0; 0; 0]"
 #       - type: laminarFlowLargeDisplacement
 #       - type: laminarFlowLinear # target: some_surface_region; laminarFlowLinearCompressible: 0
@@ -567,7 +599,7 @@ materials:
 #     interactions:
 #       - type: electromagneticCoupling
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: magneticWall # target: some_surface_region
 #       - type: magnetismABackgroundField # target: some_surface_region; magnetismABackgroundField: "[0; 0; 0]"
 #       - type: magnetismAPeriodicity # targets: {target1: region_a, target2: region_b}; magnetismAPeriodicityType: magnetismAPeriodicityTypeTranslation; magnetismAPeriodicityTranslationDistance: 1
@@ -578,7 +610,7 @@ materials:
 #     interactions:
 #       - type: hPhiCoupling
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: magnetismHConstraint # target: some_surface_region; magnetismHConstraint: "[0; 0; 0]"
 #       - type: magnetismHElectricalInsulator # target: some_surface_region
 #       - type: magnetismHPeriodicity # targets: {target1: region_a, target2: region_b}; magnetismHPeriodicityType: magnetismHPeriodicityTypeTranslation; magnetismHPeriodicityTranslationDistance: 1
@@ -589,7 +621,7 @@ materials:
 #     interactions:
 #       - type: magnetismPhiBackgroundField # target: some_surface_region; magnetismPhiBackgroundField: "[0; 0; 0]"
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: magnetismPhiConstraint # target: some_surface_region; magnetismPhiConstraint: 0
 #       - type: magnetismPhiContinuity # targets: {continuityTarget1: region_a, continuityTarget2: region_b}
 #       - type: magnetismPhiExternalField # target: some_surface_region; magnetismPhiExternalField: "[0; 0; 0]"
@@ -603,7 +635,7 @@ materials:
 #     interactions:
 #       - type: meshDeformationClamp # target: some_surface_region
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: meshDeformationConstraint # target: some_surface_region; meshDeformationConstraint: "[[1,0,0],[0,1,0],[0,0,1]]"
 #       - type: meshDeformationPeriodicity # targets: {target1: region_a, target2: region_b}; meshDeformationPeriodicityType: meshDeformationPeriodicityTypeTranslation; meshDeformationPeriodicityTranslationDistance: 1
 #       - type: meshDeformationSymmetry # target: some_surface_region
@@ -611,10 +643,10 @@ materials:
 #   # solidMechanics
 #   - type: solidMechanics
 #     target: cubes # optional, default is everything
-#     interactions:#
+#     interactions:
 #       - type: clamp # target: some_surface_region
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
-#         enabled: true # optional for every interaction, default is true
+#         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: load # target: some_surface_region; force: "[0; 0; 1]"
 #       - type: piezoelectricity # target: some_surface_region
 #       - type: solidMechanicsConstraint # target: some_surface_region; solidMechanicsConstraint: "[[1,0,0],[0,1,0],[0,0,1]]"
@@ -629,6 +661,7 @@ materials:
 #       - type: solidMechanicsPrestress # target: some_surface_region; solidMechanicsPrestress: "[[0,0,0],[0,0,0],[0,0,0]]"
 #       - type: solidMechanicsProportionalDamping # target: some_surface_region; solidMechanicsProportionalDampingAlpha: 0.01; solidMechanicsProportionalDampingBeta: 1e-6
 #       - type: solidMechanicsSymmetry # target: some_surface_region
+#       - type: solidMechanicsViscohyperelasticity # target: some_surface_region
 #       - type: thermalExpansion # target: some_surface_region; thermalExpansionReferenceTemperature: 273
 
 variableOverrides:
@@ -649,6 +682,8 @@ variableOverrides:
       #  values: 400000
 meshes:
   - name: test_mesh
+    # density: default  # optional: default, coarse, fine, userDefined
+    # nodeType: CORES_1_16GB  # optional mesh job node type
     scaleFactor: 0.7 # optional, defaults to 1
     refinements:
       - region: cubes
@@ -657,6 +692,29 @@ meshes:
     #   regions:
     #     - drive
     #   subLayerCounts: [ floor(pres / 5000) ] # list of Allsolve expressions or raw values
+    # pathExtrusions:
+    #   - volumes: [cubes]
+    #     fromSurfaces: [drive]
+    #     toSurfaces: [gnd]
+    #     layers:
+    #       - relativeHeight: 0.5
+    #         subLayerCount: 2
+    #     useQuadrangles: false  # optional, default false
+    # slantedExtrusions:
+    #   - volumes: [cubes]
+    #     fromSurfaces: [drive]
+    #     toSurfaces: [gnd]
+    #     layers:
+    #       - relativeHeight: 1.0
+    #         subLayerCount: 3
+    #     useQuadrangles: false  # optional, default false
+    # flattenAndRebuildExtrusions:
+    #   - volumes: [cubes]
+    #     layers:
+    #       - relativeHeight: 0.5
+    #         subLayerCount: 2
+    #     directionVector: {x: 0, y: 0, z: 1}
+    #     useQuadrangles: false  # optional, default false
     saveMesh: true # save the mesh locally for inspection, defaults to false
     createOnly: false # optional, if true, mesh will be created only (not run)
     useMeshRefiner: true # Use automatic refinement where manual refinements are not set, defaults to true
@@ -669,14 +727,41 @@ meshes:
     #meshSizeMin: 0.01 # optional, defaults to no min
     #minSizeFactor: 0.0001 # optional, defaults to 0.0001
     #maxSizeFactor: 1 # optional, defaults to 1
+# Project-level shared file catalog (referenced by simulations via sharedFiles):
+# sharedFiles:
+#   - filepath: ./data/lookup.json
+#   - name: inline_config
+#     content:
+#       key: value
 simulations:
   - name: test_simulation
     description: Test simulation description
     maxRunTimeMinutes: 10 # optional, defaults to 10
     solverMode: direct # optional, "direct" or "iterative", defaults to "direct"
+    # analysisType: static  # optional: static, harmonic, multiharmonic, transient, eigenmode
     mesh: test_mesh # optional, name of mesh to use
     variableOverride: pres_sweep # optional, name of variable override to use
     # physicsSet: Physics 1
+    # harmonics: [1, 2]  # optional
+    # transientStartTime: 0
+    # transientEndTime: 1e-3
+    # transientTimestepSize: 1e-5
+    # timestepAlgorithm: implicitEuler  # or genAlpha
+    # fundamentalFrequency: 1e6
+    # numFFTSamples: 1024
+    # numRequestedEigenmodes: 10
+    # targetEigenfrequency: 1e9
+    # eigenmodePortAnalysis: false
+    # solverTolerance: 1e-6
+    # nonlinearSolverTolerance: 1e-4
+    # nonlinearSolverMaxIterations: 25
+    # eigenmodeSolverTolerance: 1e-8
+    # eigenmodeSolverMaxIterations: 100
+    # targetFrequency: 1e9
+    # numericalJacobian: false
+    # disabledScriptSections:  # optional
+    #   - setup
+    #   - mesh
     runtime: # optional
       nodeType: CORES_1_16GB # optional, defaults to CORES_3_10GB_FAST_START
       # Available node types: CORES_1_16GB, CORES_2_32GB, CORES_3_10GB_FAST_START,
@@ -687,58 +772,103 @@ simulations:
         isMain: true # optional, defaults to false
       # - filepath: sim/params.py
       #   isMain: false
+    # customScripts:  # optional
+    #   - name: my_hook
+    #     sectionName: afterMeshLoad
+    #     content: |
+    #       # Python code injected at the given script section
+    # fieldInitializations:  # optional
+    #   - type: fieldState  # fieldState, transientState, hPhiState, or postProcessing
+    #     sourceValueSimulationName: upstream_sim # source simulation must appear earlier in simulations
+    #     sourceValueOutputName: u_state
+    #     field: u  # optional
+    #     sourceValueOutputSpecifier: ""  # optional
+    #     sourceValueSweepStep: 0  # optional
+    #     sourceValueStep: "0"  # optional
+    #     harmonic: 1  # optional
+    # sharedFiles:  # optional, links to project sharedFiles catalog entries
+    #   - inline_config
+    # inputFiles:  # optional
+    #   # --- file upload (omit type) ---
+    #   - filepath: ./data/input.csv
+    #   - name: inline_input.json
+    #     content:
+    #       key: value
+    #   # --- reference an output from another simulation (type required) ---
+    #   - type: simulationOutputFile
+    #     sourceSimulationName: upstream_sim # source simulation must appear earlier in simulations
+    #     sourceFileName: result.dat
+    #     targetFileName: linked_result.dat
+    #     sourceSweepStep: 0  # optional
+    #     targetSweepStep: 0  # optional
+    #     targetRank: 0  # optional
+    #   - type: simulationOutputDatabase
+    #     sourceSimulationName: upstream_sim # source simulation must appear earlier in simulations
+    #     targetFileName: values.db
+    #     sourceSweepStep: 0  # optional
+    #     targetSweepStep: 0  # optional
+    #     targetRank: 0  # optional
     # outputs: # optional output interactions for this simulation
-    #   - type: field
+    #   - type: field # Supported types: acousticWavesAcousticExtrapolation, acousticWavesRadiationPattern,
+    #                 # eigenfrequencies, eigenvalues, electromagneticWavesRadiationPattern,
+    #                 # fieldOnlyOutput, field, fieldState, finalHPhiState, magneticForce, qFactors,
+    #                 # sParameters, transientState, value
     #     name: u
-    #     enabled: true # optional, defaults to true
+    #     enabled: "1" # optional, defaults to "1"
     #     expression: u # expression to write as output field
     #     skinOnly: false # optional, defaults to false
     #     deformedMesh: false # optional, defaults to false
-    #     filter: # optional; type can be None, EveryNthStep, StepIndices, Expression
-    #       type: None
-    #       # value: 5
+    #     target: some_region  # optional
+    #     filter: # optional; filter types depend on output type
+    #       type: None  # None, EveryNthStep, StepIndices, Expression (field types);
+    #                   # FinalOnly, EveryStep, ... (fieldState and others)
+    #       value: 5  # required for EveryNthStep, StepIndices, Expression
     #   - type: fieldState
     #     name: T_state
-    #     enabled: true
+    #     enabled: "1"
     #     fieldState: T
     #     filter: # optional; type can be FinalOnly, EveryStep, EveryNthStep, StepIndices, Expression
     #       type: FinalOnly
     #   - type: value
     #     name: max_temp
-    #     enabled: true
+    #     enabled: "1"
     #     expression: max(T)
     #   - type: acousticWavesRadiationPattern
     #     name: acoustic_pattern
-    #     enabled: true
+    #     enabled: "1"
     #     acousticWavesRadiationPatternNumPoints: 36
     #     acousticWavesRadiationPatternPlaneNormal: "[0; 0; 1]"
     #     acousticWavesRadiationPatternFarFieldC: 343
     #     acousticWavesRadiationPatternFarFieldRho: 1.2
+    #   - type: acousticWavesAcousticExtrapolation
+    #     name: acoustic_extrapolation
+    #     enabled: "1"
+    #     target: some_region
     #   - type: electromagneticWavesRadiationPattern
     #     name: em_pattern
-    #     enabled: true
+    #     enabled: "1"
     #     electromagneticWavesRadiationPatternNumPoints: 36
     #     electromagneticWavesRadiationPatternPlaneNormal: "[0; 0; 1]"
     #   - type: eigenfrequencies
     #     name: eigenfrequencies_out
-    #     enabled: true
+    #     enabled: "1"
     #   - type: eigenvalues
     #     name: eigenvalues_out
-    #     enabled: true
+    #     enabled: "1"
     #   - type: finalHPhiState
     #     name: final_h_phi_state_out
-    #     enabled: true
+    #     enabled: "1"
     #     finalHPhiStateTransientProjection: true
     #   - type: magneticForce
     #     name: magnetic_force_out
-    #     enabled: true
+    #     enabled: "1"
     #   - type: qFactors
     #     name: q_factors_out
-    #     enabled: true
+    #     enabled: "1"
     #   - type: sParameters
     #     name: s_parameters_out
-    #     enabled: true
+    #     enabled: "1"
     #   - type: transientState
     #     name: transient_state_out
-    #     enabled: true
+    #     enabled: "1"
     createOnly: false # optional, if true, simulation will be created only (not run)
