@@ -74,8 +74,7 @@ class CadRemoveEntityOperation(BaseModel):
         _items = []
         if self.target:
             for _item_target in self.target:
-                if _item_target:
-                    _items.append(_item_target.to_dict())
+                _items.append(_item_target.to_dict() if _item_target is not None else None)
             _dict['target'] = _items
         return _dict
 

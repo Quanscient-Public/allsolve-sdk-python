@@ -74,8 +74,7 @@ class StructuredMeshing(BaseModel):
         _items = []
         if self.structured_curves:
             for _item_structured_curves in self.structured_curves:
-                if _item_structured_curves:
-                    _items.append(_item_structured_curves.to_dict())
+                _items.append(_item_structured_curves.to_dict() if _item_structured_curves is not None else None)
             _dict['structuredCurves'] = _items
         return _dict
 

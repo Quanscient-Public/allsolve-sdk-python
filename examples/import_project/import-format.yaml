@@ -195,6 +195,7 @@ geometries:
   #     - ["*"]  # wildcard matching a single level
   #     - ["Assembly", "**", "Part"]  # ** matches zero or more levels
   #     - ["Assembly", {key: "name", value: "Part1"}]  # attribute filter
+  #   booleanTolerance: 1e-6  # optional, additional tolerance for the Boolean algorithm
   # - type: difference
   #   name: subtracted_shape
   #   entityTags1: [1]  # optional, first set of entities
@@ -204,6 +205,7 @@ geometries:
   #   cadNames2: ["cylinder1"]  # optional, second set of CAD names
   #   cadPaths2: [["Assembly", "Part2"]]  # optional, second set of CAD paths
   #   deleteTool: true  # optional, defaults to true
+  #   booleanTolerance: 1e-6  # optional, additional tolerance for the Boolean algorithm
   # - type: intersection
   #   name: intersected_shape
   #   entityTags1: [1]  # optional
@@ -213,6 +215,7 @@ geometries:
   #   cadNames2: ["cylinder1"]  # optional
   #   cadPaths2: [["Assembly", "Part2"]]  # optional
   #   deleteTool: true  # optional, defaults to true
+  #   booleanTolerance: 1e-6  # optional, additional tolerance for the Boolean algorithm
   # - type: fragments
   #   name: fragmented_shape
   #   entityTags1: [1]  # optional
@@ -222,8 +225,10 @@ geometries:
   #   cadNames2: ["cylinder1"]  # optional
   #   cadPaths2: [["Assembly", "Part2"]]  # optional
   #   deleteTool: true  # optional, defaults to true
+  #   booleanTolerance: 1e-6  # optional, additional tolerance for the Boolean algorithm
   # - type: fragmentAll  # or fragment_all
   #   name: all_fragmented
+  #   booleanTolerance: 1e-6  # optional, additional tolerance for the Boolean algorithm
   # Transformations:
   # - type: translate
   #   name: translated_shape

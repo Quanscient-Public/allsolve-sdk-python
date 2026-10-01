@@ -74,8 +74,7 @@ class PhysicsDeletionResponse(BaseModel):
         _items = []
         if self.deleted_fields:
             for _item_deleted_fields in self.deleted_fields:
-                if _item_deleted_fields:
-                    _items.append(_item_deleted_fields.to_dict())
+                _items.append(_item_deleted_fields.to_dict() if _item_deleted_fields is not None else None)
             _dict['deletedFields'] = _items
         return _dict
 

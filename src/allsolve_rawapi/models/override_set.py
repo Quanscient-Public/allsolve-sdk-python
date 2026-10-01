@@ -81,8 +81,7 @@ class OverrideSet(BaseModel):
         _items = []
         if self.overrides:
             for _item_overrides in self.overrides:
-                if _item_overrides:
-                    _items.append(_item_overrides.to_dict())
+                _items.append(_item_overrides.to_dict() if _item_overrides is not None else None)
             _dict['overrides'] = _items
         return _dict
 

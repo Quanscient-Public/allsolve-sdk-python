@@ -3,10 +3,12 @@
 
 import inspect
 import json
+import os
 import warnings
 from collections.abc import Callable
 from enum import Enum
 from functools import wraps
+from pathlib import Path
 from typing import Any, Concatenate, ParamSpec, TypeVar, cast, overload
 
 import allsolve_rawapi as rawapi
@@ -57,7 +59,7 @@ def deprecated(
         return decorator
 
     elif inspect.isclass(reason) or inspect.isfunction(reason):
-        func2 = reason
+        func2 = cast(Callable[P, R], reason)
 
         if inspect.isclass(func2):
             fmt2 = "Call to deprecated class {name}."
@@ -87,6 +89,55 @@ class FileOverwriteMode(Enum):
     OVERWRITE = "overwrite"
     SKIP = "skip"
     ERROR = "error"
+
+
+def reject_unsafe_path_component(name: str, *, context: str = "path component") -> None:
+    """
+    Reject strings that must not be used as a single filesystem path component.
+
+    Raises:
+        ValueError: If *name* is empty, contains a NUL byte or path separator,
+            is ``.`` / ``..``, is a UNC or drive-qualified path, or contains
+            ``:`` on Windows.
+    """
+    if not name:
+        raise ValueError(f"Empty {context} is not allowed.")
+    if "\0" in name:
+        raise ValueError(f"NUL byte in {context} {name!r} is not allowed.")
+    if name in (".", ".."):
+        raise ValueError(f"{context.capitalize()} {name!r} is not allowed.")
+    if name.startswith(("\\\\", "//")):
+        raise ValueError(f"UNC {context} {name!r} is not allowed.")
+    if len(name) >= 2 and name[1] == ":" and name[0].isalpha():
+        raise ValueError(f"Drive-qualified {context} {name!r} is not allowed.")
+    if "/" in name or "\\" in name:
+        raise ValueError(
+            f"{context.capitalize()} {name!r} must not contain path separators."
+        )
+    if os.name == "nt" and ":" in name:
+        raise ValueError(
+            f"{context.capitalize()} {name!r} must not contain ':' on Windows."
+        )
+
+
+def resolve_path_under_base(base: Path, relative: str) -> Path:
+    """
+    Resolve *relative* under *base* and reject paths that escape the base.
+
+    Raises:
+        ValueError: If *relative* is absolute or resolves outside *base*.
+    """
+    base_resolved = base.resolve()
+    relative_path = Path(relative)
+    if relative_path.is_absolute() or relative_path.drive:
+        raise ValueError(f"Path {relative!r} must be relative to the export directory.")
+    resolved = (base_resolved / relative_path).resolve()
+    if not resolved.is_relative_to(base_resolved):
+        raise ValueError(
+            f"Path {relative!r} resolves outside {base_resolved}. "
+            "This may indicate a path traversal attempt."
+        )
+    return resolved
 
 
 class JobError(Exception):

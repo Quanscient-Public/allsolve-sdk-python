@@ -76,8 +76,7 @@ class MeshMetrics(BaseModel):
         _items = []
         if self.element_counts:
             for _item_element_counts in self.element_counts:
-                if _item_element_counts:
-                    _items.append(_item_element_counts.to_dict())
+                _items.append(_item_element_counts.to_dict() if _item_element_counts is not None else None)
             _dict['elementCounts'] = _items
         return _dict
 

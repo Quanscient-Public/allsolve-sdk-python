@@ -1637,7 +1637,7 @@ class Project:
         self,
         name: str,
         description: str = "",
-        color: str = "#535050FF",
+        color: str = "#535050",
         abbreviation: str | None = None,
         target_region: Region | None = None,
         coefficient_of_thermal_expansion: str | float | List[float | str] | None = None,

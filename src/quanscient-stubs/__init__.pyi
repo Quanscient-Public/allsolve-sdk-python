@@ -7327,6 +7327,36 @@ class shape:
         extrudedirection: Sequence[float] = [0.0, 0.0, 1.0],
     ) -> list[shape]: ...
     def extrude(self, *args, **kwargs) -> Any: ...
+    def getangles(self) -> list[float]:
+        """
+        This returns the angle in degrees of every node in the shape mesh to the arc start point,
+        as seen from the arc center. The output is ordered like `shape.getcoords`, with one angle
+        per mesh node, and the first value is zero. The angles increase in the direction going
+        from the arc start point to its end point and lie in the range [0, 360]. An arc wider
+        than a half turn therefore keeps increasing past 180 instead of turning negative.
+        The value 360 is only reached by the last node of an arc that closes on itself.
+        This is only defined for an arc shape.
+
+        Examples
+        --------
+        >>> myarc = shape("arc", 111, [2,0,0, -2,0,0, 0,0,0], 5)
+        >>> myarc.getangles()
+        [0.0, 45.0, 90.0, 135.0, 180.0]
+        >>>
+        >>> myarc = shape("arc", 222, [0,2,0, 2,0,0, 0,0,0], 5)
+        >>> myarc.getangles()
+        [0.0, 67.5, 135.0, 202.5, 270.0]
+        >>>
+        >>> myarc = shape("arc", 333, [2,0,0, 2,0,0, 0,0,0], 5)
+        >>> myarc.getangles()
+        [0.0, 90.0, 180.0, 270.0, 360.0]
+
+        See Also
+        --------
+        shape.getcoords, shape.getdistances
+        """
+        ...
+
     def getcoords(self) -> list[float]:
         """
         This returns the coordinates of all nodes in the shape mesh.
@@ -7380,6 +7410,28 @@ class shape:
         >>> mylines = myquadrangle.getsons()
         >>> mylines[0].getdimension()
         1
+        """
+        ...
+
+    def getdistances(self) -> list[float]:
+        """
+        This returns the distance of every node in the shape mesh to the line start point.
+        The output is ordered like `shape.getcoords`, with one distance per mesh node.
+        This is only defined for a line shape.
+
+        Examples
+        --------
+        >>> myline = shape("line", 111, [1,2,3, 4,6,3], 5)
+        >>> myline.getdistances()
+        [0.0, 1.25, 2.5, 3.75, 5.0]
+        >>>
+        >>> myline = shape("line", 222, [0,0,0, 1,0,0, 3,0,0, 3,4,0])
+        >>> myline.getdistances()
+        [0.0, 1.0, 3.0, 5.0]
+
+        See Also
+        --------
+        shape.getcoords, shape.getangles
         """
         ...
 
@@ -8703,9 +8755,16 @@ def adapt(verbosity: int = 0) -> bool:
     """
     ...
 
-def aggregatetime(io: iodata, aggregationop: str, dataop: str) -> iodata:
-    return iodata()
-
+@overload
+def aggregatetime(
+    data: Sequence[Sequence[float]],
+    numtimesamples: int,
+    aggregationop: str,
+    dataop: str,
+) -> list[list[float]]: ...
+@overload
+def aggregatetime(io: iodata, aggregationop: str, dataop: str) -> iodata: ...
+def aggregatetime(*args, **kwargs) -> Any: ...
 def alladapt(verbosity: int = 0) -> bool:
     """
     This is a collective MPI operation and hence must be called by all ranks. It replaces the `adapt` function in the DDM
@@ -9525,7 +9584,7 @@ def allstrattonchu(
     mu: float,
     epsilon: float,
     coords: Sequence[float],
-) -> list[list[float]]:
+) -> list[list[list[float]]]:
     """
     This is a collective MPI operation and hence must be called by all ranks.
     This extrapolates the electric field radiated at the requested coordinates from the field traces on
@@ -9545,27 +9604,27 @@ def allstrattonchu(
     --------
     **Example 1**: `allstrattonchu(form:formulation, skinregion:int, region:int, E:field, mu:float, epsilon:float, coords:List[float])`
 
-    This is the harmonic extrapolation and it raises a RuntimeError if the fundamental frequency was not set. Six
-    lists are returned, each of length equal to the number of coordinates. Entries $0$, $1$ and $2$ hold the $x$,
-    $y$ and $z$ components of harmonic $2$ (the $sin(2{\\pi}{f_o}t)$ coefficient) and entries $3$, $4$ and $5$
-    hold the $x$, $y$ and $z$ components of harmonic $3$ (the $cos(2{\\pi}{f_o}t)$ coefficient). The two
-    harmonics of a component are the real and the imaginary part of its complex amplitude. In every list the
-    value at index $i$ is the one at coordinate $i$, i.e. at $[coords[3i], coords[3i+1], coords[3i+2]]$.
+    This is the harmonic extrapolation and it raises a RuntimeError if the fundamental frequency was not set. The
+    output is indexed $[component][harmonic][coordinate]$: the outer index selects the $x$, $y$ or $z$ component,
+    the middle one selects harmonic $2$ (the $sin(2{\\pi}{f_o}t)$ coefficient) at index $0$ or harmonic $3$ (the
+    $cos(2{\\pi}{f_o}t)$ coefficient) at index $1$, and the inner one selects the coordinate, i.e. index $i$ is
+    the value at $[coords[3i], coords[3i+1], coords[3i+2]]$. The two harmonics of a component are the real and
+    the imaginary part of its complex amplitude.
     >>> setfundamentalfrequency(1e9)
     >>> ...
     >>> Evals = allstrattonchu(form, bnd, sur, E, getmu0(), getepsilon0(), [10.0,5.0,0.0, 20.0,5.0,0.0])
-    >>> Exharm2 = Evals[0][1]   # x component of harmonic 2 at (20.0, 5.0, 0.0)
-    >>> Exharm3 = Evals[3][1]   # x component of harmonic 3 at (20.0, 5.0, 0.0)
+    >>> Exharm2 = Evals[0][0][1]   # x component of harmonic 2 at (20.0, 5.0, 0.0)
+    >>> Exharm3 = Evals[0][1][1]   # x component of harmonic 3 at (20.0, 5.0, 0.0)
 
     **Example 2**: `allstrattonchu(form:formulation, skinregion:int, region:int, E:field, mu:float, epsilon:float, coords:List[float], times:List[float], samplestimes:List[float], samplesEdtEntE:List[List[field]])`
 
     This is the transient extrapolation. The history of the trace is provided with `samplestimes`, the time of
     each sample, and `samplesEdtEntE`, the matching $[E, dtE, ntE]$ triplet of fields as returned by
     `genalpha.allgatherextrapolationdata`. A RuntimeError is raised if a triplet does not hold three fields.
-    Since the trace is read from the samples, `form` plays no role there. Three lists are returned, holding the
-    $x$, $y$ and $z$ field components at the requested `times`. Each list has a length equal to the number of
-    times multiplied by the number of coordinates and is ordered time first, i.e. the value at time index $j$
-    and coordinate index $i$ is at index $j \\cdot numcoords + i$.
+    Since the trace is read from the samples, `form` plays no role there. The output is indexed
+    $[component][index]$: there is no harmonic level since the values are instantaneous. Each inner list has a
+    length equal to the number of times multiplied by the number of coordinates and is ordered time first, i.e.
+    the value at time index $j$ and coordinate index $i$ is at index $j \\cdot numcoords + i$.
     >>> ga = genalpha(form, dtxinit, dtdtxinit)
     >>> samplestimes = []; samples = []
     >>> for i in range(1000):
@@ -9603,14 +9662,14 @@ def allstrattonchufarfield(
     mu: float,
     epsilon: float,
     coords: Sequence[float],
-) -> list[list[float]]:
+) -> list[list[list[float]]]:
     """
     This is a collective MPI operation and hence must be called by all ranks.
-    This is the far field approximation of `allstrattonchu`. The arguments and the output format are identical: six
-    lists of length equal to the number of coordinates, entries $0$, $1$, $2$ holding the $x$, $y$ and $z$
-    components of harmonic $2$ (the $sin(2{\\pi}{f_o}t)$ coefficient) and entries $3$, $4$, $5$ the $x$, $y$ and
-    $z$ components of harmonic $3$ (the $cos(2{\\pi}{f_o}t)$ coefficient). In every list the value at index $i$
-    is the one at coordinate $i$, i.e. at $[coords[3i], coords[3i+1], coords[3i+2]]$. The expansion is made
+    This is the far field approximation of `allstrattonchu`. The arguments and the output format are identical:
+    the output is indexed $[component][harmonic][coordinate]$, the outer index selecting the $x$, $y$ or $z$
+    component, the middle one harmonic $2$ (the $sin(2{\\pi}{f_o}t)$ coefficient) at index $0$ or harmonic $3$
+    (the $cos(2{\\pi}{f_o}t)$ coefficient) at index $1$, and the inner one the coordinate, i.e. index $i$ is the
+    value at $[coords[3i], coords[3i+1], coords[3i+2]]$. The expansion is made
     around the origin, from which only the direction and the distance of each coordinate are used, so the
     radiating structure should be located around the origin. The surface is then integrated once per coordinate
     whatever the declared patterning, which is applied as an array factor instead. This makes the call much
@@ -9624,8 +9683,8 @@ def allstrattonchufarfield(
     >>> setfundamentalfrequency(1e9)
     >>> ...
     >>> Evals = allstrattonchufarfield(form, bnd, sur, E, getmu0(), getepsilon0(), [1.2e8,0.9e8,0.0])
-    >>> Exharm2 = Evals[0][0]
-    >>> Exharm3 = Evals[3][0]
+    >>> Exharm2 = Evals[0][0][0]
+    >>> Exharm3 = Evals[0][1][0]
 
     See Also
     --------
@@ -10616,6 +10675,55 @@ def dz(input: expressionlike) -> expression:
     See Also
     --------
     dx, dy
+    """
+    return expression()
+
+def edotjdofj(sigma: parameter, j: expressionlike, dofj: expressionlike) -> expression:
+    """
+    This returns the Newton linearization of the heat generation $Q = \\boldsymbol{E} \\cdot \\boldsymbol{j} =
+    \\rho \\ \\| \\boldsymbol{j} \\|^2$ of a resistivity that depends on the current density norm, as is the case for a
+    superconductor described by `powerlaw`. It is the counterpart of `rhodofj` for the thermal side of an electro-thermal
+    coupling, where it provides the tangent form of the Joule heat source:
+
+    $$
+    Q^{dof} = Q(\\boldsymbol{j}) + \\frac{\\partial Q}{\\partial \\boldsymbol{j}} \\cdot
+              \\left( \\boldsymbol{j}^{dof} - \\boldsymbol{j} \\right),
+    \\qquad
+    \\frac{\\partial Q}{\\partial \\boldsymbol{j}} = \\left( 2 \\rho +
+        \\| \\boldsymbol{j} \\| \\frac{\\partial \\rho}{\\partial \\| \\boldsymbol{j} \\|} \\right) \\boldsymbol{j}
+    $$
+
+    where $\\boldsymbol{j}$ is the current density at the previous nonlinear iteration and $\\boldsymbol{j}^{dof}$ is its
+    unknown counterpart. The gradient of the heat generation is parallel to the current density, so the unknown only enters
+    through the scalar product $\\boldsymbol{j} \\cdot \\boldsymbol{j}^{dof}$ and the value returned is a scalar.
+
+    The linearization is with respect to the current density only. Any other dependence of the resistivity, on the temperature
+    for instance, is treated as frozen at its last computed value.
+
+    The conductivity must be provided as a `parameter` whose values were assigned with `setvalue`, and it must be scalar
+    (isotropic). On every region where that value was created by `powerlaw` the derivative above is built analytically. On any
+    other region the resistivity is taken to be independent of the current density, which reduces the linearization to
+    $2 \\rho \\ \\boldsymbol{j} \\cdot \\boldsymbol{j}^{dof} - \\rho \\ \\| \\boldsymbol{j} \\|^2$.
+
+    Example
+    -------
+    >>> ...
+    >>> j = parameter(3,1)
+    >>> j.addvalue(cond, curl(hc))
+    >>>
+    >>> sigma = parameter()
+    >>> sigma.setvalue(cond, powerlaw(j, jc, 1e-4, 25.0, 1e6, 1e15))
+    >>>
+    >>> T = field("h1")
+    >>> ...
+    >>> heatequation = formulation()
+    >>> heatequation += integral(cond, grad(tf(T))*k*grad(dof(T)))
+    >>> # Newton linearized Joule heat source
+    >>> heatequation += integral(cond, -edotjdofj(sigma, j, curl(dof(hc))) * tf(T))
+
+    See Also
+    --------
+    powerlaw, rhodofj
     """
     return expression()
 
@@ -12002,6 +12110,53 @@ def powerlaw(
     sigmamin: float,
     sigmamax: float,
 ) -> expression:
+    """
+    This returns the electric conductivity [$S/m$] of a superconductor following the $E$-$J$ power law. The power law relates the
+    electric field to the current density with a sharp transition around the critical current density `jc`, at which the electric
+    field reaches the critical value `ec`:
+
+    $$
+    \\| \\boldsymbol{E} \\| = e_c \\left( \\frac{\\| \\boldsymbol{j} \\|}{j_c} \\right)^n
+    \\qquad \\rightarrow \\qquad
+    \\rho_{pl} = \\frac{e_c}{j_c} \\left( \\frac{\\| \\boldsymbol{j} \\|}{j_c} \\right)^{n-1}
+    $$
+
+    The exponent `n` sets how sharp the transition is: a large $n$ approaches the critical state model while $n = 1$ gives an
+    ordinary linear conductor.
+
+    The conductivity returned is bounded to keep the resolution well behaved. The lower bound `sigmamin` acts as a normal
+    conduction channel in parallel with the superconductor while the upper bound `sigmamax` acts as a residual resistivity in
+    series with it:
+
+    $$
+    \\sigma = \\sigma_{min} + \\dfrac{1}{\\dfrac{1}{\\sigma_{max}} + \\rho_{pl}}
+    $$
+
+    The bounds must satisfy $0 \\leq \\sigma_{min} \\leq \\sigma_{max}$ with $\\sigma_{max}$ strictly positive, and the critical
+    current density must be strictly positive.
+
+    The expression returned also carries the data needed to build the exact analytical Newton linearization of the power law.
+    To take advantage of it, assign the conductivity to a `parameter` with `setvalue` and pass that parameter to `rhodofj` or
+    `edotjdofj`.
+
+    Example
+    -------
+    >>> ...
+    >>> # Current density in the superconductor region
+    >>> j = parameter(3,1)
+    >>> j.addvalue(cond, curl(hc))
+    >>>
+    >>> jc = 1000/1e-6   # critical current density [A/m^2]
+    >>> ec = 1e-4        # critical electric field [V/m]
+    >>> n = 25.0         # power law exponent
+    >>>
+    >>> sigma = parameter()
+    >>> sigma.setvalue(cond, powerlaw(j, jc, ec, n, 1e6, 1e15))
+
+    See Also
+    --------
+    rhodofj, edotjdofj
+    """
     return expression()
 
 def predefinedacousticradiation(
@@ -14123,6 +14278,48 @@ def rhocpcstoH(
     return expression()
 
 def rhodofj(sigma: parameter, j: expressionlike, dofj: expressionlike) -> expression:
+    """
+    This returns the Newton linearization of the electric field $\\boldsymbol{E} = \\rho \\ \\boldsymbol{j}$ of a resistivity that
+    depends on the current density norm, as is the case for a superconductor described by `powerlaw`. Because the electric field
+    is then a nonlinear function of the current density, using $\\rho \\ \\boldsymbol{j}^{dof}$ directly in a formulation gives
+    only a fixed-point iteration, which converges slowly or not at all for a sharp transition. This function provides the tangent
+    form instead:
+
+    $$
+    \\boldsymbol{E}^{dof} = \\boldsymbol{E}(\\boldsymbol{j}) + \\frac{\\partial \\boldsymbol{E}}{\\partial \\boldsymbol{j}}
+                            \\left( \\boldsymbol{j}^{dof} - \\boldsymbol{j} \\right),
+    \\qquad
+    \\frac{\\partial \\boldsymbol{E}}{\\partial \\boldsymbol{j}} = \\rho \\ \\boldsymbol{I} +
+        \\frac{1}{\\| \\boldsymbol{j} \\|} \\frac{\\partial \\rho}{\\partial \\| \\boldsymbol{j} \\|} \\
+        \\boldsymbol{j} \\ \\boldsymbol{j}^{T}
+    $$
+
+    where $\\boldsymbol{j}$ is the current density at the previous nonlinear iteration and $\\boldsymbol{j}^{dof}$ is its
+    unknown counterpart. The resistivity is $\\rho = \\sigma^{-1}$.
+
+    The conductivity must be provided as a `parameter` whose values were assigned with `setvalue`. On every region where that
+    value was created by `powerlaw` the derivative above is built analytically. On any other region the conductivity is taken to
+    be independent of the current density and the exact term $\\rho \\ \\boldsymbol{j}^{dof}$ is returned, so a mesh mixing
+    superconducting and ordinary conducting regions can be handled with a single call.
+
+    Example
+    -------
+    >>> ...
+    >>> j = parameter(3,1)
+    >>> j.addvalue(cond, curl(hc))
+    >>>
+    >>> sigma = parameter()
+    >>> sigma.setvalue(cond, powerlaw(j, jc, 1e-4, 25.0, 1e6, 1e15))
+    >>>
+    >>> form = formulation()
+    >>> ...
+    >>> # Newton linearized electric field term
+    >>> form += integral(cond, rhodofj(sigma, j, curl(dof(hc))) * curl(tf(hc)))
+
+    See Also
+    --------
+    powerlaw, edotjdofj
+    """
     return expression()
 
 def rotate(
@@ -15542,6 +15739,33 @@ class cachedproperty(Generic[_T]):
         return cast(_T, None)
 
     def __set__(self, _: Any, value: _T) -> None: ...
+
+def unitcircle(
+    numpoints: int,
+    angles: Sequence[float] = [-180, 180],
+    normal: Sequence[float] = [0, 0, 1],
+) -> tuple[list[float], list[float]]:
+    """
+    Sample points on a unit circle arc and rotate them into the plane normal to `normal`.
+
+    An arc is created in the xy-plane from `angles[0]` to `angles[1]` (degrees),
+    centered at the origin with radius 1. The arc is then rotated so that it lies
+    in the plane perpendicular to `normal`.
+
+    When the start and end angle are the same up to a full turn (e.g. the default
+    `[-180, 180]`), the end angle is pulled back by one step so that the first and
+    last point do not coincide, i.e. the `numpoints` points are spread evenly
+    around the whole circle.
+
+    Returns the rotated node coordinates and the polar angle of each point in
+    degrees, computed from the arc coordinates before rotation using `atan2(y, x)`.
+    Angle values lie in `(-180, 180]`.
+
+    Example
+    -------
+    >>> coords, angles = unitcircle(4, [0, 90], [0, 0, 1])
+    """
+    return ([], [])
 
 expressionlike: TypeAlias = Union[expression, field, parameter, port, float, int]
 "expressionlike is a type that accepts anything that can be automatically converted to an `expression`. This type is the union of `expression`, `field`, `parameter`, `port`, `float`, and `int`."

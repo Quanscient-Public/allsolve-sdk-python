@@ -1812,6 +1812,9 @@ def import_cad_geometries(
                 entity_tags=entity_tags,
                 cad_names=cad_names,
                 cad_paths=cad_paths,
+                boolean_tolerance=_get_first_present(
+                    geometry, "booleanTolerance", "boolean_tolerance"
+                ),
             )
             geometry_builder.add(union)
         elif geometry["type"] == "difference":
@@ -1832,6 +1835,9 @@ def import_cad_geometries(
                 cad_names_2=cad_names_2,
                 cad_paths_2=cad_paths_2,
                 delete_tool=delete_tool,
+                boolean_tolerance=_get_first_present(
+                    geometry, "booleanTolerance", "boolean_tolerance"
+                ),
             )
             geometry_builder.add(difference)
         elif geometry["type"] == "intersection":
@@ -1852,6 +1858,9 @@ def import_cad_geometries(
                 cad_names_2=cad_names_2,
                 cad_paths_2=cad_paths_2,
                 delete_tool=delete_tool,
+                boolean_tolerance=_get_first_present(
+                    geometry, "booleanTolerance", "boolean_tolerance"
+                ),
             )
             geometry_builder.add(intersection)
         elif geometry["type"] == "fragments":
@@ -1872,11 +1881,19 @@ def import_cad_geometries(
                 cad_names_2=cad_names_2,
                 cad_paths_2=cad_paths_2,
                 delete_tool=delete_tool,
+                boolean_tolerance=_get_first_present(
+                    geometry, "booleanTolerance", "boolean_tolerance"
+                ),
             )
             geometry_builder.add(fragments)
         elif geometry["type"] == "fragmentAll" or geometry["type"] == "fragment_all":
             name = geometry["name"]
-            fragment_all = CadFragmentAll(name=name)
+            fragment_all = CadFragmentAll(
+                name=name,
+                boolean_tolerance=_get_first_present(
+                    geometry, "booleanTolerance", "boolean_tolerance"
+                ),
+            )
             geometry_builder.add(fragment_all)
         elif geometry["type"] == "translate":
             name = geometry["name"]

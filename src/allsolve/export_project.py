@@ -30,11 +30,15 @@ from __future__ import annotations
 import warnings
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Dict
 import json
 
-from allsolve.util import FileOverwriteMode
+from allsolve.util import (
+    FileOverwriteMode,
+    reject_unsafe_path_component,
+    resolve_path_under_base,
+)
 
 from allsolve.geometry.cad_basic_geometry import (
     CadBox,
@@ -525,7 +529,15 @@ def _apply_geometry_file_download(
     See export_project_data(..., download_geometries=True) for rules on duplicates
     and pre-existing files on disk.
     """
-    basename = Path(elem.filepath).name
+    basename = PureWindowsPath(elem.filepath).name
+    if not basename:
+        warnings.warn(
+            f"allsolve export: skipping geometry download for '{elem.name}': "
+            "file path is empty.",
+            stacklevel=3,
+        )
+        return
+    reject_unsafe_path_component(basename, context="geometry file name")
     rel_fp = basename
     target = out_dir / basename
 
@@ -650,7 +662,10 @@ def _export_file_scripts(
             and file_ctx.files_output_dir is not None
             and script.content
         ):
-            target = file_ctx.files_output_dir / rel_fp
+            reject_unsafe_path_component(script_name, context="script name")
+            if rel_fp != f"sim/{script_name}":
+                reject_unsafe_path_component(sim.name, context="simulation name")
+            target = resolve_path_under_base(file_ctx.files_output_dir, rel_fp)
             _write_script_file(
                 script.content,
                 target,
@@ -843,8 +858,9 @@ def _export_simulation_input_files(
             entry = file_ctx.shared_catalog_entries.get(name, {})
             content = entry.get("content")
             if isinstance(content, dict):
+                reject_unsafe_path_component(name, context="shared file name")
                 rel_fp = entry.get("filepath", _project_shared_file_path(name))
-                target = file_ctx.files_output_dir / rel_fp
+                target = resolve_path_under_base(file_ctx.files_output_dir, rel_fp)
                 _write_shared_file_content(
                     content,
                     target,
@@ -1041,6 +1057,8 @@ def _export_geometries(
                 geo_dict["cadNames"] = elem.cad_names
             if elem.cad_paths:
                 geo_dict["cadPaths"] = [_export_cad_path(p) for p in elem.cad_paths]
+            if elem.boolean_tolerance is not None:
+                geo_dict["booleanTolerance"] = elem.boolean_tolerance
 
         elif isinstance(elem, CadDifference):
             geo_dict["type"] = "difference"
@@ -1057,6 +1075,8 @@ def _export_geometries(
             if elem.cad_paths_2:
                 geo_dict["cadPaths2"] = [_export_cad_path(p) for p in elem.cad_paths_2]
             geo_dict["deleteTool"] = elem.delete_tool
+            if elem.boolean_tolerance is not None:
+                geo_dict["booleanTolerance"] = elem.boolean_tolerance
 
         elif isinstance(elem, CadIntersection):
             geo_dict["type"] = "intersection"
@@ -1073,6 +1093,8 @@ def _export_geometries(
             if elem.cad_paths_2:
                 geo_dict["cadPaths2"] = [_export_cad_path(p) for p in elem.cad_paths_2]
             geo_dict["deleteTool"] = elem.delete_tool
+            if elem.boolean_tolerance is not None:
+                geo_dict["booleanTolerance"] = elem.boolean_tolerance
 
         elif isinstance(elem, CadFragments):
             geo_dict["type"] = "fragments"
@@ -1089,9 +1111,13 @@ def _export_geometries(
             if elem.cad_paths_2:
                 geo_dict["cadPaths2"] = [_export_cad_path(p) for p in elem.cad_paths_2]
             geo_dict["deleteTool"] = elem.delete_tool
+            if elem.boolean_tolerance is not None:
+                geo_dict["booleanTolerance"] = elem.boolean_tolerance
 
         elif isinstance(elem, CadFragmentAll):
             geo_dict["type"] = "fragmentAll"
+            if elem.boolean_tolerance is not None:
+                geo_dict["booleanTolerance"] = elem.boolean_tolerance
 
         # Simple operations
         elif isinstance(elem, CadTranslate):

@@ -75,8 +75,7 @@ class MarkFileBatchUploadedRequest(BaseModel):
         _items = []
         if self.completions:
             for _item_completions in self.completions:
-                if _item_completions:
-                    _items.append(_item_completions.to_dict())
+                _items.append(_item_completions.to_dict() if _item_completions is not None else None)
             _dict['completions'] = _items
         return _dict
 

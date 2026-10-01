@@ -633,6 +633,11 @@ class Material:
                     properties=library_material.properties,
                     target=target_region.id if target_region else None,
                     abbreviation=library_material.abbreviation,
+                    orientation=(
+                        library_material.orientation
+                        if library_material.orientation
+                        else None
+                    ),
                     enabled=enabled if enabled else None,
                 ),
             )

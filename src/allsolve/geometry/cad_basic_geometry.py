@@ -1900,9 +1900,9 @@ class CadRectangle(CadGeometryElement):
         position_vec = create_vector_2d(self._position)
         size_vec = create_vector_2d(self._size)
 
-        rotation_angles = None
-        if self._rotation is not None:
-            rotation_angles = create_euler_angles(self._rotation)
+        rotation_angles = create_euler_angles(
+            self._rotation if self._rotation is not None else (0, 0, 0)
+        )
 
         cad_rectangle = rawapi.CadRectangle(
             position=position_vec,

@@ -75,8 +75,7 @@ class CreateGeometryElementBatchRequest(BaseModel):
         _items = []
         if self.new_elements:
             for _item_new_elements in self.new_elements:
-                if _item_new_elements:
-                    _items.append(_item_new_elements.to_dict())
+                _items.append(_item_new_elements.to_dict() if _item_new_elements is not None else None)
             _dict['newElements'] = _items
         return _dict
 

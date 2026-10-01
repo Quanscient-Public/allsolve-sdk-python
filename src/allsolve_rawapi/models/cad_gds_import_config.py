@@ -80,8 +80,7 @@ class CadGdsImportConfig(BaseModel):
         _items = []
         if self.layers:
             for _item_layers in self.layers:
-                if _item_layers:
-                    _items.append(_item_layers.to_dict())
+                _items.append(_item_layers.to_dict() if _item_layers is not None else None)
             _dict['layers'] = _items
         # override the default output from pydantic by calling `to_dict()` of z_offset
         if self.z_offset:

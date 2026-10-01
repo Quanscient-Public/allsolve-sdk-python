@@ -20,7 +20,7 @@ from typing_extensions import Self
 
 class SolverPrecision(str, Enum):
     """
-    Precision of the solver. - double (default) - use the double precision floating point (64 bits) - quadruple        - use the quadruple precision floating point (128 bits) 
+    Precision of the solver. - double (default) - use the double precision floating point (64 bits) with 64 bit integers - quadruple        - use the quadruple precision floating point (128 bits) with 64 bit integers - double_int32     - use the double precision floating point (64 bits) with 32 bit integers 
     """
 
     """
@@ -28,6 +28,7 @@ class SolverPrecision(str, Enum):
     """
     DOUBLE = 'double'
     QUADRUPLE = 'quadruple'
+    DOUBLE_INT32 = 'double_int32'
 
     @classmethod
     def from_json(cls, json_str: str) -> Self:

@@ -122,8 +122,7 @@ class Simulation(BaseModel):
         _items = []
         if self.scripts:
             for _item_scripts in self.scripts:
-                if _item_scripts:
-                    _items.append(_item_scripts.to_dict())
+                _items.append(_item_scripts.to_dict() if _item_scripts is not None else None)
             _dict['scripts'] = _items
         # override the default output from pydantic by calling `to_dict()` of simulation_job
         if self.simulation_job:
@@ -132,22 +131,19 @@ class Simulation(BaseModel):
         _items = []
         if self.output_interactions:
             for _item_output_interactions in self.output_interactions:
-                if _item_output_interactions:
-                    _items.append(_item_output_interactions.to_dict())
+                _items.append(_item_output_interactions.to_dict() if _item_output_interactions is not None else None)
             _dict['outputInteractions'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in input_files (list)
         _items = []
         if self.input_files:
             for _item_input_files in self.input_files:
-                if _item_input_files:
-                    _items.append(_item_input_files.to_dict())
+                _items.append(_item_input_files.to_dict() if _item_input_files is not None else None)
             _dict['inputFiles'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in field_initializations (list)
         _items = []
         if self.field_initializations:
             for _item_field_initializations in self.field_initializations:
-                if _item_field_initializations:
-                    _items.append(_item_field_initializations.to_dict())
+                _items.append(_item_field_initializations.to_dict() if _item_field_initializations is not None else None)
             _dict['fieldInitializations'] = _items
         return _dict
 

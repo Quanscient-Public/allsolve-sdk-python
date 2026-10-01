@@ -75,15 +75,13 @@ class SimulationInputFileUpdateResponse(BaseModel):
         _items = []
         if self.using:
             for _item_using in self.using:
-                if _item_using:
-                    _items.append(_item_using.to_dict())
+                _items.append(_item_using.to_dict() if _item_using is not None else None)
             _dict['using'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in deleted (list)
         _items = []
         if self.deleted:
             for _item_deleted in self.deleted:
-                if _item_deleted:
-                    _items.append(_item_deleted.to_dict())
+                _items.append(_item_deleted.to_dict() if _item_deleted is not None else None)
             _dict['deleted'] = _items
         return _dict
 

@@ -79,8 +79,7 @@ class PhysicalPropertyDefinition(BaseModel):
         _items = []
         if self.alternatives:
             for _item_alternatives in self.alternatives:
-                if _item_alternatives:
-                    _items.append(_item_alternatives.to_dict())
+                _items.append(_item_alternatives.to_dict() if _item_alternatives is not None else None)
             _dict['alternatives'] = _items
         return _dict
 

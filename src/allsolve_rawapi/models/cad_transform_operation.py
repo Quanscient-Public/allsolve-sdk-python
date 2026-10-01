@@ -83,8 +83,7 @@ class CadTransformOperation(BaseModel):
         _items = []
         if self.target:
             for _item_target in self.target:
-                if _item_target:
-                    _items.append(_item_target.to_dict())
+                _items.append(_item_target.to_dict() if _item_target is not None else None)
             _dict['target'] = _items
         # override the default output from pydantic by calling `to_dict()` of translate
         if self.translate:
@@ -96,8 +95,7 @@ class CadTransformOperation(BaseModel):
         _items = []
         if self.affine:
             for _item_affine in self.affine:
-                if _item_affine:
-                    _items.append(_item_affine.to_dict())
+                _items.append(_item_affine.to_dict() if _item_affine is not None else None)
             _dict['affine'] = _items
         # override the default output from pydantic by calling `to_dict()` of grid
         if self.grid:

@@ -785,6 +785,44 @@ class SolidMechanicsViscohyperelasticity(Interaction):
         )
 
 
+class SolidMechanicsInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "solidMechanicsInitialValue"
+    physics_definition_id = "solidMechanics"
+    target_definition_ids = {"target": "solidMechanicsInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        solid_mechanics_initial_value: VectorValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            solid_mechanics_initial_value: solid mechanics initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="solidMechanicsInitialValue",
+                value=vector_to_str(solid_mechanics_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
 class CurrentFlowConstraint(Interaction):
     """Constraint interaction."""
 
@@ -1210,6 +1248,44 @@ class CurrentFlowPeriodicity(Interaction):
         )
 
 
+class CurrentFlowInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "currentFlowInitialValue"
+    physics_definition_id = "currentFlow"
+    target_definition_ids = {"target": "currentFlowInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        current_flow_initial_value: ScalarValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            current_flow_initial_value: current flow initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="currentFlowInitialValue",
+                value=str(current_flow_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
 class AcousticWavesPml(Interaction):
     """Perfectly matched layer interaction."""
 
@@ -1616,6 +1692,44 @@ class AcousticWavesContinuity(Interaction):
                 "continuity_target_1": continuity_target_1,
                 "continuity_target_2": continuity_target_2,
             },
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
+class AcousticWavesInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "acousticWavesInitialValue"
+    physics_definition_id = "acousticWaves"
+    target_definition_ids = {"target": "acousticWavesInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        acoustic_waves_initial_value: ScalarValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            acoustic_waves_initial_value: acoustic waves initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="acousticWavesInitialValue",
+                value=str(acoustic_waves_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
             enabled=enabled,
             parameters=parameters,
         )
@@ -2540,6 +2654,44 @@ class ElectromagneticWavesBoundaryAdmittance(Interaction):
         )
 
 
+class ElectromagneticWavesInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "electromagneticWavesInitialValue"
+    physics_definition_id = "electromagneticWaves"
+    target_definition_ids = {"target": "electromagneticWavesInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        electromagnetic_waves_initial_value: VectorValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            electromagnetic_waves_initial_value: electromagnetic waves initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="electromagneticWavesInitialValue",
+                value=vector_to_str(electromagnetic_waves_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
 class ElectrostaticsConstraint(Interaction):
     """Constraint interaction."""
 
@@ -2903,6 +3055,44 @@ class ElectrostaticsPeriodicity(Interaction):
         )
 
 
+class ElectrostaticsInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "electrostaticsInitialValue"
+    physics_definition_id = "electrostatics"
+    target_definition_ids = {"target": "electrostaticsInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        electrostatics_initial_value: ScalarValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            electrostatics_initial_value: electrostatics initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="electrostaticsInitialValue",
+                value=str(electrostatics_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
 class MagnetismAMagneticWall(Interaction):
     """Magnetic wall interaction."""
 
@@ -3125,6 +3315,44 @@ class MagnetismAPeriodicity(Interaction):
         super().__init__(
             name=name,
             targets={"target_1": target_1, "target_2": target_2},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
+class MagnetismAInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "magnetismAInitialValue"
+    physics_definition_id = "magnetismA"
+    target_definition_ids = {"target": "magnetismAInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        magnetism_a_initial_value: VectorValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            magnetism_a_initial_value: magnetism a initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="magnetismAInitialValue",
+                value=vector_to_str(magnetism_a_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
             enabled=enabled,
             parameters=parameters,
         )
@@ -3639,6 +3867,44 @@ class MagnetismPhiContinuity(Interaction):
         )
 
 
+class MagnetismPhiInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "magnetismPhiInitialValue"
+    physics_definition_id = "magnetismPhi"
+    target_definition_ids = {"target": "magnetismPhiInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        magnetism_phi_initial_value: ScalarValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            magnetism_phi_initial_value: magnetism phi initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="magnetismPhiInitialValue",
+                value=str(magnetism_phi_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
 class MagnetismHConstraint(Interaction):
     """Constraint interaction."""
 
@@ -3861,6 +4127,44 @@ class MagnetismHPeriodicity(Interaction):
         super().__init__(
             name=name,
             targets={"target_1": target_1, "target_2": target_2},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
+class MagnetismHInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "magnetismHInitialValue"
+    physics_definition_id = "magnetismH"
+    target_definition_ids = {"target": "magnetismHInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        magnetism_h_initial_value: VectorValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            magnetism_h_initial_value: magnetism h initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="magnetismHInitialValue",
+                value=vector_to_str(magnetism_h_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
             enabled=enabled,
             parameters=parameters,
         )
@@ -4657,6 +4961,82 @@ class LaminarFlowLinear(Interaction):
         )
 
 
+class LaminarFlowVelocityInitialValue(Interaction):
+    """Initial velocity interaction."""
+
+    definition_id = "laminarFlowVelocityInitialValue"
+    physics_definition_id = "laminarFlow"
+    target_definition_ids = {"target": "laminarFlowVelocityInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        laminar_flow_velocity_initial_value: VectorValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial velocity interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            laminar_flow_velocity_initial_value: laminar flow velocity initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="laminarFlowVelocityInitialValue",
+                value=vector_to_str(laminar_flow_velocity_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
+class LaminarFlowPressureInitialValue(Interaction):
+    """Initial pressure interaction."""
+
+    definition_id = "laminarFlowPressureInitialValue"
+    physics_definition_id = "laminarFlow"
+    target_definition_ids = {"target": "laminarFlowPressureInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        laminar_flow_pressure_initial_value: ScalarValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial pressure interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            laminar_flow_pressure_initial_value: laminar flow pressure initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="laminarFlowPressureInitialValue",
+                value=str(laminar_flow_pressure_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
 class HeatTransferTemperatureConstraint(Interaction):
     """Constraint interaction."""
 
@@ -5047,6 +5427,44 @@ class HeatTransferLumpTPhi(Interaction):
         )
 
 
+class HeatTransferInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "heatTransferInitialValue"
+    physics_definition_id = "heatTransfer"
+    target_definition_ids = {"target": "heatTransferInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        heat_transfer_initial_value: ScalarValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            heat_transfer_initial_value: heat transfer initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="heatTransferInitialValue",
+                value=str(heat_transfer_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
 class HeatFluidConstraint(Interaction):
     """Constraint interaction."""
 
@@ -5250,6 +5668,43 @@ class HeatFluidPeriodicity(Interaction):
         super().__init__(
             name=name,
             targets={"target_1": target_1, "target_2": target_2},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
+class HeatFluidInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "heatFluidInitialValue"
+    physics_definition_id = "heatFluid"
+    target_definition_ids = {"target": "heatFluidInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        heat_fluid_initial_value: ScalarValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            heat_fluid_initial_value: heat fluid initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="heatFluidInitialValue", value=str(heat_fluid_initial_value)
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
             enabled=enabled,
             parameters=parameters,
         )
@@ -5992,6 +6447,44 @@ class ElasticWavesViscousDamping(Interaction):
         )
 
 
+class ElasticWavesInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "elasticWavesInitialValue"
+    physics_definition_id = "elasticWaves"
+    target_definition_ids = {"target": "elasticWavesInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        elastic_waves_initial_value: VectorValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            elastic_waves_initial_value: elastic waves initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="elasticWavesInitialValue",
+                value=vector_to_str(elastic_waves_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
 class MeshDeformationConstraint(Interaction):
     """Constraint interaction."""
 
@@ -6217,6 +6710,44 @@ class MeshDeformationSymmetry(Interaction):
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
+class MeshDeformationInitialValue(Interaction):
+    """Initial value interaction."""
+
+    definition_id = "meshDeformationInitialValue"
+    physics_definition_id = "meshDeformation"
+    target_definition_ids = {"target": "meshDeformationInitialValueTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        mesh_deformation_initial_value: VectorValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """Create a initial value interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            mesh_deformation_initial_value: mesh deformation initial value
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="meshDeformationInitialValue",
+                value=vector_to_str(mesh_deformation_initial_value),
+            )
+        )
         super().__init__(
             name=name,
             targets={"target": target},

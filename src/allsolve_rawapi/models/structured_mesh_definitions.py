@@ -79,22 +79,19 @@ class StructuredMeshDefinitions(BaseModel):
         _items = []
         if self.slanted_extrusions:
             for _item_slanted_extrusions in self.slanted_extrusions:
-                if _item_slanted_extrusions:
-                    _items.append(_item_slanted_extrusions.to_dict())
+                _items.append(_item_slanted_extrusions.to_dict() if _item_slanted_extrusions is not None else None)
             _dict['slantedExtrusions'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in path_extrusions (list)
         _items = []
         if self.path_extrusions:
             for _item_path_extrusions in self.path_extrusions:
-                if _item_path_extrusions:
-                    _items.append(_item_path_extrusions.to_dict())
+                _items.append(_item_path_extrusions.to_dict() if _item_path_extrusions is not None else None)
             _dict['pathExtrusions'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in flatten_and_rebuild_extrusions (list)
         _items = []
         if self.flatten_and_rebuild_extrusions:
             for _item_flatten_and_rebuild_extrusions in self.flatten_and_rebuild_extrusions:
-                if _item_flatten_and_rebuild_extrusions:
-                    _items.append(_item_flatten_and_rebuild_extrusions.to_dict())
+                _items.append(_item_flatten_and_rebuild_extrusions.to_dict() if _item_flatten_and_rebuild_extrusions is not None else None)
             _dict['flattenAndRebuildExtrusions'] = _items
         return _dict
 

@@ -81,15 +81,13 @@ class Physics(BaseModel):
         _items = []
         if self.interactions:
             for _item_interactions in self.interactions:
-                if _item_interactions:
-                    _items.append(_item_interactions.to_dict())
+                _items.append(_item_interactions.to_dict() if _item_interactions is not None else None)
             _dict['interactions'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in fields (list)
         _items = []
         if self.fields:
             for _item_fields in self.fields:
-                if _item_fields:
-                    _items.append(_item_fields.to_dict())
+                _items.append(_item_fields.to_dict() if _item_fields is not None else None)
             _dict['fields'] = _items
         return _dict
 

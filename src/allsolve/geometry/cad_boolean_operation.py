@@ -6,7 +6,9 @@ from allsolve.geometry.cad_geometry_element import CadGeometryElement
 from allsolve.geometry.cad_geometry_type import CadGeometryType
 from allsolve.geometry.cad_utils import (
     create_cad_entities_from_lists,
+    create_distance,
     extract_entities_from_elements,
+    from_distance,
     to_str_list,
     validate_entity_set,
 )
@@ -16,7 +18,57 @@ from typing_extensions import Self
 import abc
 
 
-class _CadBinaryBooleanOperation(CadGeometryElement, abc.ABC):
+class _CadBooleanOperationOptions(abc.ABC):
+    """Shared optional settings for CadBooleanOperation-backed geometry elements."""
+
+    def _require_boolean_op(self) -> rawapi.CadBooleanOperation:
+        """Return the rawapi boolean operation for this geometry element."""
+        cad_elem: rawapi.CadGeometryElement = self._require_cad_elem()  # type: ignore[attr-defined]
+        if cad_elem.boolean_operation is None:
+            raise ValueError("Boolean operation is not set")
+        return cad_elem.boolean_operation
+
+    def _init_boolean_options(
+        self,
+        boolean_tolerance: float | str | None = None,
+    ) -> None:
+        self._boolean_tolerance = boolean_tolerance
+
+    @classmethod
+    def _boolean_tolerance_from_rawapi(
+        cls, boolean_op: rawapi.CadBooleanOperation
+    ) -> float | str | None:
+        if boolean_op.boolean_tolerance is not None:
+            return from_distance(boolean_op.boolean_tolerance)
+        return None
+
+    def _boolean_tolerance_to_rawapi(self) -> rawapi.CadDistance | None:
+        if self._boolean_tolerance is None:
+            return None
+        return create_distance(self._boolean_tolerance)
+
+    def _apply_boolean_tolerance_to_rawapi(
+        self, boolean_op: rawapi.CadBooleanOperation
+    ) -> None:
+        boolean_op.boolean_tolerance = self._boolean_tolerance_to_rawapi()
+
+    @property
+    @prevent_deleted
+    def boolean_tolerance(self) -> float | str | None:
+        """Get the additional tolerance for the Boolean operation algorithm."""
+        return self._boolean_tolerance
+
+    @boolean_tolerance.setter
+    @prevent_deleted
+    def boolean_tolerance(self, boolean_tolerance: float | str | None) -> None:
+        """Set the additional tolerance for the Boolean operation algorithm."""
+        self._boolean_tolerance = boolean_tolerance
+        self._apply_boolean_tolerance_to_rawapi(self._require_boolean_op())
+
+
+class _CadBinaryBooleanOperation(
+    _CadBooleanOperationOptions, CadGeometryElement, abc.ABC
+):
     """
     Base class for binary boolean operations (Difference, Intersection, Fragments).
     These operations have two sets of entities: object (set 1) and tool (set 2).
@@ -85,6 +137,9 @@ class _CadBinaryBooleanOperation(CadGeometryElement, abc.ABC):
             cad_names_2=cad_names_2 if cad_names_2 else None,
             cad_paths_2=cad_paths_2 if cad_paths_2 else None,
             delete_tool=delete_tool,
+            boolean_tolerance=cls._boolean_tolerance_from_rawapi(
+                cad_element.boolean_operation
+            ),
         )
         cls._initialize_from_rawapi(cad_object, rawapi_element, cad_element, project_id)
         return cad_object
@@ -99,6 +154,7 @@ class _CadBinaryBooleanOperation(CadGeometryElement, abc.ABC):
         cad_names_2: list[str] | None = None,
         cad_paths_2: list[CadPath] | None = None,
         delete_tool: bool = True,
+        boolean_tolerance: float | str | None = None,
         enabled: str | bool | None = None,
     ) -> None:
         """
@@ -114,11 +170,14 @@ class _CadBinaryBooleanOperation(CadGeometryElement, abc.ABC):
             cad_names_2: The list of CAD names for the second set.
             cad_paths_2: The list of CAD paths for the second set.
             delete_tool: Boolean flag to delete the tool entities after the operation. Default is True.
+            boolean_tolerance: Additional tolerance for the Boolean operation algorithm.
+                Must be positive. If not set, the CAD kernel default is used.
             enabled: Optional enabled state of the geometry element.
                 Can be a boolean or a string expression.
                 By default, the geometry element is enabled.
         """
         super().__init__(name, enabled)
+        self._init_boolean_options(boolean_tolerance)
         self._entity_tags_1 = entity_tags_1
         self._cad_names_1 = to_str_list(cad_names_1)
         self._cad_paths_1 = cad_paths_1
@@ -152,12 +211,6 @@ class _CadBinaryBooleanOperation(CadGeometryElement, abc.ABC):
             validate_entity_set(
                 entity_tags_2, cad_names_2, cad_paths_2, "second set", operation_name
             )
-
-    def _require_boolean_op(self) -> rawapi.CadBooleanOperation:
-        cad_elem = self._require_cad_elem()
-        if cad_elem.boolean_operation is None:
-            raise ValueError("Boolean operation is not set")
-        return cad_elem.boolean_operation
 
     @property
     @prevent_deleted
@@ -326,6 +379,7 @@ class _CadBinaryBooleanOperation(CadGeometryElement, abc.ABC):
             if self._delete_tool:
                 tool.delete = self._delete_tool
         boolean_op.tool = tool
+        self._apply_boolean_tolerance_to_rawapi(boolean_op)
 
     @prevent_deleted
     def _to_rawapi_cad_element(self) -> rawapi.CadGeometryElement:
@@ -355,6 +409,7 @@ class _CadBinaryBooleanOperation(CadGeometryElement, abc.ABC):
             type=self._get_operation_type(),
             object=boolean_elements,
             tool=tool,
+            booleanTolerance=self._boolean_tolerance_to_rawapi(),
         )
 
         cad_element = rawapi.CadGeometryElement(
@@ -367,7 +422,7 @@ class _CadBinaryBooleanOperation(CadGeometryElement, abc.ABC):
         return cad_element
 
 
-class CadUnion(CadGeometryElement):
+class CadUnion(_CadBooleanOperationOptions, CadGeometryElement):
     """
     CadUnion represents a union of two or more CAD geometry elements.
     """
@@ -399,6 +454,9 @@ class CadUnion(CadGeometryElement):
             entity_tags=entity_tags if entity_tags else None,
             cad_names=cad_names if cad_names else None,
             cad_paths=cad_paths if cad_paths else None,
+            boolean_tolerance=cls._boolean_tolerance_from_rawapi(
+                cad_element.boolean_operation
+            ),
         )
         cls._initialize_from_rawapi(cad_object, rawapi_element, cad_element, project_id)
         return cad_object
@@ -409,6 +467,7 @@ class CadUnion(CadGeometryElement):
         entity_tags: list[int] | None = None,
         cad_names: list[str] | None = None,
         cad_paths: list[CadPath] | None = None,
+        boolean_tolerance: float | str | None = None,
         enabled: str | bool | None = None,
     ) -> None:
         """
@@ -420,21 +479,18 @@ class CadUnion(CadGeometryElement):
             entity_tags: The list of entity tags to union.
             cad_names: The list of CAD names to union.
             cad_paths: The list of CAD paths to union.
+            boolean_tolerance: Additional tolerance for the Boolean operation algorithm.
+                Must be positive. If not set, the CAD kernel default is used.
             enabled: Optional enabled state of the geometry element.
                 Can be a boolean or a string expression.
                 By default, the geometry element is enabled.
         """
         super().__init__(name, enabled)
+        self._init_boolean_options(boolean_tolerance)
         self._entity_tags = entity_tags
         self._cad_names = to_str_list(cad_names)
         self._cad_paths = cad_paths
         validate_entity_set(entity_tags, cad_names, cad_paths, "Set 1", "Union")
-
-    def _require_boolean_op(self) -> rawapi.CadBooleanOperation:
-        cad_elem = self._require_cad_elem()
-        if cad_elem.boolean_operation is None:
-            raise ValueError("Boolean operation is not set")
-        return cad_elem.boolean_operation
 
     @property
     @prevent_deleted
@@ -499,6 +555,7 @@ class CadUnion(CadGeometryElement):
         )
         boolean_elements = rawapi.CadBooleanElements(elements=elements)
         boolean_op.object = boolean_elements
+        self._apply_boolean_tolerance_to_rawapi(boolean_op)
 
     @prevent_deleted
     def _to_rawapi_cad_element(self) -> rawapi.CadGeometryElement:
@@ -510,6 +567,7 @@ class CadUnion(CadGeometryElement):
         boolean_operation = rawapi.CadBooleanOperation(
             type=rawapi.CadBooleanOperationType.UNION,
             object=boolean_elements,
+            booleanTolerance=self._boolean_tolerance_to_rawapi(),
         )
 
         cad_element = rawapi.CadGeometryElement(
@@ -525,7 +583,7 @@ class CadUnion(CadGeometryElement):
         return (
             f"Union(entity_tags={self._entity_tags}, "
             f"cad_names={self._cad_names}, cad_paths={self._cad_paths}, "
-            f"name={self._name})"
+            f"boolean_tolerance={self._boolean_tolerance}, name={self._name})"
         )
 
 
@@ -559,7 +617,8 @@ class CadDifference(_CadBinaryBooleanOperation):
             f"entity_tags_2={self._entity_tags_2}, "
             f"cad_names_2={self._cad_names_2}, "
             f"cad_paths_2={self._cad_paths_2}, "
-            f"delete_tool={self._delete_tool}, name={self._name})"
+            f"delete_tool={self._delete_tool}, "
+            f"boolean_tolerance={self._boolean_tolerance}, name={self._name})"
         )
 
 
@@ -593,7 +652,8 @@ class CadIntersection(_CadBinaryBooleanOperation):
             f"entity_tags_2={self._entity_tags_2}, "
             f"cad_names_2={self._cad_names_2}, "
             f"cad_paths_2={self._cad_paths_2}, "
-            f"delete_tool={self._delete_tool}, name={self._name})"
+            f"delete_tool={self._delete_tool}, "
+            f"boolean_tolerance={self._boolean_tolerance}, name={self._name})"
         )
 
 
@@ -627,11 +687,12 @@ class CadFragments(_CadBinaryBooleanOperation):
             f"entity_tags_2={self._entity_tags_2}, "
             f"cad_names_2={self._cad_names_2}, "
             f"cad_paths_2={self._cad_paths_2}, "
-            f"delete_tool={self._delete_tool}, name={self._name})"
+            f"delete_tool={self._delete_tool}, "
+            f"boolean_tolerance={self._boolean_tolerance}, name={self._name})"
         )
 
 
-class CadFragmentAll(CadGeometryElement):
+class CadFragmentAll(_CadBooleanOperationOptions, CadGeometryElement):
     """
     CadFragmentAll represents a fragment all operation that fragments all CAD geometry elements.
     """
@@ -653,13 +714,19 @@ class CadFragmentAll(CadGeometryElement):
         if cad_element.name is None:
             raise ValueError("FragmentAll name must be set")
 
-        cad_object = cls(name=cad_element.name)
+        cad_object = cls(
+            name=cad_element.name,
+            boolean_tolerance=cls._boolean_tolerance_from_rawapi(
+                cad_element.boolean_operation
+            ),
+        )
         cls._initialize_from_rawapi(cad_object, rawapi_element, cad_element, project_id)
         return cad_object
 
     def __init__(
         self,
         name: str,
+        boolean_tolerance: float | str | None = None,
         enabled: str | bool | None = None,
     ) -> None:
         """
@@ -667,11 +734,14 @@ class CadFragmentAll(CadGeometryElement):
 
         Parameters:
             name: Name for the geometry element.
+            boolean_tolerance: Additional tolerance for the Boolean operation algorithm.
+                Must be positive. If not set, the CAD kernel default is used.
             enabled: Optional enabled state of the geometry element.
                 Can be a boolean or a string expression.
                 By default, the geometry element is enabled.
         """
         super().__init__(name, enabled)
+        self._init_boolean_options(boolean_tolerance)
 
     @property
     @prevent_deleted
@@ -686,6 +756,7 @@ class CadFragmentAll(CadGeometryElement):
         boolean_operation = rawapi.CadBooleanOperation(
             type=rawapi.CadBooleanOperationType.FRAGMENTALL,
             object=boolean_elements,
+            booleanTolerance=self._boolean_tolerance_to_rawapi(),
         )
 
         cad_element = rawapi.CadGeometryElement(
@@ -698,4 +769,7 @@ class CadFragmentAll(CadGeometryElement):
         return cad_element
 
     def __str__(self) -> str:
-        return f"FragmentAll(name={self._name})"
+        return (
+            f"FragmentAll(boolean_tolerance={self._boolean_tolerance}, "
+            f"name={self._name})"
+        )

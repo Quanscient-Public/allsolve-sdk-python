@@ -109,8 +109,7 @@ class CadCylinder(BaseModel):
         _items = []
         if self.transform:
             for _item_transform in self.transform:
-                if _item_transform:
-                    _items.append(_item_transform.to_dict())
+                _items.append(_item_transform.to_dict() if _item_transform is not None else None)
             _dict['transform'] = _items
         return _dict
 

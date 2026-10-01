@@ -43,11 +43,13 @@ from .interactions import (
     SolidMechanicsGeometricNonlinearity,
     SolidMechanicsContact,
     SolidMechanicsViscohyperelasticity,
+    SolidMechanicsInitialValue,
     CurrentFlowConstraint,
     CurrentFlowCurrentDensity,
     CurrentFlowLump,
     CurrentFlowLumpVICut,
     CurrentFlowPeriodicity,
+    CurrentFlowInitialValue,
     AcousticWavesPml,
     AcousticWavesConstraint,
     AcousticWavesAcousticStructure,
@@ -57,6 +59,7 @@ from .interactions import (
     AcousticWavesAcousticDamping,
     AcousticWavesNormalAcceleration,
     AcousticWavesContinuity,
+    AcousticWavesInitialValue,
     ElectromagneticWavesConstraint,
     ElectromagneticWavesPml,
     ElectromagneticWavesRectangularPort,
@@ -67,16 +70,19 @@ from .interactions import (
     ElectromagneticWavesPeriodicity,
     ElectromagneticWavesAbsorbingBoundary,
     ElectromagneticWavesBoundaryAdmittance,
+    ElectromagneticWavesInitialValue,
     ElectrostaticsConstraint,
     ElectrostaticsPiezoelectricity,
     ElectrostaticsLump,
     ElectrostaticsLargeDisplacement,
     ElectrostaticsElasticWavesPiezoelectricity,
     ElectrostaticsPeriodicity,
+    ElectrostaticsInitialValue,
     MagnetismAMagneticWall,
     MagnetismAElectromagneticCoupling,
     MagnetismABackgroundField,
     MagnetismAPeriodicity,
+    MagnetismAInitialValue,
     MagnetismPhiConstraint,
     MagnetismPhiBackgroundField,
     MagnetismPhiLumpPhiPhiB,
@@ -84,10 +90,12 @@ from .interactions import (
     MagnetismPhiExternalField,
     MagnetismPhiPeriodicity,
     MagnetismPhiContinuity,
+    MagnetismPhiInitialValue,
     MagnetismHConstraint,
     MagnetismHHPhiCoupling,
     MagnetismHElectricalInsulator,
     MagnetismHPeriodicity,
+    MagnetismHInitialValue,
     LaminarFlowVelocityConstraint,
     LaminarFlowPressureConstraint,
     LaminarFlowThermalFluid,
@@ -101,15 +109,19 @@ from .interactions import (
     LaminarFlowLumpPM,
     LaminarFlowLumpVFv,
     LaminarFlowLinear,
+    LaminarFlowVelocityInitialValue,
+    LaminarFlowPressureInitialValue,
     HeatTransferTemperatureConstraint,
     HeatTransferHeatSource,
     HeatTransferJouleHeating,
     HeatTransferPeriodicity,
     HeatTransferConvection,
     HeatTransferLumpTPhi,
+    HeatTransferInitialValue,
     HeatFluidConstraint,
     HeatFluidHeatSource,
     HeatFluidPeriodicity,
+    HeatFluidInitialValue,
     ElasticWavesLoad,
     ElasticWavesConstraint,
     ElasticWavesClamp,
@@ -126,10 +138,12 @@ from .interactions import (
     ElasticWavesProportionalDamping,
     ElasticWavesContinuity,
     ElasticWavesViscousDamping,
+    ElasticWavesInitialValue,
     MeshDeformationConstraint,
     MeshDeformationClamp,
     MeshDeformationPeriodicity,
     MeshDeformationSymmetry,
+    MeshDeformationInitialValue,
 )
 
 from .outputs import (
@@ -139,6 +153,7 @@ from .outputs import (
     Eigenfrequencies,
     Eigenvalues,
     ElectromagneticWavesRadiationPattern,
+    FieldOnlyOutput,
     FieldOutput,
     FieldState,
     FinalHPhiState,
@@ -187,11 +202,13 @@ class Interaction:
     SolidMechanicsGeometricNonlinearity = SolidMechanicsGeometricNonlinearity
     SolidMechanicsContact = SolidMechanicsContact
     SolidMechanicsViscohyperelasticity = SolidMechanicsViscohyperelasticity
+    SolidMechanicsInitialValue = SolidMechanicsInitialValue
     CurrentFlowConstraint = CurrentFlowConstraint
     CurrentFlowCurrentDensity = CurrentFlowCurrentDensity
     CurrentFlowLump = CurrentFlowLump
     CurrentFlowLumpVICut = CurrentFlowLumpVICut
     CurrentFlowPeriodicity = CurrentFlowPeriodicity
+    CurrentFlowInitialValue = CurrentFlowInitialValue
     AcousticWavesPml = AcousticWavesPml
     AcousticWavesConstraint = AcousticWavesConstraint
     AcousticWavesAcousticStructure = AcousticWavesAcousticStructure
@@ -203,6 +220,7 @@ class Interaction:
     AcousticWavesAcousticDamping = AcousticWavesAcousticDamping
     AcousticWavesNormalAcceleration = AcousticWavesNormalAcceleration
     AcousticWavesContinuity = AcousticWavesContinuity
+    AcousticWavesInitialValue = AcousticWavesInitialValue
     ElectromagneticWavesConstraint = ElectromagneticWavesConstraint
     ElectromagneticWavesPml = ElectromagneticWavesPml
     ElectromagneticWavesRectangularPort = ElectromagneticWavesRectangularPort
@@ -213,6 +231,7 @@ class Interaction:
     ElectromagneticWavesPeriodicity = ElectromagneticWavesPeriodicity
     ElectromagneticWavesAbsorbingBoundary = ElectromagneticWavesAbsorbingBoundary
     ElectromagneticWavesBoundaryAdmittance = ElectromagneticWavesBoundaryAdmittance
+    ElectromagneticWavesInitialValue = ElectromagneticWavesInitialValue
     ElectrostaticsConstraint = ElectrostaticsConstraint
     ElectrostaticsPiezoelectricity = ElectrostaticsPiezoelectricity
     ElectrostaticsLump = ElectrostaticsLump
@@ -221,10 +240,12 @@ class Interaction:
         ElectrostaticsElasticWavesPiezoelectricity
     )
     ElectrostaticsPeriodicity = ElectrostaticsPeriodicity
+    ElectrostaticsInitialValue = ElectrostaticsInitialValue
     MagnetismAMagneticWall = MagnetismAMagneticWall
     MagnetismAElectromagneticCoupling = MagnetismAElectromagneticCoupling
     MagnetismABackgroundField = MagnetismABackgroundField
     MagnetismAPeriodicity = MagnetismAPeriodicity
+    MagnetismAInitialValue = MagnetismAInitialValue
     MagnetismPhiConstraint = MagnetismPhiConstraint
     MagnetismPhiBackgroundField = MagnetismPhiBackgroundField
     MagnetismPhiLumpPhiPhiB = MagnetismPhiLumpPhiPhiB
@@ -232,10 +253,12 @@ class Interaction:
     MagnetismPhiExternalField = MagnetismPhiExternalField
     MagnetismPhiPeriodicity = MagnetismPhiPeriodicity
     MagnetismPhiContinuity = MagnetismPhiContinuity
+    MagnetismPhiInitialValue = MagnetismPhiInitialValue
     MagnetismHConstraint = MagnetismHConstraint
     MagnetismHHPhiCoupling = MagnetismHHPhiCoupling
     MagnetismHElectricalInsulator = MagnetismHElectricalInsulator
     MagnetismHPeriodicity = MagnetismHPeriodicity
+    MagnetismHInitialValue = MagnetismHInitialValue
     LaminarFlowVelocityConstraint = LaminarFlowVelocityConstraint
     LaminarFlowPressureConstraint = LaminarFlowPressureConstraint
     LaminarFlowThermalFluid = LaminarFlowThermalFluid
@@ -249,15 +272,19 @@ class Interaction:
     LaminarFlowLumpPM = LaminarFlowLumpPM
     LaminarFlowLumpVFv = LaminarFlowLumpVFv
     LaminarFlowLinear = LaminarFlowLinear
+    LaminarFlowVelocityInitialValue = LaminarFlowVelocityInitialValue
+    LaminarFlowPressureInitialValue = LaminarFlowPressureInitialValue
     HeatTransferTemperatureConstraint = HeatTransferTemperatureConstraint
     HeatTransferHeatSource = HeatTransferHeatSource
     HeatTransferJouleHeating = HeatTransferJouleHeating
     HeatTransferPeriodicity = HeatTransferPeriodicity
     HeatTransferConvection = HeatTransferConvection
     HeatTransferLumpTPhi = HeatTransferLumpTPhi
+    HeatTransferInitialValue = HeatTransferInitialValue
     HeatFluidConstraint = HeatFluidConstraint
     HeatFluidHeatSource = HeatFluidHeatSource
     HeatFluidPeriodicity = HeatFluidPeriodicity
+    HeatFluidInitialValue = HeatFluidInitialValue
     ElasticWavesLoad = ElasticWavesLoad
     ElasticWavesConstraint = ElasticWavesConstraint
     ElasticWavesClamp = ElasticWavesClamp
@@ -274,10 +301,12 @@ class Interaction:
     ElasticWavesProportionalDamping = ElasticWavesProportionalDamping
     ElasticWavesContinuity = ElasticWavesContinuity
     ElasticWavesViscousDamping = ElasticWavesViscousDamping
+    ElasticWavesInitialValue = ElasticWavesInitialValue
     MeshDeformationConstraint = MeshDeformationConstraint
     MeshDeformationClamp = MeshDeformationClamp
     MeshDeformationPeriodicity = MeshDeformationPeriodicity
     MeshDeformationSymmetry = MeshDeformationSymmetry
+    MeshDeformationInitialValue = MeshDeformationInitialValue
 
 
 class Output:
@@ -289,6 +318,7 @@ class Output:
     Eigenfrequencies = Eigenfrequencies
     Eigenvalues = Eigenvalues
     ElectromagneticWavesRadiationPattern = ElectromagneticWavesRadiationPattern
+    FieldOnlyOutput = FieldOnlyOutput
     FieldOutput = FieldOutput
     FieldState = FieldState
     FinalHPhiState = FinalHPhiState

@@ -80,8 +80,7 @@ class CadGeometryDefinition(BaseModel):
         _items = []
         if self.elements:
             for _item_elements in self.elements:
-                if _item_elements:
-                    _items.append(_item_elements.to_dict())
+                _items.append(_item_elements.to_dict() if _item_elements is not None else None)
             _dict['elements'] = _items
         return _dict
 

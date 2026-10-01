@@ -80,8 +80,7 @@ class OrganizationQuota(BaseModel):
         _items = []
         if self.teams:
             for _item_teams in self.teams:
-                if _item_teams:
-                    _items.append(_item_teams.to_dict())
+                _items.append(_item_teams.to_dict() if _item_teams is not None else None)
             _dict['teams'] = _items
         return _dict
 

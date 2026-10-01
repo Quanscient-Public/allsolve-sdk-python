@@ -163,6 +163,7 @@ __all__ = [
     "ElectromagneticWavesRectangularPortModeType",
     "ElectrostaticsLumpActuationMode",
     "ElectrostaticsPeriodicityType",
+    "FieldOnlyOutputFilterType",
     "FieldOutputFilterType",
     "FieldStateFilterType",
     "HeatFluidPeriodicityType",

@@ -74,8 +74,7 @@ class MeshSupportData(BaseModel):
         _items = []
         if self.structured_mesh:
             for _item_structured_mesh in self.structured_mesh:
-                if _item_structured_mesh:
-                    _items.append(_item_structured_mesh.to_dict())
+                _items.append(_item_structured_mesh.to_dict() if _item_structured_mesh is not None else None)
             _dict['structuredMesh'] = _items
         return _dict
 

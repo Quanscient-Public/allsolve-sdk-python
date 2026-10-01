@@ -37,7 +37,7 @@ from .cad_utils import (
     create_angular_unit,
 )
 from .cad_geometry_element import CadGeometryElement
-from allsolve.util import prevent_deleted
+from allsolve.util import prevent_deleted, reject_unsafe_path_component
 from .cad_geometry_type import CadGeometryType
 
 
@@ -215,7 +215,8 @@ class CadFileImport(CadGeometryElement):
         if not output_path.exists():
             output_path.mkdir(parents=True, exist_ok=True)
 
-        filename = pathlib.Path(self._filepath).name
+        filename = pathlib.PureWindowsPath(self._filepath).name
+        reject_unsafe_path_component(filename, context="geometry file name")
         filepath = output_path / filename
 
         if not overwrite and filepath.exists():

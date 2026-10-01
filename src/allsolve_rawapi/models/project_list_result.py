@@ -74,8 +74,7 @@ class ProjectListResult(BaseModel):
         _items = []
         if self.projects:
             for _item_projects in self.projects:
-                if _item_projects:
-                    _items.append(_item_projects.to_dict())
+                _items.append(_item_projects.to_dict() if _item_projects is not None else None)
             _dict['projects'] = _items
         return _dict
 

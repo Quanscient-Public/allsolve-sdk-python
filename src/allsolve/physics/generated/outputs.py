@@ -30,10 +30,20 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
     """Acoustic extrapolation output interaction."""
 
     definition_id = "acousticWavesAcousticExtrapolation"
+    target_definition_ids = {
+        "extrapolation_target": "acousticWavesAcousticExtrapolationTarget",
+        "extrapolation_skin_target": "acousticWavesAcousticExtrapolationSkinTarget",
+    }
+    optional_target_definition_ids = {
+        "extrapolation_target",
+        "extrapolation_skin_target",
+    }
 
     def __init__(
         self,
         name: str,
+        extrapolation_target: "Region | str | None" = None,
+        extrapolation_skin_target: "Region | str | None" = None,
         *,
         enabled: BooleanValue | None = None,
         acoustic_waves_acoustic_extrapolation_c: ScalarValue = "343",
@@ -48,11 +58,14 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
         acoustic_waves_acoustic_extrapolation_target_shape: (
             AcousticWavesAcousticExtrapolationTargetShape | str
         ) = AcousticWavesAcousticExtrapolationTargetShape.LINE,
+        acoustic_waves_acoustic_extrapolation_line_num_sample_points: (
+            ScalarValue | None
+        ) = None,
         acoustic_waves_acoustic_extrapolation_line_start_point: (
             VectorValue | None
         ) = None,
         acoustic_waves_acoustic_extrapolation_line_end_point: VectorValue | None = None,
-        acoustic_waves_acoustic_extrapolation_line_num_sample_points: (
+        acoustic_waves_acoustic_extrapolation_arc_num_sample_points: (
             ScalarValue | None
         ) = None,
         acoustic_waves_acoustic_extrapolation_arc_start_point: (
@@ -60,7 +73,10 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
         ) = None,
         acoustic_waves_acoustic_extrapolation_arc_end_point: VectorValue | None = None,
         acoustic_waves_acoustic_extrapolation_arc_center: VectorValue | None = None,
-        acoustic_waves_acoustic_extrapolation_arc_num_sample_points: (
+        acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1: (
+            ScalarValue | None
+        ) = None,
+        acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2: (
             ScalarValue | None
         ) = None,
         acoustic_waves_acoustic_extrapolation_quadrangle_point1: (
@@ -75,17 +91,14 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
         acoustic_waves_acoustic_extrapolation_quadrangle_point4: (
             VectorValue | None
         ) = None,
-        acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1: (
-            ScalarValue | None
-        ) = None,
-        acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2: (
-            ScalarValue | None
-        ) = None,
+        acoustic_waves_acoustic_extrapolation_points: ScalarValue | None = None,
     ) -> None:
         """Create a acoustic extrapolation output.
 
         Parameters:
             name: Name of the output.
+            extrapolation_target: Target region for extrapolation_target.
+            extrapolation_skin_target: Target region for extrapolation_skin_target.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
             acoustic_waves_acoustic_extrapolation_c: acoustic waves acoustic extrapolation c
             acoustic_waves_acoustic_extrapolation_rho: acoustic waves acoustic extrapolation rho
@@ -93,19 +106,20 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
             acoustic_waves_acoustic_extrapolation_time_aggregation_operation: acoustic waves acoustic extrapolation time aggregation operation
             acoustic_waves_acoustic_extrapolation_time_aggregation_data_operation: acoustic waves acoustic extrapolation time aggregation data operation
             acoustic_waves_acoustic_extrapolation_target_shape: acoustic waves acoustic extrapolation target shape
+            acoustic_waves_acoustic_extrapolation_line_num_sample_points: acoustic waves acoustic extrapolation line num sample points
             acoustic_waves_acoustic_extrapolation_line_start_point: acoustic waves acoustic extrapolation line start point
             acoustic_waves_acoustic_extrapolation_line_end_point: acoustic waves acoustic extrapolation line end point
-            acoustic_waves_acoustic_extrapolation_line_num_sample_points: acoustic waves acoustic extrapolation line num sample points
+            acoustic_waves_acoustic_extrapolation_arc_num_sample_points: acoustic waves acoustic extrapolation arc num sample points
             acoustic_waves_acoustic_extrapolation_arc_start_point: acoustic waves acoustic extrapolation arc start point
             acoustic_waves_acoustic_extrapolation_arc_end_point: acoustic waves acoustic extrapolation arc end point
             acoustic_waves_acoustic_extrapolation_arc_center: acoustic waves acoustic extrapolation arc center
-            acoustic_waves_acoustic_extrapolation_arc_num_sample_points: acoustic waves acoustic extrapolation arc num sample points
+            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1: acoustic waves acoustic extrapolation quadrangle num sample points1
+            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2: acoustic waves acoustic extrapolation quadrangle num sample points2
             acoustic_waves_acoustic_extrapolation_quadrangle_point1: acoustic waves acoustic extrapolation quadrangle point1
             acoustic_waves_acoustic_extrapolation_quadrangle_point2: acoustic waves acoustic extrapolation quadrangle point2
             acoustic_waves_acoustic_extrapolation_quadrangle_point3: acoustic waves acoustic extrapolation quadrangle point3
             acoustic_waves_acoustic_extrapolation_quadrangle_point4: acoustic waves acoustic extrapolation quadrangle point4
-            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1: acoustic waves acoustic extrapolation quadrangle num sample points1
-            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2: acoustic waves acoustic extrapolation quadrangle num sample points2
+            acoustic_waves_acoustic_extrapolation_points: For example [x1, x2; y1, y2; z1, z2]
         """
         _ebo_ctrl_0 = (
             acoustic_waves_acoustic_extrapolation_target_shape.value
@@ -113,9 +127,9 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
             else acoustic_waves_acoustic_extrapolation_target_shape
         )
         if _ebo_ctrl_0 == "acousticWavesAcousticExtrapolationTargetShapeLine":
-            if acoustic_waves_acoustic_extrapolation_line_start_point is None:
+            if acoustic_waves_acoustic_extrapolation_line_num_sample_points is None:
                 raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeLine', acoustic_waves_acoustic_extrapolation_line_start_point must not be None"
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeLine', acoustic_waves_acoustic_extrapolation_line_num_sample_points must not be None"
                 )
         _ebo_ctrl_1 = (
             acoustic_waves_acoustic_extrapolation_target_shape.value
@@ -123,9 +137,9 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
             else acoustic_waves_acoustic_extrapolation_target_shape
         )
         if _ebo_ctrl_1 == "acousticWavesAcousticExtrapolationTargetShapeLine":
-            if acoustic_waves_acoustic_extrapolation_line_end_point is None:
+            if acoustic_waves_acoustic_extrapolation_line_start_point is None:
                 raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeLine', acoustic_waves_acoustic_extrapolation_line_end_point must not be None"
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeLine', acoustic_waves_acoustic_extrapolation_line_start_point must not be None"
                 )
         _ebo_ctrl_2 = (
             acoustic_waves_acoustic_extrapolation_target_shape.value
@@ -133,9 +147,9 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
             else acoustic_waves_acoustic_extrapolation_target_shape
         )
         if _ebo_ctrl_2 == "acousticWavesAcousticExtrapolationTargetShapeLine":
-            if acoustic_waves_acoustic_extrapolation_line_num_sample_points is None:
+            if acoustic_waves_acoustic_extrapolation_line_end_point is None:
                 raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeLine', acoustic_waves_acoustic_extrapolation_line_num_sample_points must not be None"
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeLine', acoustic_waves_acoustic_extrapolation_line_end_point must not be None"
                 )
         _ebo_ctrl_3 = (
             acoustic_waves_acoustic_extrapolation_target_shape.value
@@ -143,9 +157,9 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
             else acoustic_waves_acoustic_extrapolation_target_shape
         )
         if _ebo_ctrl_3 == "acousticWavesAcousticExtrapolationTargetShapeArc":
-            if acoustic_waves_acoustic_extrapolation_arc_start_point is None:
+            if acoustic_waves_acoustic_extrapolation_arc_num_sample_points is None:
                 raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeArc', acoustic_waves_acoustic_extrapolation_arc_start_point must not be None"
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeArc', acoustic_waves_acoustic_extrapolation_arc_num_sample_points must not be None"
                 )
         _ebo_ctrl_4 = (
             acoustic_waves_acoustic_extrapolation_target_shape.value
@@ -153,9 +167,9 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
             else acoustic_waves_acoustic_extrapolation_target_shape
         )
         if _ebo_ctrl_4 == "acousticWavesAcousticExtrapolationTargetShapeArc":
-            if acoustic_waves_acoustic_extrapolation_arc_end_point is None:
+            if acoustic_waves_acoustic_extrapolation_arc_start_point is None:
                 raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeArc', acoustic_waves_acoustic_extrapolation_arc_end_point must not be None"
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeArc', acoustic_waves_acoustic_extrapolation_arc_start_point must not be None"
                 )
         _ebo_ctrl_5 = (
             acoustic_waves_acoustic_extrapolation_target_shape.value
@@ -163,9 +177,9 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
             else acoustic_waves_acoustic_extrapolation_target_shape
         )
         if _ebo_ctrl_5 == "acousticWavesAcousticExtrapolationTargetShapeArc":
-            if acoustic_waves_acoustic_extrapolation_arc_center is None:
+            if acoustic_waves_acoustic_extrapolation_arc_end_point is None:
                 raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeArc', acoustic_waves_acoustic_extrapolation_arc_center must not be None"
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeArc', acoustic_waves_acoustic_extrapolation_arc_end_point must not be None"
                 )
         _ebo_ctrl_6 = (
             acoustic_waves_acoustic_extrapolation_target_shape.value
@@ -173,9 +187,9 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
             else acoustic_waves_acoustic_extrapolation_target_shape
         )
         if _ebo_ctrl_6 == "acousticWavesAcousticExtrapolationTargetShapeArc":
-            if acoustic_waves_acoustic_extrapolation_arc_num_sample_points is None:
+            if acoustic_waves_acoustic_extrapolation_arc_center is None:
                 raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeArc', acoustic_waves_acoustic_extrapolation_arc_num_sample_points must not be None"
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeArc', acoustic_waves_acoustic_extrapolation_arc_center must not be None"
                 )
         _ebo_ctrl_7 = (
             acoustic_waves_acoustic_extrapolation_target_shape.value
@@ -183,46 +197,6 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
             else acoustic_waves_acoustic_extrapolation_target_shape
         )
         if _ebo_ctrl_7 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
-            if acoustic_waves_acoustic_extrapolation_quadrangle_point1 is None:
-                raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeQuadrangle', acoustic_waves_acoustic_extrapolation_quadrangle_point1 must not be None"
-                )
-        _ebo_ctrl_8 = (
-            acoustic_waves_acoustic_extrapolation_target_shape.value
-            if isinstance(acoustic_waves_acoustic_extrapolation_target_shape, Enum)
-            else acoustic_waves_acoustic_extrapolation_target_shape
-        )
-        if _ebo_ctrl_8 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
-            if acoustic_waves_acoustic_extrapolation_quadrangle_point2 is None:
-                raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeQuadrangle', acoustic_waves_acoustic_extrapolation_quadrangle_point2 must not be None"
-                )
-        _ebo_ctrl_9 = (
-            acoustic_waves_acoustic_extrapolation_target_shape.value
-            if isinstance(acoustic_waves_acoustic_extrapolation_target_shape, Enum)
-            else acoustic_waves_acoustic_extrapolation_target_shape
-        )
-        if _ebo_ctrl_9 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
-            if acoustic_waves_acoustic_extrapolation_quadrangle_point3 is None:
-                raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeQuadrangle', acoustic_waves_acoustic_extrapolation_quadrangle_point3 must not be None"
-                )
-        _ebo_ctrl_10 = (
-            acoustic_waves_acoustic_extrapolation_target_shape.value
-            if isinstance(acoustic_waves_acoustic_extrapolation_target_shape, Enum)
-            else acoustic_waves_acoustic_extrapolation_target_shape
-        )
-        if _ebo_ctrl_10 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
-            if acoustic_waves_acoustic_extrapolation_quadrangle_point4 is None:
-                raise ValueError(
-                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeQuadrangle', acoustic_waves_acoustic_extrapolation_quadrangle_point4 must not be None"
-                )
-        _ebo_ctrl_11 = (
-            acoustic_waves_acoustic_extrapolation_target_shape.value
-            if isinstance(acoustic_waves_acoustic_extrapolation_target_shape, Enum)
-            else acoustic_waves_acoustic_extrapolation_target_shape
-        )
-        if _ebo_ctrl_11 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
             if (
                 acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1
                 is None
@@ -230,18 +204,68 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
                 raise ValueError(
                     "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeQuadrangle', acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1 must not be None"
                 )
-        _ebo_ctrl_12 = (
+        _ebo_ctrl_8 = (
             acoustic_waves_acoustic_extrapolation_target_shape.value
             if isinstance(acoustic_waves_acoustic_extrapolation_target_shape, Enum)
             else acoustic_waves_acoustic_extrapolation_target_shape
         )
-        if _ebo_ctrl_12 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
+        if _ebo_ctrl_8 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
             if (
                 acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2
                 is None
             ):
                 raise ValueError(
                     "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeQuadrangle', acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2 must not be None"
+                )
+        _ebo_ctrl_9 = (
+            acoustic_waves_acoustic_extrapolation_target_shape.value
+            if isinstance(acoustic_waves_acoustic_extrapolation_target_shape, Enum)
+            else acoustic_waves_acoustic_extrapolation_target_shape
+        )
+        if _ebo_ctrl_9 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
+            if acoustic_waves_acoustic_extrapolation_quadrangle_point1 is None:
+                raise ValueError(
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeQuadrangle', acoustic_waves_acoustic_extrapolation_quadrangle_point1 must not be None"
+                )
+        _ebo_ctrl_10 = (
+            acoustic_waves_acoustic_extrapolation_target_shape.value
+            if isinstance(acoustic_waves_acoustic_extrapolation_target_shape, Enum)
+            else acoustic_waves_acoustic_extrapolation_target_shape
+        )
+        if _ebo_ctrl_10 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
+            if acoustic_waves_acoustic_extrapolation_quadrangle_point2 is None:
+                raise ValueError(
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeQuadrangle', acoustic_waves_acoustic_extrapolation_quadrangle_point2 must not be None"
+                )
+        _ebo_ctrl_11 = (
+            acoustic_waves_acoustic_extrapolation_target_shape.value
+            if isinstance(acoustic_waves_acoustic_extrapolation_target_shape, Enum)
+            else acoustic_waves_acoustic_extrapolation_target_shape
+        )
+        if _ebo_ctrl_11 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
+            if acoustic_waves_acoustic_extrapolation_quadrangle_point3 is None:
+                raise ValueError(
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeQuadrangle', acoustic_waves_acoustic_extrapolation_quadrangle_point3 must not be None"
+                )
+        _ebo_ctrl_12 = (
+            acoustic_waves_acoustic_extrapolation_target_shape.value
+            if isinstance(acoustic_waves_acoustic_extrapolation_target_shape, Enum)
+            else acoustic_waves_acoustic_extrapolation_target_shape
+        )
+        if _ebo_ctrl_12 == "acousticWavesAcousticExtrapolationTargetShapeQuadrangle":
+            if acoustic_waves_acoustic_extrapolation_quadrangle_point4 is None:
+                raise ValueError(
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapeQuadrangle', acoustic_waves_acoustic_extrapolation_quadrangle_point4 must not be None"
+                )
+        _ebo_ctrl_13 = (
+            acoustic_waves_acoustic_extrapolation_target_shape.value
+            if isinstance(acoustic_waves_acoustic_extrapolation_target_shape, Enum)
+            else acoustic_waves_acoustic_extrapolation_target_shape
+        )
+        if _ebo_ctrl_13 == "acousticWavesAcousticExtrapolationTargetShapePoints":
+            if acoustic_waves_acoustic_extrapolation_points is None:
+                raise ValueError(
+                    "AcousticWavesAcousticExtrapolation: when acoustic_waves_acoustic_extrapolation_target_shape selects option 'acousticWavesAcousticExtrapolationTargetShapePoints', acoustic_waves_acoustic_extrapolation_points must not be None"
                 )
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -300,6 +324,15 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
                 ),
             )
         )
+        if acoustic_waves_acoustic_extrapolation_line_num_sample_points is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="acousticWavesAcousticExtrapolationLineNumSamplePoints",
+                    value=str(
+                        acoustic_waves_acoustic_extrapolation_line_num_sample_points
+                    ),
+                )
+            )
         if acoustic_waves_acoustic_extrapolation_line_start_point is not None:
             parameters.append(
                 InteractionParameter(
@@ -318,12 +351,12 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
                     ),
                 )
             )
-        if acoustic_waves_acoustic_extrapolation_line_num_sample_points is not None:
+        if acoustic_waves_acoustic_extrapolation_arc_num_sample_points is not None:
             parameters.append(
                 InteractionParameter(
-                    definition="acousticWavesAcousticExtrapolationLineNumSamplePoints",
+                    definition="acousticWavesAcousticExtrapolationArcNumSamplePoints",
                     value=str(
-                        acoustic_waves_acoustic_extrapolation_line_num_sample_points
+                        acoustic_waves_acoustic_extrapolation_arc_num_sample_points
                     ),
                 )
             )
@@ -354,12 +387,27 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
                     ),
                 )
             )
-        if acoustic_waves_acoustic_extrapolation_arc_num_sample_points is not None:
+        if (
+            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1
+            is not None
+        ):
             parameters.append(
                 InteractionParameter(
-                    definition="acousticWavesAcousticExtrapolationArcNumSamplePoints",
+                    definition="acousticWavesAcousticExtrapolationQuadrangleNumSamplePoints1",
                     value=str(
-                        acoustic_waves_acoustic_extrapolation_arc_num_sample_points
+                        acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1
+                    ),
+                )
+            )
+        if (
+            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2
+            is not None
+        ):
+            parameters.append(
+                InteractionParameter(
+                    definition="acousticWavesAcousticExtrapolationQuadrangleNumSamplePoints2",
+                    value=str(
+                        acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2
                     ),
                 )
             )
@@ -399,32 +447,19 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
                     ),
                 )
             )
-        if (
-            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1
-            is not None
-        ):
+        if acoustic_waves_acoustic_extrapolation_points is not None:
             parameters.append(
                 InteractionParameter(
-                    definition="acousticWavesAcousticExtrapolationQuadrangleNumSamplePoints1",
-                    value=str(
-                        acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1
-                    ),
-                )
-            )
-        if (
-            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2
-            is not None
-        ):
-            parameters.append(
-                InteractionParameter(
-                    definition="acousticWavesAcousticExtrapolationQuadrangleNumSamplePoints2",
-                    value=str(
-                        acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2
-                    ),
+                    definition="acousticWavesAcousticExtrapolationPoints",
+                    value=str(acoustic_waves_acoustic_extrapolation_points),
                 )
             )
         super().__init__(
             name=name,
+            targets={
+                "extrapolation_target": extrapolation_target,
+                "extrapolation_skin_target": extrapolation_skin_target,
+            },
             enabled=enabled,
             parameters=parameters,
         )
@@ -440,10 +475,10 @@ class AcousticWavesRadiationPattern(OutputInteraction):
         name: str,
         *,
         enabled: BooleanValue | None = None,
-        acoustic_waves_radiation_pattern_num_points: ScalarValue = "10",
-        acoustic_waves_radiation_pattern_plane_normal: VectorValue | None = None,
+        acoustic_waves_radiation_pattern_num_points: ScalarValue | None = None,
         acoustic_waves_radiation_pattern_far_field_c: ScalarValue = "343",
         acoustic_waves_radiation_pattern_far_field_rho: ScalarValue = "1.2",
+        acoustic_waves_radiation_pattern_plane_normal: VectorValue | None = None,
     ) -> None:
         """Create a acoustic radiation pattern output.
 
@@ -451,22 +486,16 @@ class AcousticWavesRadiationPattern(OutputInteraction):
             name: Name of the output.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
             acoustic_waves_radiation_pattern_num_points: acoustic waves radiation pattern num points
-            acoustic_waves_radiation_pattern_plane_normal: Normal of the plane to draw on as a column vector
             acoustic_waves_radiation_pattern_far_field_c: acoustic waves radiation pattern far field c
             acoustic_waves_radiation_pattern_far_field_rho: acoustic waves radiation pattern far field rho
+            acoustic_waves_radiation_pattern_plane_normal: Normal of the plane to draw on as a column vector
         """
         parameters: List[InteractionParameter] = []
-        parameters.append(
-            InteractionParameter(
-                definition="acousticWavesRadiationPatternNumPoints",
-                value=str(acoustic_waves_radiation_pattern_num_points),
-            )
-        )
-        if acoustic_waves_radiation_pattern_plane_normal is not None:
+        if acoustic_waves_radiation_pattern_num_points is not None:
             parameters.append(
                 InteractionParameter(
-                    definition="acousticWavesRadiationPatternPlaneNormal",
-                    value=vector_to_str(acoustic_waves_radiation_pattern_plane_normal),
+                    definition="acousticWavesRadiationPatternNumPoints",
+                    value=str(acoustic_waves_radiation_pattern_num_points),
                 )
             )
         parameters.append(
@@ -481,6 +510,13 @@ class AcousticWavesRadiationPattern(OutputInteraction):
                 value=str(acoustic_waves_radiation_pattern_far_field_rho),
             )
         )
+        if acoustic_waves_radiation_pattern_plane_normal is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="acousticWavesRadiationPatternPlaneNormal",
+                    value=vector_to_str(acoustic_waves_radiation_pattern_plane_normal),
+                )
+            )
         super().__init__(
             name=name,
             enabled=enabled,
@@ -578,7 +614,7 @@ class ElectromagneticWavesRadiationPattern(OutputInteraction):
         name: str,
         *,
         enabled: BooleanValue | None = None,
-        electromagnetic_waves_radiation_pattern_num_points: ScalarValue = "10",
+        electromagnetic_waves_radiation_pattern_num_points: ScalarValue | None = None,
         electromagnetic_waves_radiation_pattern_plane_normal: VectorValue | None = None,
     ) -> None:
         """Create a em radiation pattern output.
@@ -590,12 +626,13 @@ class ElectromagneticWavesRadiationPattern(OutputInteraction):
             electromagnetic_waves_radiation_pattern_plane_normal: Normal of the plane to draw on as a column vector
         """
         parameters: List[InteractionParameter] = []
-        parameters.append(
-            InteractionParameter(
-                definition="electromagneticWavesRadiationPatternNumPoints",
-                value=str(electromagnetic_waves_radiation_pattern_num_points),
+        if electromagnetic_waves_radiation_pattern_num_points is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="electromagneticWavesRadiationPatternNumPoints",
+                    value=str(electromagnetic_waves_radiation_pattern_num_points),
+                )
             )
-        )
         if electromagnetic_waves_radiation_pattern_plane_normal is not None:
             parameters.append(
                 InteractionParameter(
@@ -607,6 +644,129 @@ class ElectromagneticWavesRadiationPattern(OutputInteraction):
             )
         super().__init__(
             name=name,
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
+class FieldOnlyOutput(OutputInteraction):
+    """Field output output interaction."""
+
+    definition_id = "fieldOnlyOutput"
+    target_definition_ids = {"target": "fieldOnlyOutputTarget"}
+
+    def __init__(
+        self,
+        name: str,
+        field_only_output: ScalarValue,
+        target: "Region | str | None" = None,
+        *,
+        enabled: BooleanValue | None = None,
+        field_only_output_skin_only: BooleanValue = False,
+        field_only_output_deformed_mesh: BooleanValue = False,
+        field_only_output_filter_type: (
+            FieldOnlyOutputFilterType | str
+        ) = FieldOnlyOutputFilterType.NONE,
+        field_only_output_filter_every_nth_step: ScalarValue | None = None,
+        field_only_output_filter_step_indices: ScalarValue | None = None,
+        field_only_output_filter_expression: ScalarValue | None = None,
+    ) -> None:
+        """Create a field output output.
+
+        Parameters:
+            name: Name of the output.
+            field_only_output: The output expression
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+            field_only_output_skin_only: If checked, only the skin of the region is written.
+            field_only_output_deformed_mesh: If checked, the field is written on the deformed mesh.
+            field_only_output_filter_type: How to select which steps to save.
+            field_only_output_filter_every_nth_step: Provide interval N as an integer. The output will be saved every Nth step.
+            field_only_output_filter_step_indices: Provide a list of step indices to output. For example [0, 2, 10]
+            field_only_output_filter_expression: Output the field when this expression evaluates to a non-zero value.
+        """
+        _ebo_ctrl_0 = (
+            field_only_output_filter_type.value
+            if isinstance(field_only_output_filter_type, Enum)
+            else field_only_output_filter_type
+        )
+        if _ebo_ctrl_0 == "fieldOnlyOutputFilterTypeEveryNthStep":
+            if field_only_output_filter_every_nth_step is None:
+                raise ValueError(
+                    "FieldOnlyOutput: when field_only_output_filter_type selects option 'fieldOnlyOutputFilterTypeEveryNthStep', field_only_output_filter_every_nth_step must not be None"
+                )
+        _ebo_ctrl_1 = (
+            field_only_output_filter_type.value
+            if isinstance(field_only_output_filter_type, Enum)
+            else field_only_output_filter_type
+        )
+        if _ebo_ctrl_1 == "fieldOnlyOutputFilterTypeStepIndices":
+            if field_only_output_filter_step_indices is None:
+                raise ValueError(
+                    "FieldOnlyOutput: when field_only_output_filter_type selects option 'fieldOnlyOutputFilterTypeStepIndices', field_only_output_filter_step_indices must not be None"
+                )
+        _ebo_ctrl_2 = (
+            field_only_output_filter_type.value
+            if isinstance(field_only_output_filter_type, Enum)
+            else field_only_output_filter_type
+        )
+        if _ebo_ctrl_2 == "fieldOnlyOutputFilterTypeExpression":
+            if field_only_output_filter_expression is None:
+                raise ValueError(
+                    "FieldOnlyOutput: when field_only_output_filter_type selects option 'fieldOnlyOutputFilterTypeExpression', field_only_output_filter_expression must not be None"
+                )
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="fieldOnlyOutput", value=str(field_only_output)
+            )
+        )
+        parameters.append(
+            InteractionParameter(
+                definition="fieldOnlyOutputSkinOnly",
+                value=boolean_to_str(field_only_output_skin_only),
+            )
+        )
+        parameters.append(
+            InteractionParameter(
+                definition="fieldOnlyOutputDeformedMesh",
+                value=boolean_to_str(field_only_output_deformed_mesh),
+            )
+        )
+        parameters.append(
+            InteractionParameter(
+                definition="fieldOnlyOutputFilterType",
+                ascii_value=(
+                    field_only_output_filter_type.value
+                    if isinstance(field_only_output_filter_type, Enum)
+                    else field_only_output_filter_type
+                ),
+            )
+        )
+        if field_only_output_filter_every_nth_step is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="fieldOnlyOutputFilterEveryNthStep",
+                    value=str(field_only_output_filter_every_nth_step),
+                )
+            )
+        if field_only_output_filter_step_indices is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="fieldOnlyOutputFilterStepIndices",
+                    value=str(field_only_output_filter_step_indices),
+                )
+            )
+        if field_only_output_filter_expression is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="fieldOnlyOutputFilterExpression",
+                    value=str(field_only_output_filter_expression),
+                )
+            )
+        super().__init__(
+            name=name,
+            targets={"target": target},
             enabled=enabled,
             parameters=parameters,
         )

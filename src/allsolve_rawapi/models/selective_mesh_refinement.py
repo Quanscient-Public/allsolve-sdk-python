@@ -77,22 +77,19 @@ class SelectiveMeshRefinement(BaseModel):
         _items = []
         if self.volumes:
             for _item_volumes in self.volumes:
-                if _item_volumes:
-                    _items.append(_item_volumes.to_dict())
+                _items.append(_item_volumes.to_dict() if _item_volumes is not None else None)
             _dict['volumes'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in surfaces (list)
         _items = []
         if self.surfaces:
             for _item_surfaces in self.surfaces:
-                if _item_surfaces:
-                    _items.append(_item_surfaces.to_dict())
+                _items.append(_item_surfaces.to_dict() if _item_surfaces is not None else None)
             _dict['surfaces'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in curves (list)
         _items = []
         if self.curves:
             for _item_curves in self.curves:
-                if _item_curves:
-                    _items.append(_item_curves.to_dict())
+                _items.append(_item_curves.to_dict() if _item_curves is not None else None)
             _dict['curves'] = _items
         return _dict
 

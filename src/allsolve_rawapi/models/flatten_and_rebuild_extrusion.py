@@ -83,10 +83,9 @@ class FlattenAndRebuildExtrusion(BaseModel):
         _items = []
         if self.layers:
             for _item_layers in self.layers:
-                if _item_layers:
-                    _items.append(
-                         [_inner_item.to_dict() for _inner_item in _item_layers if _inner_item is not None]
-                    )
+                _items.append(
+                     [_inner_item.to_dict() if _inner_item is not None else None for _inner_item in _item_layers] if _item_layers is not None else None
+                )
             _dict['layers'] = _items
         # override the default output from pydantic by calling `to_dict()` of direction_vector
         if self.direction_vector:
@@ -105,7 +104,7 @@ class FlattenAndRebuildExtrusion(BaseModel):
         _obj = cls.model_validate({
             "volumes": EntitySelection.from_dict(obj["volumes"]) if obj.get("volumes") is not None else None,
             "layers": [
-                    [ExtrusionLayerDefinition.from_dict(_inner_item) for _inner_item in _item]
+                    [ExtrusionLayerDefinition.from_dict(_inner_item) for _inner_item in _item] if _item is not None else None
                     for _item in obj["layers"]
                 ] if obj.get("layers") is not None else None,
             "quadrangles": obj.get("quadrangles") if obj.get("quadrangles") is not None else False,

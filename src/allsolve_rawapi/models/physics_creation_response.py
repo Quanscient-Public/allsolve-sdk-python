@@ -79,8 +79,7 @@ class PhysicsCreationResponse(BaseModel):
         _items = []
         if self.new_fields:
             for _item_new_fields in self.new_fields:
-                if _item_new_fields:
-                    _items.append(_item_new_fields.to_dict())
+                _items.append(_item_new_fields.to_dict() if _item_new_fields is not None else None)
             _dict['newFields'] = _items
         return _dict
 

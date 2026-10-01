@@ -5,6 +5,24 @@ All notable changes to the Allsolve SDK will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-10-01
+
+### Added
+
+- **CAD boolean tolerance** — `CadUnion`, `CadDifference`, `CadIntersection`, `CadFragments`, and `CadFragmentAll` accept an optional `boolean_tolerance` (`float | str | None`) for the Boolean operation algorithm. Project import/export supports the `booleanTolerance` YAML key on these geometry types.
+- **Field-only output** — `FieldOnlyOutput` simulation output for writing a single field expression with optional skin-only, deformed-mesh, and step-filter settings. New `FieldOnlyOutputFilterType` enum.
+- **Initial value interactions** — per-physics initial value interactions (e.g. `SolidMechanicsInitialValue`, `AcousticWavesInitialValue`, `ElectromagneticWavesInitialValue`, `HeatTransferInitialValue`, and related types for other physics domains).
+
+### Changed
+
+- **Acoustic radiation pattern** — `AcousticWavesRadiationPattern` no longer applies a SDK default for `acoustic_waves_radiation_pattern_num_points`; the parameter is now optional with no default.
+
+### Fixed
+
+- **Export path containment** — project export raises `ValueError` if API-returned names contain path traversal components (`..`, `/`, `\`, or similar).
+- **Library material orientation** — `Material.create_from_library()` now keeps the library material's orientation.
+- **2D rectangle rotation** — `CadRectangle` without a rotation now sends a zero rotation.
+
 ## [0.5.1] - 2026-08-19
 
 ### Added

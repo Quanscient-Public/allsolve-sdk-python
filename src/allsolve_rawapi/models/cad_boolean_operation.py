@@ -21,6 +21,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictFloat, Stri
 from typing import Any, ClassVar, Dict, List, Optional, Union
 from allsolve_rawapi.models.cad_boolean_elements import CadBooleanElements
 from allsolve_rawapi.models.cad_boolean_operation_type import CadBooleanOperationType
+from allsolve_rawapi.models.cad_distance import CadDistance
 from typing import Optional, Set
 from typing_extensions import Self
 from pydantic_core import to_jsonable_python
@@ -35,9 +36,10 @@ class CadBooleanOperation(BaseModel):
     simplify: Optional[StrictBool] = Field(default=None, description="Simplify the result geometry by removing redundant edges and faces")
     run_parallel: Optional[StrictBool] = Field(default=True, description="Enable parallel processing for the Boolean operation to improve performance", alias="runParallel")
     use_obb: Optional[StrictBool] = Field(default=False, description="Use object oriented bounding box for intersection calculations", alias="useOBB")
-    tolerance: Optional[Union[StrictFloat, StrictInt]] = Field(default=-1.0, description="Set the additional tolerance for the Boolean operation algorithm")
+    tolerance: Optional[Union[StrictFloat, StrictInt]] = Field(default=None, description="Deprecated. Use \"booleanTolerance\" instead. Set the additional tolerance for the Boolean operation algorithm. ")
+    boolean_tolerance: Optional[CadDistance] = Field(default=None, alias="booleanTolerance")
     glue: Optional[StrictInt] = Field(default=0, description="Set the glue option for the algorithm which allows increasing performance of the intersections of the input shapes in certain situations. Only available for fragments and fragmentall operations. 0: Glue option off 1: Glue option for shapes with partial coincidence 2: Glue option for shapes with full coincidence ")
-    __properties: ClassVar[List[str]] = ["type", "object", "tool", "simplify", "runParallel", "useOBB", "tolerance", "glue"]
+    __properties: ClassVar[List[str]] = ["type", "object", "tool", "simplify", "runParallel", "useOBB", "tolerance", "booleanTolerance", "glue"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -84,6 +86,9 @@ class CadBooleanOperation(BaseModel):
         # override the default output from pydantic by calling `to_dict()` of tool
         if self.tool:
             _dict['tool'] = self.tool.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of boolean_tolerance
+        if self.boolean_tolerance:
+            _dict['booleanTolerance'] = self.boolean_tolerance.to_dict()
         return _dict
 
     @classmethod
@@ -102,7 +107,8 @@ class CadBooleanOperation(BaseModel):
             "simplify": obj.get("simplify"),
             "runParallel": obj.get("runParallel") if obj.get("runParallel") is not None else True,
             "useOBB": obj.get("useOBB") if obj.get("useOBB") is not None else False,
-            "tolerance": obj.get("tolerance") if obj.get("tolerance") is not None else -1.0,
+            "tolerance": obj.get("tolerance"),
+            "booleanTolerance": CadDistance.from_dict(obj["booleanTolerance"]) if obj.get("booleanTolerance") is not None else None,
             "glue": obj.get("glue") if obj.get("glue") is not None else 0
         })
         return _obj

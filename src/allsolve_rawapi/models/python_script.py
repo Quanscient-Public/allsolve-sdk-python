@@ -80,22 +80,19 @@ class PythonScript(BaseModel):
         _items = []
         if self.imports:
             for _item_imports in self.imports:
-                if _item_imports:
-                    _items.append(_item_imports.to_dict())
+                _items.append(_item_imports.to_dict() if _item_imports is not None else None)
             _dict['imports'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in custom_sections (list)
         _items = []
         if self.custom_sections:
             for _item_custom_sections in self.custom_sections:
-                if _item_custom_sections:
-                    _items.append(_item_custom_sections.to_dict())
+                _items.append(_item_custom_sections.to_dict() if _item_custom_sections is not None else None)
             _dict['customSections'] = _items
         # override the default output from pydantic by calling `to_dict()` of each item in sections (list)
         _items = []
         if self.sections:
             for _item_sections in self.sections:
-                if _item_sections:
-                    _items.append(_item_sections.to_dict())
+                _items.append(_item_sections.to_dict() if _item_sections is not None else None)
             _dict['sections'] = _items
         return _dict
 

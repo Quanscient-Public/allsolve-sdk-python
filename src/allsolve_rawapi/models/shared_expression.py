@@ -97,8 +97,7 @@ class SharedExpression(BaseModel):
         _items = []
         if self.args:
             for _item_args in self.args:
-                if _item_args:
-                    _items.append(_item_args.to_dict())
+                _items.append(_item_args.to_dict() if _item_args is not None else None)
             _dict['args'] = _items
         return _dict
 

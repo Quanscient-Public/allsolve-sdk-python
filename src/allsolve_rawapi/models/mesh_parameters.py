@@ -105,8 +105,7 @@ class MeshParameters(BaseModel):
         _items = []
         if self.auto_transfinite_meshing:
             for _item_auto_transfinite_meshing in self.auto_transfinite_meshing:
-                if _item_auto_transfinite_meshing:
-                    _items.append(_item_auto_transfinite_meshing.to_dict())
+                _items.append(_item_auto_transfinite_meshing.to_dict() if _item_auto_transfinite_meshing is not None else None)
             _dict['autoTransfiniteMeshing'] = _items
         return _dict
 

@@ -74,8 +74,7 @@ class AttributePath(BaseModel):
         _items = []
         if self.path:
             for _item_path in self.path:
-                if _item_path:
-                    _items.append(_item_path.to_dict())
+                _items.append(_item_path.to_dict() if _item_path is not None else None)
             _dict['path'] = _items
         return _dict
 

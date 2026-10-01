@@ -74,8 +74,7 @@ class CreateGeometryElementBatchResponse(BaseModel):
         _items = []
         if self.created_elements:
             for _item_created_elements in self.created_elements:
-                if _item_created_elements:
-                    _items.append(_item_created_elements.to_dict())
+                _items.append(_item_created_elements.to_dict() if _item_created_elements is not None else None)
             _dict['createdElements'] = _items
         return _dict
 

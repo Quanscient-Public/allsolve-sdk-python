@@ -92,8 +92,7 @@ class Mesh(BaseModel):
         _items = []
         if self.instances:
             for _item_instances in self.instances:
-                if _item_instances:
-                    _items.append(_item_instances.to_dict())
+                _items.append(_item_instances.to_dict() if _item_instances is not None else None)
             _dict['instances'] = _items
         return _dict
 

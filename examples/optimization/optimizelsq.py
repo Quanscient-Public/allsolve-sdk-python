@@ -14,6 +14,9 @@ def start_sim(param, template_sim):
     sim = allsolve.Simulation.copy_simulation(simulation_id=template_sim.id)
     print("Starting {}, id {}".format(sim.name, sim.id))
 
+    sim.max_run_time_minutes = 10
+    sim.save()
+
     sim.set_scripts(
         [
             allsolve.Script("sim/main.py", is_main=True),

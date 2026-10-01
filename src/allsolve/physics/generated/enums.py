@@ -19,6 +19,8 @@ class AcousticWavesAcousticExtrapolationTargetShape(_Enum):
     """Arc"""
     QUADRANGLE = "acousticWavesAcousticExtrapolationTargetShapeQuadrangle"
     """Quadrangle"""
+    POINTS = "acousticWavesAcousticExtrapolationTargetShapePoints"
+    """Points"""
 
 
 class AcousticWavesAcousticExtrapolationTimeAggregationDataOperation(_Enum):
@@ -209,6 +211,19 @@ class ElectrostaticsPeriodicityType(_Enum):
     """Translation"""
     ROTATION = "electrostaticsPeriodicityTypeRotation"
     """Rotation"""
+
+
+class FieldOnlyOutputFilterType(_Enum):
+    """How to select which steps to save."""
+
+    NONE = "fieldOnlyOutputFilterTypeNone"
+    """Output every step"""
+    EVERY_NTH_STEP = "fieldOnlyOutputFilterTypeEveryNthStep"
+    """Output every Nth step"""
+    STEP_INDICES = "fieldOnlyOutputFilterTypeStepIndices"
+    """Output specific steps"""
+    EXPRESSION = "fieldOnlyOutputFilterTypeExpression"
+    """Filter by expression"""
 
 
 class FieldOutputFilterType(_Enum):
