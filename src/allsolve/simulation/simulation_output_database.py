@@ -12,7 +12,7 @@ from typing import Any, Callable, Iterator, Protocol, TypeVar
 import zstandard as zstd
 import urllib3
 
-from allsolve import intcomp, varint
+from allsolve import _intcomp, _varint
 import allsolve_rawapi as rawapi
 from allsolve.api import get_api, get_auth
 
@@ -239,7 +239,7 @@ class FieldOutputDefinitionRow(_Row):
         self.specifier = row["specifier"]
         self.file_name_format = row["file_name_format"]
         self.file_name_prefix = row["file_name_prefix"]
-        self.ranks = varint.decode(row["ranks"])
+        self.ranks = _varint.decode(row["ranks"])
 
 
 class ValueOutputDefinitionRow(_Row):
@@ -533,6 +533,11 @@ class SimulationOutputDatabase:
                 db.might_need_refresh = True
             self._init_database()
 
+    def _clear_downloads(self):
+        self._etags = {}
+        for db in self._blob_dbs.values():
+            db.might_need_refresh = True
+
     def _init_database(self):
         if not os.path.exists(self._get_file_path()):
             return
@@ -583,20 +588,25 @@ class SimulationOutputDatabase:
         blob_db_id: int | None = None,
     ) -> bool:
         file_name = self._get_filename(blob_db_id)
-        res = self._request_database(self, blob_db_id, self._etags.get(file_name))
+        previous_etag = (
+            self._etags.get(file_name)
+            if os.path.exists(self._get_file_path(blob_db_id))
+            else None
+        )
+        res = self._request_database(self, blob_db_id, previous_etag)
 
         try:
             if res.status == 304:
                 # Database is up to date
                 return False
             if res.status != 200:
-                body = res.json()
-                raise rawapi.ApiException(status=res.status, body=body)
+                raise rawapi.ApiException(status=res.status, body=_error_body(res))
 
             etag = res.headers.get("ETag")
             if etag is None:
                 raise rawapi.ApiException(status=200, reason="No ETag found")
 
+            os.makedirs(self._working_dir, exist_ok=True)
             with open(self._get_file_path(blob_db_id), "wb") as f:
                 for chunk in res.stream():
                     f.write(chunk)
@@ -691,14 +701,14 @@ class SimulationOutputDatabase:
             step_ids = (
                 [row["step_id"]]
                 if version == 1
-                else intcomp.decode(row["step_ids"], self._zstd_decompressor)
+                else _intcomp.decode(row["step_ids"], self._zstd_decompressor)
             )
             uploaded = (
                 [row["uploaded"] == 1]
                 if version == 1
                 else [
                     f == 1
-                    for f in intcomp.decode(
+                    for f in _intcomp.decode(
                         row["uploaded_flags"], self._zstd_decompressor
                     )
                 ]
@@ -732,12 +742,12 @@ class SimulationOutputDatabase:
             step_ids = (
                 [row["step_id"]]
                 if version == 1
-                else intcomp.decode(row["step_ids"], self._zstd_decompressor)
+                else _intcomp.decode(row["step_ids"], self._zstd_decompressor)
             )
             value_lengths = (
                 [row["num_values"]]
                 if version == 1
-                else intcomp.decode(row["value_shapes"], self._zstd_decompressor)
+                else _intcomp.decode(row["value_shapes"], self._zstd_decompressor)
             )
             value_hash_data: array.array[float] | None = None
             if value_db_id == 0:
@@ -796,6 +806,16 @@ def _bytes_to_floats(data: bytes) -> array.array[float]:
     if sys.byteorder != "little":
         floats.byteswap()
     return floats
+
+
+def _error_body(res: DatabaseDownloadResponse) -> Any:
+    try:
+        return res.json()
+    except ValueError:
+        data = getattr(res, "data", None)
+        if isinstance(data, bytes):
+            return data.decode("utf-8", errors="replace")
+        return data
 
 
 def _request_database(

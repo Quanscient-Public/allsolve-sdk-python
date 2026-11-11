@@ -4,6 +4,7 @@
 import abc
 import csv
 import io
+import os
 import re
 import warnings
 from typing import List
@@ -13,7 +14,7 @@ from allsolve.api import (
     get_auth,
     get_http_session,
 )
-from allsolve.http_transfer import (
+from allsolve._http_transfer import (
     CONNECT_TIMEOUT_S,
     TRANSFER_TIMEOUT_S,
     validate_url_scheme,
@@ -91,16 +92,8 @@ class CadFileImport(CadGeometryElement):
     ) -> None:
         super().__init__(name=name, enabled=enabled)
         self._filepath: str = filepath
-        self._key: str | None = None  # Set internally after file upload
-        self._metadata_filename: str | None = None  # Internal use only
-        self._metadata_key: str | None = None  # Internal use only
         self._cleanup = cleanup
-
-    def _require_cad_file(self) -> rawapi.CadFileDefinition:
-        cad_elem = self._require_cad_elem()
-        if cad_elem.cad_file is None:
-            raise ValueError("CAD file is not set")
-        return cad_elem.cad_file
+        self.file_size: int | None = None
 
     @abc.abstractmethod
     def _get_supported_file_suffixes(self) -> list[str]:
@@ -226,16 +219,21 @@ class CadFileImport(CadGeometryElement):
             )
 
         validate_url_scheme(url, get_allow_insecure_http())
+        part = output_path / f".{filename}.part"
         session = get_http_session()
-        with session.get(
-            url,
-            stream=True,
-            timeout=(CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S),
-        ) as r:
-            r.raise_for_status()
-            with open(filepath, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
+        try:
+            with session.get(
+                url,
+                stream=True,
+                timeout=(CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S),
+            ) as r:
+                r.raise_for_status()
+                with open(part, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+            os.replace(part, filepath)
+        finally:
+            part.unlink(missing_ok=True)
 
         return filepath
 
@@ -244,8 +242,6 @@ class CadFileImport(CadGeometryElement):
 
         if self._name is None:
             raise ValueError("Name is not set")
-        if self.file_size is None:
-            raise ValueError("File size is not set")
 
         import_config = rawapi.CadImportConfig(
             cleanup=self._cleanup,
@@ -266,29 +262,6 @@ class CadFileImport(CadGeometryElement):
         )
 
         return cad_element
-
-    def _parse_gds_unit(self, gds_unit_str: str | None) -> tuple[str, str | None]:
-        """
-        Parse a GDSUnit string to extract value and unit.
-
-        Returns:
-            Tuple of (value_string, unit_string) where unit_string can be None.
-        """
-        if gds_unit_str is None:
-            raise ValueError("GDSUnit value cannot be None")
-
-        # Match the pattern: value with optional unit (m, mm, um, nm)
-        match = re.match(
-            r"^\s*([\-]?(?:0\.|[1-9][0-9]*\.)?[0-9]+(?:[eE][+\-]?[1-9][0-9]*)?)\s*(m|mm|um|nm)?\s*$",
-            gds_unit_str.strip(),
-        )
-        if not match:
-            # If it doesn't match, treat the whole string as value
-            return (gds_unit_str.strip(), None)
-
-        value = match.group(1)
-        unit = match.group(2)
-        return (value, unit)
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(filepath={self._filepath}, name={self._name}, cleanup={self._cleanup})"
@@ -1241,8 +1214,6 @@ class CadGds2File(CadFileImport):
     def _to_rawapi_cad_element(self) -> rawapi.CadGeometryElement:
         if self._name is None:
             raise ValueError("Name is not set")
-        if self.file_size is None:
-            raise ValueError("File size is not set")
 
         cad_gds_layers = []
 
@@ -1267,7 +1238,7 @@ class CadGds2File(CadFileImport):
 
         cad_file_def = rawapi.CadFileDefinition(
             type=self._get_rawapi_type(),
-            filename=self._name,
+            filename=pathlib.Path(self._filepath).name,
             parameters=import_config,
             size=self.file_size,
         )

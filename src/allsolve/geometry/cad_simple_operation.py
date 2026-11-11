@@ -129,7 +129,7 @@ class CadTranslate(CadGeometryElement):
     @entity_tags.setter
     @prevent_deleted
     def entity_tags(self, entity_tags: list[int] | None) -> None:
-        """Set the entity tags of the translate."""
+        """Set the entity tags of the translate. Use save() to commit the change."""
         validate_entity_set(
             entity_tags, self._cad_names, self._cad_paths, "target", "Translate"
         )
@@ -145,7 +145,8 @@ class CadTranslate(CadGeometryElement):
     @cad_names.setter
     @prevent_deleted
     def cad_names(self, cad_names: list[str] | None) -> None:
-        """Set the CAD names of the translate."""
+        """Set the CAD names of the translate. Use save() to commit the change."""
+        cad_names = to_str_list(cad_names)
         validate_entity_set(
             self._entity_tags, cad_names, self._cad_paths, "target", "Translate"
         )
@@ -161,7 +162,7 @@ class CadTranslate(CadGeometryElement):
     @cad_paths.setter
     @prevent_deleted
     def cad_paths(self, cad_paths: list[CadPath] | None) -> None:
-        """Set the CAD paths of the translate."""
+        """Set the CAD paths of the translate. Use save() to commit the change."""
         validate_entity_set(
             self._entity_tags, self._cad_names, cad_paths, "target", "Translate"
         )
@@ -179,7 +180,7 @@ class CadTranslate(CadGeometryElement):
     def translation(
         self, translation: tuple[float | str, float | str, float | str]
     ) -> None:
-        """Set the translation vector."""
+        """Set the translation vector. Use save() to commit the change."""
         self._translation = translation
         self._update_rawapi_transform_operation()
 
@@ -192,7 +193,7 @@ class CadTranslate(CadGeometryElement):
     @copy_object.setter
     @prevent_deleted
     def copy_object(self, copy_object: bool) -> None:
-        """Set the copy_object flag."""
+        """Set the copy_object flag. Use save() to commit the change."""
         self._copy_object = copy_object
         self._update_rawapi_transform_operation()
 
@@ -205,7 +206,7 @@ class CadTranslate(CadGeometryElement):
     @repeat.setter
     @prevent_deleted
     def repeat(self, repeat: int | str | None) -> None:
-        """Set the repeat count."""
+        """Set the repeat count. Use save() to commit the change."""
         self._repeat = repeat
         self._update_rawapi_transform_operation()
 
@@ -388,7 +389,7 @@ class CadRotate(CadGeometryElement):
     @entity_tags.setter
     @prevent_deleted
     def entity_tags(self, entity_tags: list[int] | None) -> None:
-        """Set the entity tags of the rotate."""
+        """Set the entity tags of the rotate. Use save() to commit the change."""
         validate_entity_set(
             entity_tags, self._cad_names, self._cad_paths, "target", "Rotate"
         )
@@ -404,7 +405,8 @@ class CadRotate(CadGeometryElement):
     @cad_names.setter
     @prevent_deleted
     def cad_names(self, cad_names: list[str] | None) -> None:
-        """Set the CAD names of the rotate."""
+        """Set the CAD names of the rotate. Use save() to commit the change."""
+        cad_names = to_str_list(cad_names)
         validate_entity_set(
             self._entity_tags, cad_names, self._cad_paths, "target", "Rotate"
         )
@@ -420,7 +422,7 @@ class CadRotate(CadGeometryElement):
     @cad_paths.setter
     @prevent_deleted
     def cad_paths(self, cad_paths: list[CadPath] | None) -> None:
-        """Set the CAD paths of the rotate."""
+        """Set the CAD paths of the rotate. Use save() to commit the change."""
         validate_entity_set(
             self._entity_tags, self._cad_names, cad_paths, "target", "Rotate"
         )
@@ -436,7 +438,7 @@ class CadRotate(CadGeometryElement):
     @axis.setter
     @prevent_deleted
     def axis(self, axis: tuple[float | str, float | str, float | str]) -> None:
-        """Set the rotation axis vector."""
+        """Set the rotation axis vector. Use save() to commit the change."""
         self._axis = axis
         self._update_rawapi_transform_operation()
 
@@ -449,7 +451,7 @@ class CadRotate(CadGeometryElement):
     @center.setter
     @prevent_deleted
     def center(self, center: tuple[float | str, float | str, float | str]) -> None:
-        """Set the center point for rotation."""
+        """Set the center point for rotation. Use save() to commit the change."""
         self._center = center
         self._update_rawapi_transform_operation()
 
@@ -462,7 +464,7 @@ class CadRotate(CadGeometryElement):
     @angle.setter
     @prevent_deleted
     def angle(self, angle: float | str) -> None:
-        """Set the rotation angle."""
+        """Set the rotation angle. Use save() to commit the change."""
         self._angle = angle
         self._update_rawapi_transform_operation()
 
@@ -475,7 +477,7 @@ class CadRotate(CadGeometryElement):
     @copy_object.setter
     @prevent_deleted
     def copy_object(self, copy_object: bool) -> None:
-        """Set the copy_object flag."""
+        """Set the copy_object flag. Use save() to commit the change."""
         self._copy_object = copy_object
         self._update_rawapi_transform_operation()
 
@@ -488,7 +490,7 @@ class CadRotate(CadGeometryElement):
     @repeat.setter
     @prevent_deleted
     def repeat(self, repeat: int | str | None) -> None:
-        """Set the repeat count."""
+        """Set the repeat count. Use save() to commit the change."""
         self._repeat = repeat
         self._update_rawapi_transform_operation()
 
@@ -669,7 +671,7 @@ class CadGrid(CadGeometryElement):
     @entity_tags.setter
     @prevent_deleted
     def entity_tags(self, entity_tags: list[int] | None) -> None:
-        """Set the entity tags of the grid."""
+        """Set the entity tags of the grid. Use save() to commit the change."""
         validate_entity_set(
             entity_tags, self._cad_names, self._cad_paths, "target", "Grid"
         )
@@ -685,7 +687,8 @@ class CadGrid(CadGeometryElement):
     @cad_names.setter
     @prevent_deleted
     def cad_names(self, cad_names: list[str] | None) -> None:
-        """Set the CAD names of the grid."""
+        """Set the CAD names of the grid. Use save() to commit the change."""
+        cad_names = to_str_list(cad_names)
         validate_entity_set(
             self._entity_tags, cad_names, self._cad_paths, "target", "Grid"
         )
@@ -701,7 +704,7 @@ class CadGrid(CadGeometryElement):
     @cad_paths.setter
     @prevent_deleted
     def cad_paths(self, cad_paths: list[CadPath] | None) -> None:
-        """Set the CAD paths of the grid."""
+        """Set the CAD paths of the grid. Use save() to commit the change."""
         validate_entity_set(
             self._entity_tags, self._cad_names, cad_paths, "target", "Grid"
         )
@@ -719,7 +722,11 @@ class CadGrid(CadGeometryElement):
     def translation(
         self, translation: tuple[float | str, float | str, float | str]
     ) -> None:
-        """Set the translation vector for grid spacing."""
+        """
+        Set the translation vector for grid spacing.
+
+        Use save() to commit the change.
+        """
         self._translation = translation
         self._update_rawapi_transform_operation()
 
@@ -732,7 +739,11 @@ class CadGrid(CadGeometryElement):
     @size.setter
     @prevent_deleted
     def size(self, size: tuple[int | str, int | str, int | str]) -> None:
-        """Set the grid size as a tuple of 3 positive integers (x, y, z)."""
+        """
+        Set the grid size as a tuple of 3 positive integers (x, y, z).
+
+        Use save() to commit the change.
+        """
         self._size = size
         self._update_rawapi_transform_operation()
 
@@ -877,7 +888,7 @@ class CadRemove(CadGeometryElement):
     @entity_tags.setter
     @prevent_deleted
     def entity_tags(self, entity_tags: list[int] | None) -> None:
-        """Set the entity tags of the remove."""
+        """Set the entity tags of the remove. Use save() to commit the change."""
         validate_entity_set(
             entity_tags, self._cad_names, self._cad_paths, "target", "Remove"
         )
@@ -893,7 +904,8 @@ class CadRemove(CadGeometryElement):
     @cad_names.setter
     @prevent_deleted
     def cad_names(self, cad_names: list[str] | None) -> None:
-        """Set the CAD names of the remove."""
+        """Set the CAD names of the remove. Use save() to commit the change."""
+        cad_names = to_str_list(cad_names)
         validate_entity_set(
             self._entity_tags, cad_names, self._cad_paths, "target", "Remove"
         )
@@ -909,7 +921,7 @@ class CadRemove(CadGeometryElement):
     @cad_paths.setter
     @prevent_deleted
     def cad_paths(self, cad_paths: list[CadPath] | None) -> None:
-        """Set the CAD paths of the remove."""
+        """Set the CAD paths of the remove. Use save() to commit the change."""
         validate_entity_set(
             self._entity_tags, self._cad_names, cad_paths, "target", "Remove"
         )

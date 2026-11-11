@@ -213,12 +213,19 @@ class VariableOverrides:
         The list is a list of tuples, where the first element is the variable
         and the second is the new value for the variable.
         """
+        overrides = self._override_set.overrides
+        variables_by_id: dict[str, Variable] = {}
+        if len(overrides) > 1:
+            variables_by_id = {
+                var.id: var for var in Variable.get_all(project_id=self._project_id)
+            }
         return [
             (
-                Variable.get(override.shared_expression_id, self._project_id),
+                variables_by_id.get(override.shared_expression_id)
+                or Variable.get(override.shared_expression_id, self._project_id),
                 override.expression,
             )
-            for override in self._override_set.overrides
+            for override in overrides
         ]
 
     @overrides.setter
@@ -277,13 +284,12 @@ class VariableOverrides:
                 override_set_update=override_set_update,
             )
 
-            self._uncommitted_update = None
-
             self._override_set = api.get_override_set(
                 authorization=get_auth(),
                 project_id=self._project_id,
                 override_set_id=self.id,
             )
+            self._uncommitted_update = None
 
     @prevent_deleted
     def _current_uncommitted_update(self) -> rawapi.OverrideSetUpdate:

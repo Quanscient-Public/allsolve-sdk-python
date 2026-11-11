@@ -67,6 +67,21 @@ See the [`examples/`](examples/) directory for complete working examples, includ
 - **bending_beam** — Parametric sweep of a bending beam simulation
 - And more
 
+## AI agent skills
+
+The [`plugins/allsolve/skills/`](plugins/allsolve/skills/) directory has [Agent Skills](https://agentskills.io) that teach AI coding agents (Claude Code, Cursor, Codex and others) to build, run and debug Allsolve simulations with this SDK: an entry skill `allsolve-sdk` and domain skills for RF, structural, thermal and acoustics.
+
+Install them in Claude Code as a plugin:
+
+```bash
+claude plugin marketplace add Quanscient-Public/allsolve-sdk-python
+claude plugin install allsolve@quanscient
+```
+
+Get new versions with `claude plugin update allsolve@quanscient`, or turn on auto-update in `/plugin` → Marketplaces → quanscient. To use the skills of an older SDK version, add the marketplace at that version's tag: `claude plugin marketplace add Quanscient-Public/allsolve-sdk-python#v<version>`.
+
+For other clients, see [plugins/allsolve/skills/README.md](plugins/allsolve/skills/README.md).
+
 ## Documentation
 
 - **SDK reference**: <https://allsolve.quanscient.com/documentation/reference/allsolve-sdk>

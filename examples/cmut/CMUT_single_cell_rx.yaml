@@ -1,0 +1,619 @@
+name: CMUT single cell rx
+description: 'CMUT single cell in receive mode: static DC bias and transient'
+dimension: 3
+variables:
+- name: thk_substrate
+  expression: 100e-6
+  description: Substrate thickness
+- name: thk_oxide
+  expression: 400e-9
+  description: Oxide thickness
+- name: thk_vacuum
+  expression: 250e-9
+  description: Vacuum gap thickness
+- name: thk_membrane
+  expression: 4e-6
+  description: Membrane thickness
+- name: cell_rad
+  expression: 35e-6
+  description: Vacuum gap radius
+- name: cell_pitch
+  expression: 95e-6
+  description: Cell pitch
+- name: frequency
+  expression: 6.5e6
+  description: Center frequency
+- name: vel_load
+  expression: '1480'
+  description: Speed of sound in water
+- name: ncycles
+  expression: '10'
+- name: ppc
+  expression: '20'
+  description: Time steps per period
+- name: Vdc
+  expression: '160'
+  description: DC bias voltage
+- name: z_front_face
+  expression: thk_substrate+thk_oxide+thk_vacuum+thk_membrane
+  description: Reference z for the pressure probe
+- name: wave_load
+  expression: vel_load/frequency
+  description: Wavelength in water
+- name: thk_load
+  expression: 2*wave_load
+  description: Water thickness below the source plane
+geometries:
+- name: substrate
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: thk_substrate/2
+  size:
+    x: cell_pitch
+    y: cell_pitch
+    z: thk_substrate
+  alignment: center
+- name: oxide
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: thk_substrate+thk_oxide/2
+  size:
+    x: cell_pitch
+    y: cell_pitch
+    z: thk_oxide
+  alignment: center
+- name: vacuum
+  type: cylinder
+  position:
+    x: 0.0
+    y: 0.0
+    z: thk_substrate+thk_oxide-thk_vacuum/2
+  axis:
+    x: 0.0
+    y: 0.0
+    z: thk_vacuum
+  radius: cell_rad
+  alignment: center
+- name: vacuum cut
+  type: difference
+  cadNames1:
+  - oxide
+  cadNames2:
+  - vacuum
+  deleteTool: false
+- name: membrane
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: thk_substrate+thk_oxide+thk_membrane/2
+  size:
+    x: cell_pitch
+    y: cell_pitch
+    z: thk_membrane
+  alignment: center
+- name: load bot
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: thk_substrate+thk_oxide+thk_membrane+thk_load/2
+  size:
+    x: cell_pitch
+    y: cell_pitch
+    z: thk_load
+  alignment: center
+- name: load top
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: thk_substrate+thk_oxide+thk_membrane+thk_load+wave_load/2
+  size:
+    x: cell_pitch
+    y: cell_pitch
+    z: wave_load
+  alignment: center
+- name: xcut
+  type: box
+  position:
+    x: -0.5
+    y: 0.0
+    z: 0.0
+  size:
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  alignment: center
+- name: ycut
+  type: box
+  position:
+    x: 0.0
+    y: -0.5
+    z: 0.0
+  size:
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  alignment: center
+- name: symmetry cuts
+  type: difference
+  cadNames1:
+  - substrate
+  - oxide
+  - vacuum
+  - membrane
+  - load bot
+  - load top
+  cadNames2:
+  - xcut
+  - ycut
+  deleteTool: true
+regions:
+- name: substrate
+  entityType: volume
+  type: regionRule
+  attributePath:
+  - key: name
+    value: substrate
+- name: oxide
+  entityType: volume
+  type: regionRule
+  attributePath:
+  - key: name
+    value: oxide
+- name: vacuum
+  entityType: volume
+  type: regionRule
+  attributePath:
+  - key: name
+    value: vacuum
+- name: membrane
+  entityType: volume
+  type: regionRule
+  attributePath:
+  - key: name
+    value: membrane
+- name: load_bot
+  entityType: volume
+  type: regionRule
+  attributePath:
+  - key: name
+    value: load bot
+- name: load_top
+  entityType: volume
+  type: regionRule
+  attributePath:
+  - key: name
+    value: load top
+- name: clamp_face
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: 0-1e-9
+      y: 0-1e-9
+      z: 0-1e-9
+    max:
+      x: cell_pitch/2+1e-9
+      y: cell_pitch/2+1e-9
+      z: 0+1e-9
+- name: absorbing_face
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: 0-1e-9
+      y: 0-1e-9
+      z: thk_substrate+thk_oxide+thk_membrane+thk_load+wave_load-1e-9
+    max:
+      x: cell_pitch/2+1e-9
+      y: cell_pitch/2+1e-9
+      z: thk_substrate+thk_oxide+thk_membrane+thk_load+wave_load+1e-9
+- name: side_x0
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: 0-1e-9
+      y: 0-1e-9
+      z: 0-1e-9
+    max:
+      x: 0+1e-9
+      y: cell_pitch/2+1e-9
+      z: thk_substrate+thk_oxide+thk_membrane+1e-9
+- name: side_y0
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: 0-1e-9
+      y: 0-1e-9
+      z: 0-1e-9
+    max:
+      x: cell_pitch/2+1e-9
+      y: 0+1e-9
+      z: thk_substrate+thk_oxide+thk_membrane+1e-9
+- name: side_xmax
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: cell_pitch/2-1e-9
+      y: 0-1e-9
+      z: 0-1e-9
+    max:
+      x: cell_pitch/2+1e-9
+      y: cell_pitch/2+1e-9
+      z: thk_substrate+thk_oxide+thk_membrane+1e-9
+- name: side_ymax
+  entityType: surface
+  type: geometrySelector
+  boundingBox:
+    min:
+      x: 0-1e-9
+      y: cell_pitch/2-1e-9
+      z: 0-1e-9
+    max:
+      x: cell_pitch/2+1e-9
+      y: cell_pitch/2+1e-9
+      z: thk_substrate+thk_oxide+thk_membrane+1e-9
+- name: substrate_boundary
+  entityType: surface
+  type: computed
+  operation: boundary
+  regions:
+  - substrate
+- name: electrostatics
+  entityType: volume
+  type: computed
+  operation: union
+  regions:
+  - oxide
+  - vacuum
+- name: vacuum_boundary
+  entityType: surface
+  type: computed
+  operation: boundary
+  regions:
+  - vacuum
+- name: solid_mechanics
+  entityType: volume
+  type: computed
+  operation: union
+  regions:
+  - substrate
+  - oxide
+  - membrane
+- name: polysilicon
+  entityType: volume
+  type: computed
+  operation: union
+  regions:
+  - substrate
+  - membrane
+- name: membrane_boundary
+  entityType: surface
+  type: computed
+  operation: boundary
+  regions:
+  - membrane
+- name: load_bot_boundary
+  entityType: surface
+  type: computed
+  operation: boundary
+  regions:
+  - load_bot
+- name: load
+  entityType: volume
+  type: computed
+  operation: union
+  regions:
+  - load_bot
+  - load_top
+- name: load_top_boundary
+  entityType: surface
+  type: computed
+  operation: boundary
+  regions:
+  - load_top
+- name: side_faces
+  entityType: surface
+  type: computed
+  operation: union
+  regions:
+  - side_x0
+  - side_y0
+  - side_xmax
+  - side_ymax
+- name: electrostatics_boundary
+  entityType: surface
+  type: computed
+  operation: boundary
+  regions:
+  - electrostatics
+- name: acoustic_waves
+  entityType: volume
+  type: computed
+  operation: union
+  regions:
+  - load
+- name: load_boundary
+  entityType: surface
+  type: computed
+  operation: boundary
+  regions:
+  - load
+- name: source_plane
+  entityType: surface
+  type: computed
+  operation: intersection
+  regions:
+  - load_bot_boundary
+  - load_top_boundary
+- name: symmetry_faces
+  entityType: surface
+  type: computed
+  operation: difference
+  regions:
+  - side_faces
+  - vacuum_boundary
+- name: bias_electrode
+  entityType: surface
+  type: computed
+  operation: intersection
+  regions:
+  - substrate_boundary
+  - electrostatics_boundary
+- name: ground_electrode
+  entityType: surface
+  type: computed
+  operation: intersection
+  regions:
+  - membrane_boundary
+  - electrostatics_boundary
+- name: front_face
+  entityType: surface
+  type: computed
+  operation: intersection
+  regions:
+  - membrane_boundary
+  - load_boundary
+materials:
+- name: Polycrystalline Silicon
+  description: 'Appendix G: Semiconducting Materials, Table G.1'
+  color: '#87CEEB'
+  abbreviation: Poly-Si
+  target: polysilicon
+  density: '2320'
+  heatCapacity: '678'
+  coefficientOfThermalExpansion: '2.5e-6'
+  electricConductivity: 7.69e4
+  electricPermittivity: 4.2*epsilon0
+  magneticPermeability: (1 - 39e-7)*mu0
+  thermalConductivity: '34'
+  elasticityMatrix:
+    youngsModulus: 161e9
+    poissonsRatio: '0.22'
+- name: Silicon dioxide
+  description: Amorphous SiO2
+  color: '#36F00C'
+  abbreviation: SiO₂
+  target: oxide
+  density: '2200'
+  heatCapacity: '733'
+  coefficientOfThermalExpansion: '7.64e-6'
+  electricPermittivity: 3.9*epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '9.50'
+  elasticityMatrix:
+    youngsModulus: 70e9
+    poissonsRatio: '0.17'
+- name: Vacuum
+  description: Perfect vacuum
+  color: '#F1140B'
+  target: vacuum
+  electricConductivity: '0'
+  electricPermittivity: epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '0'
+- name: Water
+  description: Deionized water, 20 C, 100kPa
+  color: '#59AAF3'
+  abbreviation: H₂O
+  target: load
+  density: '998'
+  heatCapacity: '4182'
+  speedOfSound: '1480'
+  dynamicViscosity: '8.9e-4'
+  electricConductivity: 5e-6
+  electricPermittivity: 81*epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '0.55'
+physicsSets:
+- name: Physics 1
+  physics:
+  - type: solidMechanics
+    target: solid_mechanics
+    interactions:
+    - type: solidMechanicsLargeDisplacement
+      name: Large displacement
+    - type: solidMechanicsSymmetry
+      name: Symmetry
+      target: symmetry_faces
+    - type: solidMechanicsElectricForce
+      name: Electric force
+    - type: clamp
+      name: Clamp
+      target: clamp_face
+  - type: electrostatics
+    target: electrostatics
+    interactions:
+    - type: electrostaticsLargeDisplacement
+      name: Large displacement
+    - type: electrostaticsConstraint
+      name: Ground
+      target: ground_electrode
+      electrostaticsConstraint: '0'
+    - type: electrostaticsLump
+      name: Bias
+      namespace: lump
+      target: bias_electrode
+      electrostaticsLumpVoltage: Vdc
+  - type: acousticWaves
+    target: acoustic_waves
+    interactions:
+    - type: acousticStructure
+      name: Acoustic structure
+    - type: acousticWavesNormalAcceleration
+      name: Rx pulse
+      target: source_plane
+      acousticWavesNormalAcceleration: 10e3*wavelet(frequency, 1.2)
+    - type: acousticWavesAbsorbingBoundary
+      name: Absorbing boundary
+      target: absorbing_face
+  - type: meshDeformation
+    target: vacuum
+variableOverrides:
+- name: Bias sweep
+  overrides:
+  - variable: Vdc
+    values: linspace(1, 186, 50)
+  sweepType: specific_values
+meshes:
+- name: Mesh 10um extruded
+  density: userDefined
+  useMeshRefiner: false
+  maxRunTimeMinutes: 60
+  meshSizeMax: 1e-05
+  simpleExtrusions:
+  - subLayerCounts:
+    - '4'
+    - '1'
+    - '1'
+    - '3'
+    - ceil(thk_load/(wave_load/6))
+    - ceil(wave_load/(wave_load/6))
+    regions:
+    - substrate
+    - oxide
+    - vacuum
+    - membrane
+    - load_bot
+    - load_top
+simulations:
+- name: Static DC bias
+  description: ''
+  maxRunTimeMinutes: 60
+  solverMode: direct
+  analysisType: static
+  harmonics:
+  - 1
+  mesh: Mesh 10um extruded
+  physicsSet: Physics 1
+  eigenmodePortAnalysis: false
+  numericalJacobian: false
+  disabledScriptSections: []
+  outputs:
+  - type: discreteOutput
+    name: Bias
+    expression: Vdc
+  - type: discreteOutput
+    name: Displacement
+    expression: interpolate(reg.membrane, abs(compz(u)), [0, 0, thk_substrate+thk_oxide])
+  - type: fieldOutput
+    name: u
+    filter:
+      type: None
+    skinOnly: true
+    expression: u
+  - type: fieldState
+    name: u
+    filter:
+      type: FinalOnly
+    expression: u
+  - type: fieldState
+    name: v
+    filter:
+      type: FinalOnly
+    expression: v
+  - type: fieldState
+    name: umesh
+    filter:
+      type: FinalOnly
+    expression: umesh
+- name: Static DC bias sweep
+  description: ''
+  maxRunTimeMinutes: 60
+  solverMode: direct
+  analysisType: static
+  harmonics:
+  - 1
+  mesh: Mesh 10um extruded
+  variableOverride: Bias sweep
+  physicsSet: Physics 1
+  eigenmodePortAnalysis: false
+  numericalJacobian: false
+  disabledScriptSections: []
+  outputs:
+  - type: discreteOutput
+    name: Bias
+    expression: Vdc
+  - type: discreteOutput
+    name: Displacement
+    expression: interpolate(reg.membrane, abs(compz(u)), [0, 0, thk_substrate+thk_oxide])
+  - type: fieldOutput
+    name: u
+    filter:
+      type: None
+    skinOnly: true
+    expression: u
+- name: Transient
+  description: Rx pulse on the DC-biased membrane
+  maxRunTimeMinutes: 60
+  solverMode: direct
+  analysisType: transient
+  mesh: Mesh 10um extruded
+  physicsSet: Physics 1
+  transientStartTime: '0'
+  transientEndTime: ncycles/frequency
+  transientTimestepSize: 1/frequency/ppc
+  timestepAlgorithm: genAlpha
+  eigenmodePortAnalysis: false
+  nonlinearSolverTolerance: 1e-4
+  nonlinearSolverMaxIterations: '100'
+  numericalJacobian: false
+  disabledScriptSections: []
+  fieldInitializations:
+  - type: fieldState
+    sourceValueSimulationName: Static DC bias
+    sourceValueOutputName: u
+    field: displacement
+    physics: solidMechanics
+  - type: fieldState
+    sourceValueSimulationName: Static DC bias
+    sourceValueOutputName: v
+    field: electricPotential
+    physics: electrostatics
+  - type: fieldState
+    sourceValueSimulationName: Static DC bias
+    sourceValueOutputName: umesh
+    field: meshDeformation
+    physics: meshDeformation
+  outputs:
+  - type: discreteOutput
+    name: Voltage
+    expression: lump.V
+  - type: discreteOutput
+    name: Charge
+    expression: lump.Q
+  - type: discreteOutput
+    name: Displacement
+    expression: average(reg.front_face, compz(u), 2)
+  - type: discreteOutput
+    name: Pressure
+    expression: interpolate(reg.acoustic_waves, p, [0, 0, z_front_face+thk_load/2])

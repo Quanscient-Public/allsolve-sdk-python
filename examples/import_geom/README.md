@@ -15,7 +15,7 @@ and configure credentials.
 
 # Running
 
-From the `example/` directory:
+From the `examples/` directory:
 
 ```
 (venv) $ python import_geom/main.py

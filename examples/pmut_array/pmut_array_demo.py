@@ -20,7 +20,7 @@ The project consists of:
 - A frequency sweep over 41 points from 0.7 MHz to 0.9 MHz using
   variable overrides
 - Mesh with adaptive refinement enabled
-- Harmonic simulation with 3 FFT samples driven at the sweep frequency
+- Harmonic simulation driven with sn(1) at the sweep frequency
 
 The simulation outputs:
 - ValueOutput for maximum displacement (U max), pressure above the array (P above),
@@ -289,9 +289,9 @@ def create_materials(project: allsolve.Project, regions: SimpleNamespace) -> Non
             [0.0, 0.0, -6.6],
             [0.0, 0.0, -6.6],
             [0.0, 0.0, 23.2],
-            [0.0, 0.0, 0.0],
             [0.0, 17.0, 0.0],
             [17.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
         ],
     )
     project.create_material(
@@ -370,7 +370,7 @@ def create_physics(
                 name="Voltage excitation",
                 target=regions.pzt_top_surfaces,
                 namespace="lump",
-                electrostatics_lump_voltage="sin(2*pi*freq*t)",
+                electrostatics_lump_voltage="sn(1)",
             ),
         ]
     )
@@ -422,7 +422,6 @@ def create_simulation(
         solver_mode=allsolve.SolverMode.DIRECT,
         mesh=mesh.id,
         fundamental_frequency="freq",
-        num_fft_samples=3,
         variable_overrides=sweep.id,
         physics_set=physics_set,
     )

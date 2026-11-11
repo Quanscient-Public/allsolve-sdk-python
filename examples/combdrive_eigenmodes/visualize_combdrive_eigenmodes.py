@@ -21,7 +21,7 @@ from PIL import Image
 
 PROJECT_NAME = "Combdrive Eigenmodes demo"
 FIELD_NAME = "u (real)"
-RESULT_FILE_EXTENSIONS = (".vtu", ".hdf")
+RESULT_FILE_EXTENSION = ".hdf"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "output")
 RESULTS_DIR = os.path.join(OUTPUT_DIR, "results")
@@ -46,10 +46,8 @@ def _result_file_sort_key(path: str) -> tuple[float | str, int, str]:
 
 
 def _list_result_files(results_dir: str) -> list[str]:
-    """Return field output files (.vtu or .hdf) sorted by step label."""
-    files: list[str] = []
-    for ext in RESULT_FILE_EXTENSIONS:
-        files.extend(glob.glob(os.path.join(results_dir, f"*{ext}")))
+    """Return field output files (.hdf) sorted by step label."""
+    files = glob.glob(os.path.join(results_dir, f"*{RESULT_FILE_EXTENSION}"))
     return sorted(files, key=_result_file_sort_key)
 
 
@@ -139,7 +137,7 @@ def create_png_images_with_pyvista(results_dir: str = RESULTS_DIR):
     print("Creating PNG images...")
     result_files = _list_result_files(results_dir)
     if not result_files:
-        print(f"No VTU or HDF files found in {results_dir}")
+        print(f"No HDF files found in {results_dir}")
         return
 
     os.makedirs(IMAGES_DIR, exist_ok=True)
@@ -189,7 +187,7 @@ def create_animated_gifs(
     print("Creating animated GIFs...")
     result_files = _list_result_files(results_dir)
     if not result_files:
-        print(f"No VTU or HDF files found in {results_dir}")
+        print(f"No HDF files found in {results_dir}")
         return
 
     os.makedirs(animation_dir, exist_ok=True)
@@ -255,7 +253,7 @@ def show_interactive_grid(results_dir: str = RESULTS_DIR):
     """Open an interactive PyVista window with all eigenmodes in a subplot grid."""
     result_files = _list_result_files(results_dir)
     if not result_files:
-        print(f"No VTU or HDF files found in {results_dir}")
+        print(f"No HDF files found in {results_dir}")
         return
 
     n = len(result_files)

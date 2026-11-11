@@ -14,7 +14,7 @@ from .api import (
     get_auth,
     get_http_session,
 )
-from .http_transfer import CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S, validate_url_scheme
+from ._http_transfer import CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S, validate_url_scheme
 
 _BATCH_UPLOAD_MAX_ITEMS = 1000
 
@@ -90,23 +90,31 @@ def upload_bytes(
 def upload_parts(
     data: BinaryIO, info: rawapi.FileUploadUrls
 ) -> rawapi.FileUploadCompletion:
+    if info.upload_urls is None:
+        raise ValueError("File upload URLs are not set")
+
     completion = rawapi.FileUploadCompletion(parts=[])
     session = get_http_session()
     allow_insecure = get_allow_insecure_http()
 
-    for _i, url in enumerate(info.upload_urls):
+    for url in info.upload_urls:
         validate_url_scheme(url, allow_insecure)
         r = session.put(
             url,
             data=data.read(info.max_part_size),
             timeout=(CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S),
         )
-        if r.status_code >= 400:
-            r.raise_for_status()
-        else:
-            completion.parts.append(
-                rawapi.FileUploadCompletedPart(eTag=r.headers["ETag"])
-            )
+        r.raise_for_status()
+        etag = r.headers.get("ETag")
+        if etag is None:
+            raise ValueError("Upload response has no ETag header")
+        completion.parts.append(rawapi.FileUploadCompletedPart(eTag=etag))
+
+    if data.read(1):
+        raise ValueError(
+            "Input data is larger than the size given when the upload was created. "
+            "Make sure that the file does not change during the upload."
+        )
 
     return completion
 
@@ -117,8 +125,6 @@ def upload_file_with_urls(
     """Upload a file using pre-fetched presigned URLs."""
     if not filepath.is_file():
         raise FileNotFoundError(f"File not found: {filepath}")
-    if url_info.upload_urls is None:
-        raise ValueError("File upload URLs are not set")
 
     with open(filepath, "rb") as f:
         return upload_parts(f, url_info)

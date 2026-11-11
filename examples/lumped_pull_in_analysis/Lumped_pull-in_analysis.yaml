@@ -378,17 +378,17 @@ simulations:
   numericalJacobian: false
   disabledScriptSections: []
   fieldInitializations:
-  - type: postProcessing
+  - type: fieldState
     sourceValueSimulationName: 'Simulation 1: Field state'
     sourceValueOutputName: u
     field: displacement
     physics: solidMechanics
-  - type: postProcessing
+  - type: fieldState
     sourceValueSimulationName: 'Simulation 1: Field state'
     sourceValueOutputName: v
     field: electricPotential
     physics: electrostatics
-  - type: postProcessing
+  - type: fieldState
     sourceValueSimulationName: 'Simulation 1: Field state'
     sourceValueOutputName: umesh
     field: meshDeformation

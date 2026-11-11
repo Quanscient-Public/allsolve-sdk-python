@@ -14,7 +14,7 @@ The simulation outputs:
 - ValueOutput data that is printed in CSV format to the console.
   Average temperature of the copper and air is calculated.
 - FieldOutput data that can be visualized in the Allsolve web app.
-  Add a result visualization it the GUI for Temperature field and
+  Add a result visualization in the GUI for Temperature field and
   add a clip filter to view the temperature distribution
   inside the geometry.
 """

@@ -19,13 +19,13 @@ from allsolve_rawapi.models.shared_expression_override_type import (
 )
 import warnings
 
-from .job import Job
+from .job import Job, OnError
 from .material import Material, MaterialProperty
 from .override import VariableOverrides
 from .physics_set import PhysicsSet
 import allsolve_rawapi as rawapi
 from .mesh import Mesh, MeshSettings
-from .util import NotProjectAPIKeyError, deprecated, prevent_deleted
+from .util import JobError, NotProjectAPIKeyError, deprecated, prevent_deleted
 from .api import get_api, get_auth, get_token_payload, is_project_api_key
 from .simulation import Simulation
 from .file import create_file, upload_file, upload_bytes
@@ -119,7 +119,7 @@ class Project:
             page_size: Number of projects per page, defaults to 1000.
             page: Page number to return, defaults to 1.
             project_type_filter: Filter by project type. Defaults to ProjectTypeFilter.API.
-               By default, only projects created with the public API are returned.
+                By default, only projects created with the public API are returned.
 
         Returns:
             A list of projects that the authentication has access to.
@@ -148,7 +148,7 @@ class Project:
         Parameters:
             name: The name of the project to search for.
             project_type_filter: Filter by project type. Defaults to ProjectTypeFilter.ALL.
-               By default, all project types are returned.
+                By default, all project types are returned.
         Returns:
             The project that matches the exact given name, or None.
         """
@@ -254,7 +254,7 @@ class Project:
     @name.setter
     @prevent_deleted
     def name(self, name: str) -> None:
-        """Set the name of the project."""
+        """Set the name of the project. Use save() to commit the change."""
         self._current_uncommitted_update().name = name
 
     @property
@@ -266,7 +266,7 @@ class Project:
     @description.setter
     @prevent_deleted
     def description(self, description: str) -> None:
-        """Set the description of the project."""
+        """Set the description of the project. Use save() to commit the change."""
         self._current_uncommitted_update().description = description
 
     @property
@@ -291,6 +291,8 @@ class Project:
     @prevent_deleted
     def geometry_pipeline_version(self) -> GeometryPipelineVersion:
         """Get the geometry pipeline version of the project."""
+        if self._project.geometry_pipeline_version is None:
+            return GeometryPipelineVersion.V1
         return GeometryPipelineVersion(self._project.geometry_pipeline_version)
 
     @property
@@ -313,7 +315,7 @@ class Project:
     @prevent_deleted
     def pml_num_layers(self) -> int | None:
         """Get the number of Perfectly Matched Layers, or None if not set."""
-        pml = self._get_current_pml_settings()
+        pml = self._project.pml_settings
         if pml is None:
             return None
         return pml.num_layers
@@ -321,7 +323,7 @@ class Project:
     @pml_num_layers.setter
     @prevent_deleted
     def pml_num_layers(self, value: int | None) -> None:
-        """Set the number of Perfectly Matched Layers. Use save() to commit."""
+        """Set the number of Perfectly Matched Layers. Use save() to commit the change."""
         update = self._current_uncommitted_update()
         if update.pml_settings is None:
             update.pml_settings = rawapi.PMLSettings(
@@ -339,7 +341,7 @@ class Project:
     @prevent_deleted
     def pml_thickness(self) -> float | int | None:
         """Get the thickness of the PML region, or None if not set."""
-        pml = self._get_current_pml_settings()
+        pml = self._project.pml_settings
         if pml is None:
             return None
         return pml.thickness
@@ -347,7 +349,7 @@ class Project:
     @pml_thickness.setter
     @prevent_deleted
     def pml_thickness(self, value: float | int | None) -> None:
-        """Set the thickness of the PML region. Use save() to commit."""
+        """Set the thickness of the PML region. Use save() to commit the change."""
         update = self._current_uncommitted_update()
         if update.pml_settings is None:
             update.pml_settings = rawapi.PMLSettings(
@@ -360,15 +362,6 @@ class Project:
             )
         else:
             update.pml_settings.thickness = value
-
-    def _get_current_pml_settings(self) -> rawapi.PMLSettings | None:
-        """Get PML settings from uncommitted update or from the project."""
-        if (
-            self._uncommitted_update is not None
-            and self._uncommitted_update.pml_settings is not None
-        ):
-            return self._uncommitted_update.pml_settings
-        return self._project.pml_settings
 
     @prevent_deleted
     def _current_uncommitted_update(self) -> rawapi.NewProject:
@@ -734,20 +727,18 @@ class Project:
         """
         Add a physics definition to the project's default physics set.
 
-        .. deprecated::
-            Use :meth:`PhysicsSet.add_physics` instead.
+        Deprecated: Use :meth:`PhysicsSet.add_physics` instead.
 
-        Example::
-
-            physics_set = project.get_default_physics_set()
-            solid_mechanics_physics = physics_set.add_physics(
-                allsolve.Physics.SolidMechanics(
-                    target=solid_mechanics_region
-                )
+        Example:
+        ```python
+        physics_set = project.get_default_physics_set()
+        solid_mechanics_physics = physics_set.add_physics(
+            allsolve.Physics.SolidMechanics(
+                target=solid_mechanics_region
             )
+        )
+        ```
         """
-        if self._project.id is None:
-            raise ValueError("Project must have an id before adding physics")
         return PhysicsSet.get_default(project_id=self._project.id).add_physics(physic)
 
     @prevent_deleted
@@ -1068,7 +1059,8 @@ class Project:
             transient_start_time: The transient start time expression.
             transient_end_time: The transient end time expression.
             transient_timestep_size: The transient timestep size expression.
-            timestep_algorithm: The timestep algorithm.
+            timestep_algorithm: The timestep algorithm: ``TimestepAlgorithm.IMPLICIT_EULER``
+                or ``TimestepAlgorithm.GEN_ALPHA``.
             target_frequency: The target frequency expression.
 
         Parameters:
@@ -1354,18 +1346,27 @@ class Project:
 
         Each entry is ``(name, expression)`` or ``(name, expression, description)``.
 
+        All entries are validated before any variable is created or updated.
+
         Parameters:
             variables: List of variable definitions as tuples.
             update_existing: If False (default), a variable with the same name
                 must not already exist or ``ValueError`` is raised. If True,
                 an existing variable is updated (expression and description).
+                A 2-tuple sets the description of an existing variable to ``""``.
 
         Returns:
             The created or updated variables, in the same order as ``variables``.
+
+        Raises:
+            ValueError: If an entry is not a 2-tuple or a 3-tuple, if a name occurs
+                more than once in ``variables``, or if ``update_existing`` is False
+                and a variable with the same name already exists.
         """
         pid = self._project.id
         existing_vars = {v.name: v for v in Variable.get_all(project_id=pid)}
-        vars: List[Variable] = []
+        entries: List[Tuple[str, str | float | int, str]] = []
+        seen_names: set[str] = set()
         for item in variables:
             if len(item) == 2:
                 name, expression = item
@@ -1377,12 +1378,19 @@ class Project:
                     "Each entry must be a 2-tuple (name, expression) or "
                     f"3-tuple (name, expression, description); got length {len(item)}: {item!r}"
                 )
+            if name in seen_names:
+                raise ValueError(f"Variable name {name!r} occurs more than once")
+            seen_names.add(name)
+            if not update_existing and name in existing_vars:
+                raise ValueError(
+                    f"Variable with name {name!r} already exists in the project"
+                )
+            entries.append((name, expression, description))
+
+        vars: List[Variable] = []
+        for name, expression, description in entries:
             existing = existing_vars.get(name)
             if existing is not None:
-                if not update_existing:
-                    raise ValueError(
-                        f"Variable with name {name!r} already exists in the project"
-                    )
                 if expression is not None:
                     expression = str(expression)
                 existing.expression = expression
@@ -1675,7 +1683,7 @@ class Project:
         Parameters:
             name: The name of the material.
             description: Optional description of the material.
-            color: The color of the material. Format: "#RRGGBB"
+            color: The color of the material. Hex string in the format `"#RRGGBB"`.
             abbreviation: Optional abbreviation of the material.
             target_region: The target Region of the material.
             coefficient_of_thermal_expansion: Optional coefficient of thermal expansion.
@@ -1728,7 +1736,7 @@ class Project:
         """
         properties: List[MaterialProperty.PhysicalProperty] = []
         if coefficient_of_thermal_expansion is not None:
-            if isinstance(coefficient_of_thermal_expansion, list):
+            if isinstance(coefficient_of_thermal_expansion, (list, tuple)):
                 properties.append(
                     MaterialProperty.CoefficientOfThermalExpansionAnisotropic(
                         value=coefficient_of_thermal_expansion
@@ -1743,7 +1751,7 @@ class Project:
         if density is not None:
             properties.append(MaterialProperty.Density(value=density))
         if dynamic_viscosity is not None:
-            if isinstance(dynamic_viscosity, list):
+            if isinstance(dynamic_viscosity, (list, tuple)):
                 properties.append(
                     MaterialProperty.DynamicViscosityAnisotropic(
                         value=dynamic_viscosity
@@ -1756,7 +1764,7 @@ class Project:
         if elasticity_matrix is not None:
             properties.append(elasticity_matrix)
         if electric_conductivity is not None:
-            if isinstance(electric_conductivity, list):
+            if isinstance(electric_conductivity, (list, tuple)):
                 properties.append(
                     MaterialProperty.ElectricConductivityAnisotropic(
                         value=electric_conductivity
@@ -1767,7 +1775,7 @@ class Project:
                     MaterialProperty.ElectricConductivity(value=electric_conductivity)
                 )
         if electric_permittivity is not None:
-            if isinstance(electric_permittivity, list):
+            if isinstance(electric_permittivity, (list, tuple)):
                 properties.append(
                     MaterialProperty.ElectricPermittivityAnisotropic(
                         value=electric_permittivity
@@ -1780,7 +1788,7 @@ class Project:
         if heat_capacity is not None:
             properties.append(MaterialProperty.HeatCapacity(value=heat_capacity))
         if magnetic_permeability is not None:
-            if isinstance(magnetic_permeability, list):
+            if isinstance(magnetic_permeability, (list, tuple)):
                 properties.append(
                     MaterialProperty.MagneticPermeabilityAnisotropic(
                         value=magnetic_permeability
@@ -1809,7 +1817,7 @@ class Project:
                 )
             )
         if thermal_conductivity is not None:
-            if isinstance(thermal_conductivity, list):
+            if isinstance(thermal_conductivity, (list, tuple)):
                 properties.append(
                     MaterialProperty.ThermalConductivityAnisotropic(
                         value=thermal_conductivity
@@ -1884,12 +1892,12 @@ class Project:
                     project_id=self._project.id,
                     new_project=self._uncommitted_update,
                 )
-                self._uncommitted_update = None
 
                 self._project = api.get_project(
                     authorization=get_auth(),
                     project_id=self._project.id,
                 )
+                self._uncommitted_update = None
 
     @prevent_deleted
     def delete(self) -> None:
@@ -1909,6 +1917,7 @@ class Project:
         with_results: bool = False,
         name: str | None = None,
         wait_for_completion: bool = True,
+        on_error: OnError = OnError.IGNORE,
     ) -> Self:
         """
         Copies the project and returns the copied project.
@@ -1918,6 +1927,11 @@ class Project:
             name: The name of the new project.
             wait_for_completion: If True, the copied project is returned after the copy job is completed.
                 If False, get_copy_job() should be used to check the status of the copy job.
+            on_error: Controls error handling after the copy job completes. Used only when
+                ``wait_for_completion`` is True.
+                ``OnError.IGNORE`` (default) — never raises; use :meth:`get_copy_job` to check.
+                ``OnError.RAISE`` and ``OnError.STRICT`` — raise :exc:`JobError` unless
+                the copy job status is ``SUCCESS``.
 
         Returns:
             The copied project.
@@ -1925,6 +1939,7 @@ class Project:
         Raises:
             ValueError: If authenticated with a project API key. Copying projects
                 requires an organization API key.
+            JobError: If the copy job fails and ``on_error`` is not ``OnError.IGNORE``.
         """
         if is_project_api_key():
             raise ValueError(
@@ -1943,7 +1958,16 @@ class Project:
             )
         copy = self.__class__(project_data)
         if wait_for_completion:
-            copy._wait_for_copy()
+            succeeded = copy._wait_for_copy()
+            if not succeeded and on_error is not OnError.IGNORE:
+                job = copy._copy_files_job
+                assert job is not None
+                status = job.get_status()
+                raise JobError(
+                    f"Copying files to project '{copy.name}' failed with status: {status}",
+                    status=status,
+                    status_reason=job.get_status_reason(),
+                )
         return copy
 
     @prevent_deleted
@@ -2021,7 +2045,7 @@ class Project:
             Geometry file paths are placeholders unless ``download_geometries=True``.
             Simulation script file paths are placeholders unless
             ``download_scripts=True``. Shared file paths are always included; shared
-            file bytes are written when ``download_shared_files=True`.
+            file bytes are written when ``download_shared_files=True``.
             When re-importing without downloaded files,
             provide the files at the exported paths.
 
@@ -2122,7 +2146,7 @@ class Project:
                 download_shared_files=download_shared_files,
             )
         with open(output_path, "w", encoding="utf-8") as f:
-            yaml.dump(
+            yaml.safe_dump(
                 data, f, default_flow_style=False, sort_keys=False, allow_unicode=True
             )
 

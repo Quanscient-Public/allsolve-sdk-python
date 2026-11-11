@@ -11,7 +11,7 @@ from enum import Enum as _Enum
 
 
 class AcousticWavesAcousticExtrapolationTargetShape(_Enum):
-    """"""
+    """Shape the points the field is extrapolated to are laid out on."""
 
     LINE = "acousticWavesAcousticExtrapolationTargetShapeLine"
     """Line"""
@@ -24,7 +24,7 @@ class AcousticWavesAcousticExtrapolationTargetShape(_Enum):
 
 
 class AcousticWavesAcousticExtrapolationTimeAggregationDataOperation(_Enum):
-    """"""
+    """Applied to each value before it is aggregated, to aggregate magnitudes rather than signed values for example."""
 
     NONE = "acousticWavesAcousticExtrapolationTimeAggregationDataOperationNone"
     """None"""
@@ -35,7 +35,7 @@ class AcousticWavesAcousticExtrapolationTimeAggregationDataOperation(_Enum):
 
 
 class AcousticWavesAcousticExtrapolationTimeAggregationOperation(_Enum):
-    """"""
+    """Reduces the values over the target times into a single one instead of keeping every one of them."""
 
     NONE = "acousticWavesAcousticExtrapolationTimeAggregationOperationNone"
     """None"""
@@ -50,7 +50,7 @@ class AcousticWavesAcousticExtrapolationTimeAggregationOperation(_Enum):
 
 
 class AcousticWavesPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "acousticWavesPeriodicityTypeTranslation"
     """Translation"""
@@ -59,7 +59,7 @@ class AcousticWavesPeriodicityType(_Enum):
 
 
 class AcousticWavesPmlType(_Enum):
-    """"""
+    """Shape of the absorbing layer. AML suits smooth boundaries, box PML suits rectangular or cornered ones."""
 
     AML = "acousticWavesPmlTypeAml"
     """AML"""
@@ -68,7 +68,7 @@ class AcousticWavesPmlType(_Enum):
 
 
 class CurrentFlowLumpActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     VOLTAGE = "currentFlowLumpActuationModeVoltage"
     """Voltage"""
@@ -79,7 +79,7 @@ class CurrentFlowLumpActuationMode(_Enum):
 
 
 class CurrentFlowLumpVICutActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     CURRENT = "currentFlowLumpVICutActuationModeCurrent"
     """Current"""
@@ -90,7 +90,7 @@ class CurrentFlowLumpVICutActuationMode(_Enum):
 
 
 class CurrentFlowPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "currentFlowPeriodicityTypeTranslation"
     """Translation"""
@@ -99,7 +99,7 @@ class CurrentFlowPeriodicityType(_Enum):
 
 
 class ElasticWavesLumpActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     DISPLACEMENT = "elasticWavesLumpActuationModeDisplacement"
     """Displacement"""
@@ -110,7 +110,7 @@ class ElasticWavesLumpActuationMode(_Enum):
 
 
 class ElasticWavesPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "elasticWavesPeriodicityTypeTranslation"
     """Translation"""
@@ -119,7 +119,7 @@ class ElasticWavesPeriodicityType(_Enum):
 
 
 class ElasticWavesPmlType(_Enum):
-    """"""
+    """Shape of the absorbing layer. AML suits smooth boundaries, box PML suits rectangular or cornered ones."""
 
     AML = "elasticWavesPmlTypeAml"
     """AML"""
@@ -128,7 +128,7 @@ class ElasticWavesPmlType(_Enum):
 
 
 class ElectromagneticWavesBoundaryAdmittanceType(_Enum):
-    """"""
+    """Whether the surface admittance is given directly or computed from the conductivity and permeability of the conductor."""
 
     ADMITTANCE = "electromagneticWavesBoundaryAdmittanceTypeAdmittance"
     """Admittance"""
@@ -137,7 +137,7 @@ class ElectromagneticWavesBoundaryAdmittanceType(_Enum):
 
 
 class ElectromagneticWavesEigenmodePortTargetEigenvalueType(_Enum):
-    """Target eigenvalue type"""
+    """Whether the mode search is aimed at a propagation constant or at an effective refractive index."""
 
     PROPAGATION_CONSTANT = (
         "electromagneticWavesEigenmodePortTargetEigenvalueTypePropagationConstant"
@@ -150,7 +150,7 @@ class ElectromagneticWavesEigenmodePortTargetEigenvalueType(_Enum):
 
 
 class ElectromagneticWavesLumpVIActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     VOLTAGE = "electromagneticWavesLumpVIActuationModeVoltage"
     """Voltage"""
@@ -167,7 +167,7 @@ class ElectromagneticWavesLumpVIActuationMode(_Enum):
 
 
 class ElectromagneticWavesPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "electromagneticWavesPeriodicityTypeTranslation"
     """Translation"""
@@ -176,7 +176,7 @@ class ElectromagneticWavesPeriodicityType(_Enum):
 
 
 class ElectromagneticWavesPmlType(_Enum):
-    """"""
+    """Shape of the absorbing layer. AML suits smooth boundaries, box PML suits rectangular or cornered ones."""
 
     AML = "electromagneticWavesPmlTypeAml"
     """AML"""
@@ -185,7 +185,7 @@ class ElectromagneticWavesPmlType(_Enum):
 
 
 class ElectromagneticWavesRectangularPortModeType(_Enum):
-    """Mode type"""
+    """Whether the mode fed into the waveguide is transverse electric or transverse magnetic."""
 
     T_E = "electromagneticWavesRectangularPortModeTypeTE"
     """TE"""
@@ -194,7 +194,7 @@ class ElectromagneticWavesRectangularPortModeType(_Enum):
 
 
 class ElectrostaticsLumpActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     VOLTAGE = "electrostaticsLumpActuationModeVoltage"
     """Voltage"""
@@ -205,7 +205,7 @@ class ElectrostaticsLumpActuationMode(_Enum):
 
 
 class ElectrostaticsPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "electrostaticsPeriodicityTypeTranslation"
     """Translation"""
@@ -214,7 +214,7 @@ class ElectrostaticsPeriodicityType(_Enum):
 
 
 class FieldOnlyOutputFilterType(_Enum):
-    """How to select which steps to save."""
+    """Chooses how often the output is written. Writing fewer steps keeps the result data smaller."""
 
     NONE = "fieldOnlyOutputFilterTypeNone"
     """Output every step"""
@@ -227,7 +227,7 @@ class FieldOnlyOutputFilterType(_Enum):
 
 
 class FieldOutputFilterType(_Enum):
-    """How to select which steps to save."""
+    """Chooses how often the output is written. Writing fewer steps keeps the result data smaller."""
 
     NONE = "fieldOutputFilterTypeNone"
     """Output every step"""
@@ -240,7 +240,7 @@ class FieldOutputFilterType(_Enum):
 
 
 class FieldStateFilterType(_Enum):
-    """How to select which steps to save."""
+    """Chooses how often the output is written. Writing fewer steps keeps the result data smaller."""
 
     FINAL_ONLY = "fieldStateFilterTypeFinalOnly"
     """Output only the final state"""
@@ -255,7 +255,7 @@ class FieldStateFilterType(_Enum):
 
 
 class HeatFluidPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "heatFluidPeriodicityTypeTranslation"
     """Translation"""
@@ -264,7 +264,7 @@ class HeatFluidPeriodicityType(_Enum):
 
 
 class HeatTransferLumpTPhiActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     TEMPERATURE = "heatTransferLumpTPhiActuationModeTemperature"
     """Temperature"""
@@ -275,7 +275,7 @@ class HeatTransferLumpTPhiActuationMode(_Enum):
 
 
 class HeatTransferPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "heatTransferPeriodicityTypeTranslation"
     """Translation"""
@@ -284,7 +284,7 @@ class HeatTransferPeriodicityType(_Enum):
 
 
 class LaminarFlowLumpPMActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     PRESSURE = "laminarFlowLumpPMActuationModePressure"
     """Pressure"""
@@ -295,7 +295,7 @@ class LaminarFlowLumpPMActuationMode(_Enum):
 
 
 class LaminarFlowLumpVFvActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     VELOCITY = "laminarFlowLumpVFvActuationModeVelocity"
     """Velocity"""
@@ -306,7 +306,7 @@ class LaminarFlowLumpVFvActuationMode(_Enum):
 
 
 class LaminarFlowPressurePeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "laminarFlowPressurePeriodicityTypeTranslation"
     """Translation"""
@@ -315,7 +315,7 @@ class LaminarFlowPressurePeriodicityType(_Enum):
 
 
 class LaminarFlowVelocityPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "laminarFlowVelocityPeriodicityTypeTranslation"
     """Translation"""
@@ -324,7 +324,7 @@ class LaminarFlowVelocityPeriodicityType(_Enum):
 
 
 class MagnetismAPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "magnetismAPeriodicityTypeTranslation"
     """Translation"""
@@ -333,7 +333,7 @@ class MagnetismAPeriodicityType(_Enum):
 
 
 class MagnetismHPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "magnetismHPeriodicityTypeTranslation"
     """Translation"""
@@ -342,7 +342,7 @@ class MagnetismHPeriodicityType(_Enum):
 
 
 class MagnetismPhiLumpIVActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     CURRENT = "magnetismPhiLumpIVActuationModeCurrent"
     """Current"""
@@ -353,7 +353,7 @@ class MagnetismPhiLumpIVActuationMode(_Enum):
 
 
 class MagnetismPhiLumpPhiPhiBActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     MAGENTIC_SCALAR_POTENTIAL = (
         "magnetismPhiLumpPhiPhiBActuationModeMagenticScalarPotential"
@@ -366,7 +366,7 @@ class MagnetismPhiLumpPhiPhiBActuationMode(_Enum):
 
 
 class MagnetismPhiPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "magnetismPhiPeriodicityTypeTranslation"
     """Translation"""
@@ -375,7 +375,7 @@ class MagnetismPhiPeriodicityType(_Enum):
 
 
 class MeshDeformationPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "meshDeformationPeriodicityTypeTranslation"
     """Translation"""
@@ -384,7 +384,7 @@ class MeshDeformationPeriodicityType(_Enum):
 
 
 class SolidMechanicsLumpActuationMode(_Enum):
-    """"""
+    """Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation."""
 
     DISPLACEMENT = "solidMechanicsLumpActuationModeDisplacement"
     """Displacement"""
@@ -395,7 +395,7 @@ class SolidMechanicsLumpActuationMode(_Enum):
 
 
 class SolidMechanicsPeriodicityType(_Enum):
-    """"""
+    """Whether target 2 is target 1 translated or target 1 rotated."""
 
     TRANSLATION = "solidMechanicsPeriodicityTypeTranslation"
     """Translation"""

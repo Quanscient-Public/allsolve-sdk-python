@@ -4,24 +4,33 @@
 from __future__ import annotations
 
 import base64
+import contextvars
 import datetime as dt
+import functools
 import logging
 import threading
 import os
 import pathlib
+import re
 import shutil
 from contextlib import contextmanager
+from types import TracebackType
 from importlib.metadata import PackageNotFoundError, version
-from typing import Any, Generator, List, Optional
+from typing import Any, Callable, Generator, List, Optional, TypeVar, cast
 
 from .util import FileOverwriteMode
 
 import allsolve_rawapi as rawapi
 import requests
 from requests.adapters import HTTPAdapter
+from urllib3.connectionpool import ConnectionPool
+from urllib3.exceptions import MaxRetryError, ResponseError
+from urllib3.response import BaseHTTPResponse
+from urllib3.util import parse_url
 from urllib3.util.retry import Retry
 
-from .api import _current_client, _register_default_client
+from .api import _current_client, _register_default_client, _resolve_client
+from .job import OnError
 from .project import GeometryPipelineVersion, Project
 from .quota import get_quota as _get_quota
 from .resource_reservation import (
@@ -31,7 +40,7 @@ from .resource_reservation import (
 )
 from .simulation import CPU
 from .team import get_teams as _get_teams
-from .token import AccessToken, parse_access_token
+from ._token import AccessToken, parse_access_token
 from .util import NotProjectAPIKeyError
 
 logger = logging.getLogger(__name__)
@@ -41,42 +50,122 @@ _ALLSOLVE_CACHE_DIR = ".allsolve_cache"
 _EXPIRE_MARGIN_S = 120
 _MAX_RETRIES = 5
 
+_RETRY_SAFE_POST_PATH = re.compile(
+    r"(?:/.*)?/public/api/v1/("
+    r"token"
+    r"|projects/[^/]+/jobs/statuses"
+    r"|projects/[^/]+/jobs/[^/]+/abort"
+    r"|projects/[^/]+/simulations/[^/]+/(abort|output-data-download-urls)"
+    r"|resource-reservations/[^/]+/(renew-lease|release)"
+    r")"
+)
+
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+
+def _server_rejected_request(response: BaseHTTPResponse) -> bool:
+    return response.status == 429 or (
+        response.status == 503 and bool(response.headers.get("Retry-After"))
+    )
+
+
+class _PostSafeRetry(Retry):
+    """
+    Retry that does not resend a POST that the server can have processed.
+
+    A POST to an endpoint not in ``_RETRY_SAFE_POST_PATH`` is retried only
+    when the request was not sent (connection error), on 429, or on 503 with
+    ``Retry-After``. A 502, 504, read timeout or dropped connection can come
+    after the backend created the resource, so a retry could create a
+    duplicate.
+    """
+
+    def increment(
+        self,
+        method: str | None = None,
+        url: str | None = None,
+        response: BaseHTTPResponse | None = None,
+        error: Exception | None = None,
+        _pool: ConnectionPool | None = None,
+        _stacktrace: TracebackType | None = None,
+    ) -> _PostSafeRetry:
+        if method is not None and method.upper() == "POST":
+            path = (parse_url(url).path or "") if url else ""
+            if not _RETRY_SAFE_POST_PATH.fullmatch(path):
+                if error is not None and not self._is_connection_error(error):
+                    raise error.with_traceback(_stacktrace)
+                if (
+                    response is not None
+                    and response.status in (self.status_forcelist or ())
+                    and not _server_rejected_request(response)
+                ):
+                    raise MaxRetryError(
+                        cast(ConnectionPool, _pool),
+                        url or "",
+                        ResponseError(
+                            f"not retrying POST after status {response.status}"
+                        ),
+                    )
+        return super().increment(method, url, response, error, _pool, _stacktrace)
+
+
+def _requires_active(method: _F) -> _F:
+    @functools.wraps(method)
+    def wrapper(self: Client, *args: Any, **kwargs: Any) -> Any:
+        active = _resolve_client()
+        if active is not self:
+            raise RuntimeError(
+                f"Client.{method.__name__}() was called on {self!r}, but the "
+                f"active client is {active!r}. Use 'with client:' or "
+                "'with client.in_thread():' to make this client active."
+            )
+        return method(self, *args, **kwargs)
+
+    return wrapper  # type: ignore[return-value]
+
 
 class Client:
     """
     Entry point for the AllSolve SDK.
 
     The simplest way to get started is to place a ``.env`` file in your
-    working directory and create a client with no arguments::
+    working directory and create a client with no arguments:
+    ```python
+    import allsolve
 
-        import allsolve
+    client = allsolve.Client()
+    project = client.get_project("my-project-id")
+    ```
 
-        client = allsolve.Client()
-        project = client.get_project("my-project-id")
-
-    You can pass the path to a ``.env`` file to the constructor::
-
-        client = allsolve.Client(dotenv_file=".env")
+    You can pass the path to a ``.env`` file to the constructor:
+    ```python
+    client = allsolve.Client(dotenv_file=".env")
+    ```
 
     You can also pass credentials explicitly (they take priority over
-    any ``.env`` file or environment variables)::
-
-        client = allsolve.Client(
-            api_key="...", api_secret="...", host="...",
-        )
+    any ``.env`` file or environment variables):
+    ```python
+    client = allsolve.Client(
+        api_key="...", api_secret="...", host="...",
+    )
+    ```
 
     For multi-tenancy, create additional clients and use them as context
-    managers to temporarily make them the active default::
+    managers to temporarily make them the active default:
+    ```python
+    client2 = allsolve.Client(
+        api_key="my-other-api-key",
+        api_secret="my-other-api-secret",
+        host="https://other-host.example.com/",
+        _set_as_default=False,
+        cache_base_dir="other-cache-dir", # optional, defaults to the current working directory
+    )
+    with client2:
+        projects = client2.get_projects()
+    ```
 
-        client2 = allsolve.Client(
-            api_key="my-other-api-key",
-            api_secret="my-other-api-secret",
-            host="https://other-host.example.com/",
-            _set_as_default=False,
-            cache_base_dir="other-cache-dir", # optional, defaults to the current working directory
-        )
-        with client2:
-            projects = client2.get_projects()
+    Methods that call the API raise ``RuntimeError`` when the client is not
+    the active client.
     """
 
     # ------------------------------------------------------------------
@@ -175,7 +264,7 @@ class Client:
         api_key: str | None = None,
         api_secret: str | None = None,
         host: str | None = None,
-        cache_base_dir: str = os.getcwd(),
+        cache_base_dir: str | None = None,
         *,
         dotenv_file: str | os.PathLike[str] | None = ".env",
         allow_insecure_http: bool = False,
@@ -262,6 +351,8 @@ class Client:
 
         self._credentials = {"api_key": key, "api_secret": secret}
 
+        if cache_base_dir is None:
+            cache_base_dir = os.getcwd()
         if not os.path.exists(cache_base_dir):
             raise ValueError(
                 f"Output cache base directory {cache_base_dir} does not exist"
@@ -272,16 +363,18 @@ class Client:
         self._validate_host(self._host, allow_insecure_http)
         self._allow_insecure_http = allow_insecure_http
         self._api_lock = threading.Lock()
+        self._ctx_tokens: list[contextvars.Token[Client | None]] = []
         self._access_token: rawapi.OauthClientTokenResponse | None = None
         self._access_token_refreshed: dt.datetime | None = None
 
         self._config = rawapi.Configuration(host=self._host)
-        self._config.retries = Retry(
+        self._config.retries = _PostSafeRetry(
             total=_MAX_RETRIES,
             status_forcelist=[429, 502, 503, 504],
             backoff_factor=1.0,
             respect_retry_after_header=True,
             allowed_methods=None,
+            raise_on_status=False,
         )
         api_client = rawapi.ApiClient(configuration=self._config)
         self._api: rawapi.DefaultApi = rawapi.DefaultApi(api_client=api_client)
@@ -298,9 +391,7 @@ class Client:
         self._http_session.mount("https://", _adapter)
         self._http_session.mount("http://", _adapter)
         self._lease_keepers: dict[str, _ReservationLeaseKeeper] = {}
-
-        if _set_as_default:
-            _register_default_client(self)
+        self._lease_keepers_lock = threading.Lock()
 
         try:
             self._refresh_auth()
@@ -312,6 +403,9 @@ class Client:
                 "matches your API key."
             ) from None
 
+        if _set_as_default:
+            _register_default_client(self)
+
     # ------------------------------------------------------------------
     # Dunder methods
     # ------------------------------------------------------------------
@@ -320,17 +414,17 @@ class Client:
         return f"Client(host={self._host!r}, sdk_version={self._sdk_version!r})"
 
     def __enter__(self) -> Client:
-        self._ctx_token = _current_client.set(self)
+        self._ctx_tokens.append(_current_client.set(self))
         return self
 
     def __exit__(self, *exc: object) -> None:
-        _current_client.reset(self._ctx_token)
+        _current_client.reset(self._ctx_tokens.pop())
 
     def __getstate__(self) -> dict[str, Any]:
-        state = self.__dict__.copy()
-        state.pop("_credentials", None)
-        state.pop("_api_lock", None)
-        return state
+        raise TypeError(
+            "Client cannot be pickled or copied: it holds credentials, an "
+            "access token and live connections. Create a new Client instead."
+        )
 
     # ------------------------------------------------------------------
     # Properties
@@ -363,7 +457,7 @@ class Client:
         Use this instead of ``with client`` when the same :class:`Client` is
         shared across threads (for example in
         :class:`concurrent.futures.ThreadPoolExecutor` workers).  Each thread
-        keeps its own context-var reset token; ``with client`` stores its token
+        keeps its own context-var reset token; ``with client`` stores its tokens
         on the instance and is not safe for concurrent use.
         """
         token = _current_client.set(self)
@@ -380,10 +474,7 @@ class Client:
     def _yield_api(self) -> Generator[rawapi.DefaultApi, None, None]:
         """Context manager that yields the raw API under the instance lock."""
         with self._api_lock:
-            try:
-                yield self._api
-            finally:
-                pass
+            yield self._api
 
     def _get_http_basic_auth_header(self) -> dict[str, str]:
         creds = self._credentials
@@ -398,6 +489,7 @@ class Client:
     def _get_token_payload(self) -> AccessToken:
         if self._access_token is None:
             raise ValueError("No access token")
+        self._refresh_auth()
         return parse_access_token(self._access_token.access_token)
 
     def _refresh_auth(self) -> str:
@@ -436,6 +528,7 @@ class Client:
     # Project CRUD
     # ------------------------------------------------------------------
 
+    @_requires_active
     def get_project(self, project_id: str) -> Project:
         """
         Get a project by its ID.
@@ -448,6 +541,7 @@ class Client:
         """
         return Project.get(project_id)
 
+    @_requires_active
     def get_project_from_token(self) -> Project:
         """
         Get the project associated with the current project-scoped API key.
@@ -460,6 +554,7 @@ class Client:
         """
         return Project.from_token()
 
+    @_requires_active
     def get_projects(
         self,
         *,
@@ -474,7 +569,7 @@ class Client:
             page_size: Number of projects per page, defaults to 1000.
             page: Page number to return, defaults to 1.
             project_type_filter: Filter by project type. Defaults to ProjectTypeFilter.API.
-               By default, only projects created with the public API are returned.
+                By default, only projects created with the public API are returned.
 
         Returns:
             A list of projects.
@@ -485,6 +580,7 @@ class Client:
             project_type_filter=project_type_filter,
         )
 
+    @_requires_active
     def get_project_by_name(
         self,
         name: str,
@@ -498,12 +594,13 @@ class Client:
         Parameters:
             name: The name of the project to search for.
             project_type_filter: Filter by project type. Defaults to ProjectTypeFilter.ALL.
-               By default, all project types are returned.
+                By default, all project types are returned.
         Returns:
             The project that matches the given name.
         """
         return Project.get_by_name(name=name, project_type_filter=project_type_filter)
 
+    @_requires_active
     def create_project(
         self,
         name: str,
@@ -549,6 +646,7 @@ class Client:
             team_id=team_id,
         )
 
+    @_requires_active
     def delete_project(self, project_id: str) -> None:
         """
         Delete a project by its ID.
@@ -559,12 +657,14 @@ class Client:
         project = Project.get(project_id)
         project.delete()
 
+    @_requires_active
     def copy_project(
         self,
         project_id: str,
         with_results: bool = False,
         name: str | None = None,
         wait_for_completion: bool = True,
+        on_error: OnError = OnError.IGNORE,
     ) -> Project:
         """
         Copy a project.
@@ -574,6 +674,8 @@ class Client:
             with_results: If ``True``, copy result files as well.
             name: Name for the new project.
             wait_for_completion: If ``True``, wait for file copying to finish.
+            on_error: Controls error handling after file copying finishes. See
+                :meth:`Project.copy`.
 
         Returns:
             The copied project.
@@ -581,12 +683,14 @@ class Client:
         Raises:
             ValueError: If authenticated with a project API key. Copying projects
                 requires an organization API key.
+            JobError: If file copying fails and ``on_error`` is not ``OnError.IGNORE``.
         """
         project = Project.get(project_id)
         return project.copy(
             with_results=with_results,
             name=name,
             wait_for_completion=wait_for_completion,
+            on_error=on_error,
         )
 
     def get_url(self, project: Project) -> str:
@@ -597,8 +701,17 @@ class Client:
             project: The project to build the URL for.
 
         Returns:
-            The full URL to open the project in the Allsolve web app.
+            The full URL to open the project in the Allsolve web app. The URL
+            is a web app link, not a public API route, so its format can
+            change between Allsolve releases.
+
+        Raises:
+            TypeError: If *project* is not a :class:`Project`.
         """
+        if not isinstance(project, Project):
+            raise TypeError(
+                f"get_url() needs a Project, not {project.__class__.__name__}"
+            )
         return f"{self._host}/#/projects/{project.id}/model"
 
     # ------------------------------------------------------------------
@@ -640,6 +753,7 @@ class Client:
         finally:
             os.close(fd)
 
+    @_requires_active
     def get_current_project(self) -> Project | None:
         """
         Retrieve the project previously stored with :meth:`set_current_project`.
@@ -670,6 +784,7 @@ class Client:
     def _get_or_create_lease_keeper(
         self, reservation_id: str
     ) -> _ReservationLeaseKeeper:
+        """Return the keeper for *reservation_id*. Caller must hold ``_lease_keepers_lock``."""
         if reservation_id not in self._lease_keepers:
             self._lease_keepers[reservation_id] = _ReservationLeaseKeeper(
                 reservation_id,
@@ -678,15 +793,17 @@ class Client:
         return self._lease_keepers[reservation_id]
 
     def _acquire_job_lease_keeper(self, reservation_id: str) -> None:
-        self._get_or_create_lease_keeper(reservation_id).acquire_job()
+        with self._lease_keepers_lock:
+            self._get_or_create_lease_keeper(reservation_id).acquire_job()
 
     def _release_job_lease_keeper(self, reservation_id: str) -> None:
-        keeper = self._lease_keepers.get(reservation_id)
-        if keeper is None:
-            return
-        keeper.release_job()
-        if not keeper.is_active():
-            self._drop_lease_keeper(reservation_id)
+        with self._lease_keepers_lock:
+            keeper = self._lease_keepers.get(reservation_id)
+            if keeper is None:
+                return
+            keeper.release_job()
+            if not keeper.is_active():
+                del self._lease_keepers[reservation_id]
 
     def _acquire_auto_renew_lease_keeper(
         self,
@@ -694,22 +811,32 @@ class Client:
         *,
         max_idle_seconds: float = DEFAULT_MAX_IDLE_SECONDS,
     ) -> None:
-        self._get_or_create_lease_keeper(reservation_id).acquire_auto_renew(
-            max_idle_seconds=max_idle_seconds,
-        )
+        with self._lease_keepers_lock:
+            self._get_or_create_lease_keeper(reservation_id).acquire_auto_renew(
+                max_idle_seconds=max_idle_seconds,
+            )
 
     def _release_auto_renew_lease_keeper(self, reservation_id: str) -> None:
-        keeper = self._lease_keepers.get(reservation_id)
-        if keeper is None:
-            return
-        keeper.release_auto_renew()
-        if not keeper.is_active():
-            self._drop_lease_keeper(reservation_id)
+        with self._lease_keepers_lock:
+            keeper = self._lease_keepers.get(reservation_id)
+            if keeper is None:
+                return
+            keeper.release_auto_renew()
+            if not keeper.is_active():
+                del self._lease_keepers[reservation_id]
 
-    def _drop_lease_keeper(self, reservation_id: str) -> None:
-        """Remove a lease keeper from the client registry."""
-        self._lease_keepers.pop(reservation_id, None)
+    def _drop_lease_keeper(
+        self, reservation_id: str, keeper: _ReservationLeaseKeeper
+    ) -> None:
+        """Remove *keeper* from the client registry if it is still registered and inactive."""
+        with self._lease_keepers_lock:
+            if (
+                self._lease_keepers.get(reservation_id) is keeper
+                and not keeper.is_active()
+            ):
+                del self._lease_keepers[reservation_id]
 
+    @_requires_active
     @contextmanager
     def resource_reservation(
         self,
@@ -798,6 +925,7 @@ class Client:
     # Import / Export
     # ------------------------------------------------------------------
 
+    @_requires_active
     def import_project(
         self,
         file_or_data: str | dict[str, Any],
@@ -825,6 +953,8 @@ class Client:
                 (the parent folder of a YAML/JSON file). Set to ``True`` only for trusted
                 import data that must use absolute paths to files outside that directory
                 (e.g. shared assets on a secure host). **Do not** use for untrusted bundles.
+                The ``.msh`` files that ``saveMesh`` writes must also stay under the
+                working directory unless this is ``True``.
 
         Returns:
             The imported project.
@@ -839,6 +969,7 @@ class Client:
             allow_paths_outside_project=allow_paths_outside_project,
         )
 
+    @_requires_active
     def export_project_yaml(
         self,
         project: Project,
@@ -897,6 +1028,7 @@ class Client:
         if os.path.exists(self._cache_dir):
             shutil.rmtree(self._cache_dir)
 
+    @_requires_active
     def get_quota(self) -> rawapi.OrganizationQuota:
         """
         Get the organization's quota information.
@@ -908,6 +1040,7 @@ class Client:
         """
         return _get_quota()
 
+    @_requires_active
     def get_teams(self) -> list[rawapi.Team]:
         """
         Get teams available to the API user.

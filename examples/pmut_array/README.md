@@ -35,5 +35,5 @@ After the simulation has finished, install this example's dependencies and visua
 (venv) $ python visualize_pmut_array_results.py
 ```
 
-The script downloads result .vtu files and visualizes the simulation results
+The script downloads result files in VTKHDF format (.hdf) and visualizes the simulation results
 using pyvista. Results are saved under the `output/` directory.

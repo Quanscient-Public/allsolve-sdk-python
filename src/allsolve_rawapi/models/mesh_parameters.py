@@ -46,9 +46,10 @@ class MeshParameters(BaseModel):
     selective_refinement: Optional[SelectiveMeshRefinement] = Field(default=None, alias="selectiveRefinement")
     structured_meshing: Optional[StructuredMeshing] = Field(default=None, alias="structuredMeshing")
     structured_mesh_definitions: Optional[StructuredMeshDefinitions] = Field(default=None, alias="structuredMeshDefinitions")
+    mesh_extrusions: Optional[Annotated[List[MeshExtrusion], Field(min_length=1)]] = Field(default=None, description="List of mesh extrusions Note: Use this instead of the deprecated MeshExtrusion ", alias="meshExtrusions")
     mesh_extrusion: Optional[MeshExtrusion] = Field(default=None, alias="meshExtrusion")
     auto_transfinite_meshing: Optional[List[AutoTransfiniteEntry]] = Field(default=None, description="Automatic transfinite meshing configuration. An array of entries, each pairing anisotropic element sizes with target entity selections. ", alias="autoTransfiniteMeshing")
-    __properties: ClassVar[List[str]] = ["meshAlgorithm", "minSizeFactor", "maxSizeFactor", "scaleFactor", "curvatureEnhancement", "meshSizeMin", "meshSizeMax", "curvedMesh", "targetWidthToHeightRatio", "selectiveRefinement", "structuredMeshing", "structuredMeshDefinitions", "meshExtrusion", "autoTransfiniteMeshing"]
+    __properties: ClassVar[List[str]] = ["meshAlgorithm", "minSizeFactor", "maxSizeFactor", "scaleFactor", "curvatureEnhancement", "meshSizeMin", "meshSizeMax", "curvedMesh", "targetWidthToHeightRatio", "selectiveRefinement", "structuredMeshing", "structuredMeshDefinitions", "meshExtrusions", "meshExtrusion", "autoTransfiniteMeshing"]
 
     model_config = ConfigDict(
         validate_by_name=True,
@@ -98,6 +99,12 @@ class MeshParameters(BaseModel):
         # override the default output from pydantic by calling `to_dict()` of structured_mesh_definitions
         if self.structured_mesh_definitions:
             _dict['structuredMeshDefinitions'] = self.structured_mesh_definitions.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of each item in mesh_extrusions (list)
+        _items = []
+        if self.mesh_extrusions:
+            for _item_mesh_extrusions in self.mesh_extrusions:
+                _items.append(_item_mesh_extrusions.to_dict() if _item_mesh_extrusions is not None else None)
+            _dict['meshExtrusions'] = _items
         # override the default output from pydantic by calling `to_dict()` of mesh_extrusion
         if self.mesh_extrusion:
             _dict['meshExtrusion'] = self.mesh_extrusion.to_dict()
@@ -131,6 +138,7 @@ class MeshParameters(BaseModel):
             "selectiveRefinement": SelectiveMeshRefinement.from_dict(obj["selectiveRefinement"]) if obj.get("selectiveRefinement") is not None else None,
             "structuredMeshing": StructuredMeshing.from_dict(obj["structuredMeshing"]) if obj.get("structuredMeshing") is not None else None,
             "structuredMeshDefinitions": StructuredMeshDefinitions.from_dict(obj["structuredMeshDefinitions"]) if obj.get("structuredMeshDefinitions") is not None else None,
+            "meshExtrusions": [MeshExtrusion.from_dict(_item) for _item in obj["meshExtrusions"]] if obj.get("meshExtrusions") is not None else None,
             "meshExtrusion": MeshExtrusion.from_dict(obj["meshExtrusion"]) if obj.get("meshExtrusion") is not None else None,
             "autoTransfiniteMeshing": [AutoTransfiniteEntry.from_dict(_item) for _item in obj["autoTransfiniteMeshing"]] if obj.get("autoTransfiniteMeshing") is not None else None
         })

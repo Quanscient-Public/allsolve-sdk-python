@@ -69,7 +69,60 @@ class CadPoint:
         return rawapi.CadEntity(tag=self._tag, name=self._name)
 
 
-class CadBox(CadGeometryElement):
+class _CadBasicGeometry(CadGeometryElement):
+    """
+    Base class for basic geometry elements. Their setters write only to the
+    uncommitted update, so the shape fields are read back from it when the
+    element is saved or added to a project.
+    """
+
+    _COMMON_ATTRIBUTES = frozenset(
+        (
+            "_project_id",
+            "_id",
+            "_name",
+            "_enabled",
+            "_geometry",
+            "_deleted",
+            "_uncommitted_update",
+        )
+    )
+
+    def _apply_update(self, update: rawapi.GeometryElement) -> None:
+        updated = type(self)._from_rawapi(update, self._project_id)
+        for attribute, value in vars(updated).items():
+            if attribute not in self._COMMON_ATTRIBUTES:
+                setattr(self, attribute, value)
+
+    @prevent_deleted
+    def save(self) -> None:
+        """
+        Save the changes to the geometry element.
+        Calling save() on a geometry element that is not added to the project using
+        GeometryBuilder will raise a ValueError.
+
+        After the save, the properties of this object show the saved values.
+        """
+        update = self._uncommitted_update
+        super().save()
+        if update is not None:
+            self._apply_update(update)
+
+    @prevent_deleted
+    def _to_rawapi_new_geometry_element(self) -> rawapi.NewGeometryElement:
+        if self._uncommitted_update is not None:
+            self._apply_update(self._uncommitted_update)
+            self._uncommitted_update = None
+        return super()._to_rawapi_new_geometry_element()
+
+    @classmethod
+    def _from_rawapi(
+        cls, rawapi_element: rawapi.GeometryElement, project_id: str | None = None
+    ) -> Self:
+        raise NotImplementedError(f"{cls.__name__} must implement _from_rawapi()")
+
+
+class CadBox(_CadBasicGeometry):
     """
     Box represents a rectangular box geometry.
     """
@@ -159,7 +212,7 @@ class CadBox(CadGeometryElement):
         self,
         position: tuple[float | str, float | str, float | str],
     ) -> None:
-        """Set the position of the box."""
+        """Set the position of the box. Use save() to commit the change."""
         self._require_box().position = create_vector(position)
 
     @property
@@ -176,7 +229,7 @@ class CadBox(CadGeometryElement):
         self,
         size: tuple[float | str, float | str, float | str],
     ) -> None:
-        """Set the size of the box."""
+        """Set the size of the box. Use save() to commit the change."""
         self._require_box().size = create_vector(size)
 
     @property
@@ -190,7 +243,7 @@ class CadBox(CadGeometryElement):
     def rotation(
         self, rotation: tuple[float | str, float | str, float | str] | None
     ) -> None:
-        """Set the rotation of the box."""
+        """Set the rotation of the box. Use save() to commit the change."""
         self._require_box().rotation = (
             create_euler_angles(rotation) if rotation is not None else None
         )
@@ -204,7 +257,7 @@ class CadBox(CadGeometryElement):
     @alignment.setter
     @prevent_deleted
     def alignment(self, alignment: rawapi.CadAlignment | None) -> None:
-        """Set the alignment of the box."""
+        """Set the alignment of the box. Use save() to commit the change."""
         self._require_box().alignment = alignment
 
     @property
@@ -249,7 +302,7 @@ class CadBox(CadGeometryElement):
         )
 
 
-class CadCylinder(CadGeometryElement):
+class CadCylinder(_CadBasicGeometry):
     """
     Cylinder represents a cylindrical geometry.
     """
@@ -374,7 +427,7 @@ class CadCylinder(CadGeometryElement):
         self,
         position: tuple[float | str, float | str, float | str],
     ) -> None:
-        """Set the position of the cylinder."""
+        """Set the position of the cylinder. Use save() to commit the change."""
         self._require_cylinder().position = create_vector(position)
 
     @property
@@ -391,7 +444,7 @@ class CadCylinder(CadGeometryElement):
         self,
         axis: tuple[float | str, float | str, float | str],
     ) -> None:
-        """Set the axis of the cylinder."""
+        """Set the axis of the cylinder. Use save() to commit the change."""
         self._require_cylinder().axis = create_vector(axis)
 
     @property
@@ -403,7 +456,7 @@ class CadCylinder(CadGeometryElement):
     @radius.setter
     @prevent_deleted
     def radius(self, radius: float | str) -> None:
-        """Set the radius of the cylinder."""
+        """Set the radius of the cylinder. Use save() to commit the change."""
         self._require_cylinder().radius = create_distance(radius)
 
     @property
@@ -415,7 +468,7 @@ class CadCylinder(CadGeometryElement):
     @inner_radius.setter
     @prevent_deleted
     def inner_radius(self, inner_radius: float | str | None) -> None:
-        """Set the inner radius of the cylinder."""
+        """Set the inner radius of the cylinder. Use save() to commit the change."""
         self._require_cylinder().inner_radius = (
             create_distance(inner_radius) if inner_radius is not None else None
         )
@@ -429,7 +482,7 @@ class CadCylinder(CadGeometryElement):
     @angle1.setter
     @prevent_deleted
     def angle1(self, angle1: float | str | None) -> None:
-        """Set the first angle of the cylinder."""
+        """Set the first angle of the cylinder. Use save() to commit the change."""
         self._require_cylinder().angle1 = (
             create_angle(angle1) if angle1 is not None else None
         )
@@ -443,7 +496,7 @@ class CadCylinder(CadGeometryElement):
     @angle2.setter
     @prevent_deleted
     def angle2(self, angle2: float | str | None) -> None:
-        """Set the second angle of the cylinder."""
+        """Set the second angle of the cylinder. Use save() to commit the change."""
         self._require_cylinder().angle2 = (
             create_angle(angle2) if angle2 is not None else None
         )
@@ -459,7 +512,7 @@ class CadCylinder(CadGeometryElement):
     def rotation(
         self, rotation: tuple[float | str, float | str, float | str] | None
     ) -> None:
-        """Set the rotation of the cylinder."""
+        """Set the rotation of the cylinder. Use save() to commit the change."""
         self._require_cylinder().rotation = (
             create_euler_angles(rotation) if rotation is not None else None
         )
@@ -473,7 +526,7 @@ class CadCylinder(CadGeometryElement):
     @alignment.setter
     @prevent_deleted
     def alignment(self, alignment: rawapi.CadAlignment | None) -> None:
-        """Set the alignment of the cylinder."""
+        """Set the alignment of the cylinder. Use save() to commit the change."""
         self._require_cylinder().alignment = alignment
 
     @property
@@ -535,7 +588,7 @@ class CadCylinder(CadGeometryElement):
         )
 
 
-class CadSphere(CadGeometryElement):
+class CadSphere(_CadBasicGeometry):
     """
     Sphere represents a spherical geometry.
     """
@@ -647,7 +700,7 @@ class CadSphere(CadGeometryElement):
         self,
         position: tuple[float | str, float | str, float | str],
     ) -> None:
-        """Set the position of the sphere."""
+        """Set the position of the sphere. Use save() to commit the change."""
         self._require_sphere().position = create_vector(position)
 
     @property
@@ -659,7 +712,7 @@ class CadSphere(CadGeometryElement):
     @radius.setter
     @prevent_deleted
     def radius(self, radius: float | str) -> None:
-        """Set the radius of the sphere."""
+        """Set the radius of the sphere. Use save() to commit the change."""
         self._require_sphere().radius = create_distance(radius)
 
     @property
@@ -671,7 +724,7 @@ class CadSphere(CadGeometryElement):
     @inner_radius.setter
     @prevent_deleted
     def inner_radius(self, inner_radius: float | str | None) -> None:
-        """Set the inner radius of the sphere."""
+        """Set the inner radius of the sphere. Use save() to commit the change."""
         self._require_sphere().inner_radius = (
             create_distance(inner_radius) if inner_radius is not None else None
         )
@@ -685,7 +738,7 @@ class CadSphere(CadGeometryElement):
     @angle1.setter
     @prevent_deleted
     def angle1(self, angle1: float | str | None) -> None:
-        """Set the first angle of the sphere."""
+        """Set the first angle of the sphere. Use save() to commit the change."""
         self._require_sphere().angle1 = (
             create_angle(angle1) if angle1 is not None else None
         )
@@ -699,7 +752,7 @@ class CadSphere(CadGeometryElement):
     @angle2.setter
     @prevent_deleted
     def angle2(self, angle2: float | str | None) -> None:
-        """Set the second angle of the sphere."""
+        """Set the second angle of the sphere. Use save() to commit the change."""
         self._require_sphere().angle2 = (
             create_angle(angle2) if angle2 is not None else None
         )
@@ -715,7 +768,7 @@ class CadSphere(CadGeometryElement):
     def rotation(
         self, rotation: tuple[float | str, float | str, float | str] | None
     ) -> None:
-        """Set the rotation of the sphere."""
+        """Set the rotation of the sphere. Use save() to commit the change."""
         self._require_sphere().rotation = (
             create_euler_angles(rotation) if rotation is not None else None
         )
@@ -775,7 +828,7 @@ class CadSphere(CadGeometryElement):
         )
 
 
-class CadCone(CadGeometryElement):
+class CadCone(_CadBasicGeometry):
     """
     Cone represents a conical geometry.
     """
@@ -898,7 +951,7 @@ class CadCone(CadGeometryElement):
         self,
         position: tuple[float | str, float | str, float | str],
     ) -> None:
-        """Set the position of the cone."""
+        """Set the position of the cone. Use save() to commit the change."""
         self._require_cone().position = create_vector(position)
 
     @property
@@ -915,7 +968,7 @@ class CadCone(CadGeometryElement):
         self,
         axis: tuple[float | str, float | str, float | str],
     ) -> None:
-        """Set the axis of the cone."""
+        """Set the axis of the cone. Use save() to commit the change."""
         self._require_cone().axis = create_vector(axis)
 
     @property
@@ -927,7 +980,7 @@ class CadCone(CadGeometryElement):
     @radius1.setter
     @prevent_deleted
     def radius1(self, radius1: float | str) -> None:
-        """Set the base radius of the cone."""
+        """Set the base radius of the cone. Use save() to commit the change."""
         self._require_cone().radius1 = create_distance(radius1)
 
     @property
@@ -939,7 +992,7 @@ class CadCone(CadGeometryElement):
     @radius2.setter
     @prevent_deleted
     def radius2(self, radius2: float | str) -> None:
-        """Set the top radius of the cone."""
+        """Set the top radius of the cone. Use save() to commit the change."""
         self._require_cone().radius2 = create_distance(radius2)
 
     @property
@@ -951,7 +1004,7 @@ class CadCone(CadGeometryElement):
     @angle1.setter
     @prevent_deleted
     def angle1(self, angle1: float | str | None) -> None:
-        """Set the first angle of the cone."""
+        """Set the first angle of the cone. Use save() to commit the change."""
         self._require_cone().angle1 = (
             create_angle(angle1) if angle1 is not None else None
         )
@@ -965,7 +1018,7 @@ class CadCone(CadGeometryElement):
     @angle2.setter
     @prevent_deleted
     def angle2(self, angle2: float | str | None) -> None:
-        """Set the second angle of the cone."""
+        """Set the second angle of the cone. Use save() to commit the change."""
         self._require_cone().angle2 = (
             create_angle(angle2) if angle2 is not None else None
         )
@@ -981,7 +1034,7 @@ class CadCone(CadGeometryElement):
     def rotation(
         self, rotation: tuple[float | str, float | str, float | str] | None
     ) -> None:
-        """Set the rotation of the cone."""
+        """Set the rotation of the cone. Use save() to commit the change."""
         self._require_cone().rotation = (
             create_euler_angles(rotation) if rotation is not None else None
         )
@@ -995,7 +1048,7 @@ class CadCone(CadGeometryElement):
     @alignment.setter
     @prevent_deleted
     def alignment(self, alignment: rawapi.CadAlignment | None) -> None:
-        """Set the alignment of the cone."""
+        """Set the alignment of the cone. Use save() to commit the change."""
         self._require_cone().alignment = alignment
 
     @property
@@ -1054,7 +1107,7 @@ class CadCone(CadGeometryElement):
         )
 
 
-class CadTorus(CadGeometryElement):
+class CadTorus(_CadBasicGeometry):
     """
     Torus represents a toroidal geometry.
     """
@@ -1172,7 +1225,7 @@ class CadTorus(CadGeometryElement):
         self,
         position: tuple[float | str, float | str, float | str],
     ) -> None:
-        """Set the position of the torus."""
+        """Set the position of the torus. Use save() to commit the change."""
         self._require_torus().position = create_vector(position)
 
     @property
@@ -1184,7 +1237,7 @@ class CadTorus(CadGeometryElement):
     @radius1.setter
     @prevent_deleted
     def radius1(self, radius1: float | str) -> None:
-        """Set the outer radius of the torus."""
+        """Set the outer radius of the torus. Use save() to commit the change."""
         self._require_torus().radius1 = create_distance(radius1)
 
     @property
@@ -1196,7 +1249,7 @@ class CadTorus(CadGeometryElement):
     @radius2.setter
     @prevent_deleted
     def radius2(self, radius2: float | str) -> None:
-        """Set the width of the torus ring."""
+        """Set the width of the torus ring. Use save() to commit the change."""
         self._require_torus().radius2 = create_distance(radius2)
 
     @property
@@ -1208,7 +1261,7 @@ class CadTorus(CadGeometryElement):
     @inner_radius.setter
     @prevent_deleted
     def inner_radius(self, inner_radius: float | str | None) -> None:
-        """Set the inner radius of the torus."""
+        """Set the inner radius of the torus. Use save() to commit the change."""
         self._require_torus().inner_radius = (
             create_distance(inner_radius) if inner_radius is not None else None
         )
@@ -1222,7 +1275,7 @@ class CadTorus(CadGeometryElement):
     @angle1.setter
     @prevent_deleted
     def angle1(self, angle1: float | str | None) -> None:
-        """Set the first angle of the torus."""
+        """Set the first angle of the torus. Use save() to commit the change."""
         self._require_torus().angle1 = (
             create_angle(angle1) if angle1 is not None else None
         )
@@ -1236,7 +1289,7 @@ class CadTorus(CadGeometryElement):
     @angle2.setter
     @prevent_deleted
     def angle2(self, angle2: float | str | None) -> None:
-        """Set the second angle of the torus."""
+        """Set the second angle of the torus. Use save() to commit the change."""
         self._require_torus().angle2 = (
             create_angle(angle2) if angle2 is not None else None
         )
@@ -1252,7 +1305,7 @@ class CadTorus(CadGeometryElement):
     def rotation(
         self, rotation: tuple[float | str, float | str, float | str] | None
     ) -> None:
-        """Set the rotation of the torus."""
+        """Set the rotation of the torus. Use save() to commit the change."""
         self._require_torus().rotation = (
             create_euler_angles(rotation) if rotation is not None else None
         )
@@ -1314,7 +1367,7 @@ class CadTorus(CadGeometryElement):
         )
 
 
-class CadSurfaceRectangle(CadGeometryElement):
+class CadSurfaceRectangle(_CadBasicGeometry):
     """
     CadSurfaceRectangle represents a surface rectangle geometry.
     """
@@ -1408,7 +1461,7 @@ class CadSurfaceRectangle(CadGeometryElement):
         self,
         size: tuple[float | str, float | str],
     ) -> None:
-        """Set the size of the surface rectangle."""
+        """Set the size of the surface rectangle. Use save() to commit the change."""
         self._require_surface_rectangle().size = create_vector((size[0], size[1], 0))
 
     @property
@@ -1425,7 +1478,7 @@ class CadSurfaceRectangle(CadGeometryElement):
         self,
         offset: tuple[float | str, float | str, float | str],
     ) -> None:
-        """Set the offset of the surface rectangle."""
+        """Set the offset of the surface rectangle. Use save() to commit the change."""
         self._require_surface_rectangle().offset = create_vector(offset)
 
     @property
@@ -1437,7 +1490,7 @@ class CadSurfaceRectangle(CadGeometryElement):
     @origin_point.setter
     @prevent_deleted
     def origin_point(self, origin_point: CadPoint) -> None:
-        """Set the origin point CAD entity."""
+        """Set the origin point CAD entity. Use save() to commit the change."""
         self._require_surface_rectangle().origin_point = origin_point._to_rawapi()
 
     @property
@@ -1449,7 +1502,7 @@ class CadSurfaceRectangle(CadGeometryElement):
     @main_axis_point.setter
     @prevent_deleted
     def main_axis_point(self, main_axis_point: CadPoint) -> None:
-        """Set the main axis point CAD entity."""
+        """Set the main axis point CAD entity. Use save() to commit the change."""
         self._require_surface_rectangle().main_axis_point = main_axis_point._to_rawapi()
 
     @property
@@ -1461,7 +1514,7 @@ class CadSurfaceRectangle(CadGeometryElement):
     @secondary_axis_point.setter
     @prevent_deleted
     def secondary_axis_point(self, secondary_axis_point: CadPoint) -> None:
-        """Set the secondary axis point CAD entity."""
+        """Set the secondary axis point CAD entity. Use save() to commit the change."""
         self._require_surface_rectangle().secondary_axis_point = (
             secondary_axis_point._to_rawapi()
         )
@@ -1505,7 +1558,7 @@ class CadSurfaceRectangle(CadGeometryElement):
         )
 
 
-class CadDisk(CadGeometryElement):
+class CadDisk(_CadBasicGeometry):
     """
     Disk represents a circular disk geometry.
     """
@@ -1617,7 +1670,7 @@ class CadDisk(CadGeometryElement):
         self,
         position: tuple[float | str, float | str],
     ) -> None:
-        """Set the position of the disk."""
+        """Set the position of the disk. Use save() to commit the change."""
         self._require_disk().position = create_vector_2d(position)
 
     @property
@@ -1629,7 +1682,7 @@ class CadDisk(CadGeometryElement):
     @radius.setter
     @prevent_deleted
     def radius(self, radius: float | str) -> None:
-        """Set the radius of the disk."""
+        """Set the radius of the disk. Use save() to commit the change."""
         self._require_disk().radius = create_distance(radius)
 
     @property
@@ -1641,7 +1694,7 @@ class CadDisk(CadGeometryElement):
     @inner_radius.setter
     @prevent_deleted
     def inner_radius(self, inner_radius: float | str | None) -> None:
-        """Set the inner radius of the disk."""
+        """Set the inner radius of the disk. Use save() to commit the change."""
         self._require_disk().inner_radius = (
             create_distance(inner_radius) if inner_radius is not None else None
         )
@@ -1655,7 +1708,7 @@ class CadDisk(CadGeometryElement):
     @angle1.setter
     @prevent_deleted
     def angle1(self, angle1: float | str | None) -> None:
-        """Set the first angle of the disk."""
+        """Set the first angle of the disk. Use save() to commit the change."""
         self._require_disk().angle1 = (
             create_angle(angle1) if angle1 is not None else None
         )
@@ -1669,7 +1722,7 @@ class CadDisk(CadGeometryElement):
     @angle2.setter
     @prevent_deleted
     def angle2(self, angle2: float | str | None) -> None:
-        """Set the second angle of the disk."""
+        """Set the second angle of the disk. Use save() to commit the change."""
         self._require_disk().angle2 = (
             create_angle(angle2) if angle2 is not None else None
         )
@@ -1685,7 +1738,7 @@ class CadDisk(CadGeometryElement):
     def rotation(
         self, rotation: tuple[float | str, float | str, float | str] | None
     ) -> None:
-        """Set the rotation of the disk."""
+        """Set the rotation of the disk. Use save() to commit the change."""
         self._require_disk().rotation = (
             create_euler_angles(rotation) if rotation is not None else None
         )
@@ -1745,7 +1798,7 @@ class CadDisk(CadGeometryElement):
         )
 
 
-class CadRectangle(CadGeometryElement):
+class CadRectangle(_CadBasicGeometry):
     """
     Rectangle represents a rectangular geometry.
     """
@@ -1840,7 +1893,7 @@ class CadRectangle(CadGeometryElement):
         self,
         position: tuple[float | str, float | str],
     ) -> None:
-        """Set the position of the rectangle."""
+        """Set the position of the rectangle. Use save() to commit the change."""
         self._require_rectangle().position = create_vector_2d(position)
 
     @property
@@ -1857,7 +1910,7 @@ class CadRectangle(CadGeometryElement):
         self,
         size: tuple[float | str, float | str],
     ) -> None:
-        """Set the size of the rectangle."""
+        """Set the size of the rectangle. Use save() to commit the change."""
         self._require_rectangle().size = create_vector_2d(size)
 
     @property
@@ -1871,7 +1924,7 @@ class CadRectangle(CadGeometryElement):
     def rotation(
         self, rotation: tuple[float | str, float | str, float | str] | None
     ) -> None:
-        """Set the rotation of the rectangle."""
+        """Set the rotation of the rectangle. Use save() to commit the change."""
         self._require_rectangle().rotation = (
             create_euler_angles(rotation) if rotation is not None else None
         )
@@ -1885,7 +1938,7 @@ class CadRectangle(CadGeometryElement):
     @alignment.setter
     @prevent_deleted
     def alignment(self, alignment: rawapi.CadAlignment | None) -> None:
-        """Set the alignment of the rectangle."""
+        """Set the alignment of the rectangle. Use save() to commit the change."""
         self._require_rectangle().alignment = alignment
 
     @property

@@ -8,7 +8,7 @@ from typing_extensions import Self
 
 from allsolve.geometry.geometry_element import GDS2ImportConfig, GeometryElement
 from ..util import deprecated, prevent_deleted
-from ..job_mixin import JobMixin
+from .._job_mixin import JobMixin
 import allsolve_rawapi as rawapi
 from allsolve_rawapi.exceptions import ServiceException
 from ..api import get_api, get_auth, check_for_project_api_key
@@ -33,8 +33,7 @@ class Geometry(JobMixin):
         Create a new geometry element in the given project.
         Uploads the geometry file to the project.
 
-        .. deprecated::
-            Use geometry pipeline version V2 for new projects.
+        Deprecated: Use geometry pipeline version V2 for new projects.
 
         Parameters:
             geometry_imports: A list of geometry import objects.
@@ -189,8 +188,7 @@ class Geometry(JobMixin):
         """
         Start processing the imported geometry file.
 
-        .. deprecated::
-            Use geometry pipeline version V2 for new projects.
+        Deprecated: Use geometry pipeline version V2 for new projects.
         """
         project_id = check_for_project_api_key(self._project_id)
 
@@ -209,8 +207,7 @@ class Geometry(JobMixin):
         """
         Processes the imported geometry file and returns when the processing is complete.
 
-        .. deprecated::
-            Use geometry pipeline version V2 for new projects.
+        Deprecated: Use geometry pipeline version V2 for new projects.
 
         Parameters:
             print_logs: If True, print logs to the console.
@@ -280,13 +277,16 @@ class Geometry(JobMixin):
         return super().get_logs(limit)
 
     @prevent_deleted
-    def print_new_loglines(self, file: TextIO = sys.stdout, limit: int = 100) -> None:
+    def print_new_loglines(
+        self, file: TextIO = sys.stdout, limit: int | None = None
+    ) -> None:
         """
         Print the new log lines of the processing of the imported geometry file.
 
         Parameters:
             file: Optional file to print the logs to.
-            limit: Optional maximum number of logs to print.
+            limit: Optional maximum number of new log lines to print.
+                If None, print all new log lines.
         """
         return super().print_new_loglines(file, limit)
 

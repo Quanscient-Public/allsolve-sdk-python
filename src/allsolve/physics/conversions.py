@@ -41,6 +41,44 @@ def vector_to_str(value: VectorValue) -> str:
     return "[" + "; ".join(str(v) for v in value) + "]"
 
 
+def _bracket_content(value: str) -> str | None:
+    text = value.strip()
+    if len(text) < 2 or text[0] != "[" or text[-1] != "]":
+        return None
+    depth = 0
+    for i, char in enumerate(text):
+        if char in "([":
+            depth += 1
+        elif char in ")]":
+            depth -= 1
+            if depth == 0 and i != len(text) - 1:
+                return None
+    return text[1:-1]
+
+
+def _split_top_level(text: str, separator: str) -> list[str]:
+    parts: list[str] = []
+    depth = 0
+    start = 0
+    for i, char in enumerate(text):
+        if char in "([":
+            depth += 1
+        elif char in ")]":
+            depth -= 1
+        elif char == separator and depth == 0:
+            parts.append(text[start:i].strip())
+            start = i + 1
+    parts.append(text[start:].strip())
+    return parts
+
+
+def _parse_item(item: str) -> float | str:
+    try:
+        return float(item)
+    except ValueError:
+        return item
+
+
 def vector_from_str(value: str) -> VectorValue:
     """
     Parse a vector string back to a list of values.
@@ -49,7 +87,8 @@ def vector_from_str(value: str) -> VectorValue:
         value: A string in allsolve vector format "[x; y; z]".
 
     Returns:
-        A list of floats (or strings if not numeric).
+        A list of floats (or strings if not numeric). A string that is not a
+        bracketed list, for example a variable name, is returned unchanged.
 
     Examples:
         >>> vector_from_str("[0; 0; -1000]")
@@ -59,16 +98,12 @@ def vector_from_str(value: str) -> VectorValue:
         >>> vector_from_str("[x; y; z]")
         ['x', 'y', 'z']
     """
-    # Remove brackets and split by semicolon
-    inner = value.strip()[1:-1]
-    parts = [p.strip() for p in inner.split(";")]
-    result: list[float | str] = []
-    for part in parts:
-        try:
-            result.append(float(part))
-        except ValueError:
-            result.append(part)
-    return result
+    inner = _bracket_content(value)
+    if inner is None:
+        return value
+    if not inner.strip():
+        return []
+    return [_parse_item(part) for part in _split_top_level(inner, ";")]
 
 
 def matrix_to_str(value: MatrixValue) -> str:
@@ -80,6 +115,7 @@ def matrix_to_str(value: MatrixValue) -> str:
             - If string, returned as-is (assumed to be in correct format).
             - If nested sequence, converted to "[r0c0, r0c1; r1c0, r1c1; ...]" format.
               Rows are separated by semicolons, columns by commas.
+              A row that is a string or a number is one cell.
 
     Returns:
         The matrix in allsolve format.
@@ -92,7 +128,14 @@ def matrix_to_str(value: MatrixValue) -> str:
     """
     if isinstance(value, str):
         return value
-    rows = [", ".join(str(c) for c in row) for row in value]
+    rows = [
+        (
+            str(row)
+            if isinstance(row, str) or not isinstance(row, Sequence)
+            else ", ".join(str(c) for c in row)
+        )
+        for row in value
+    ]
     return "[" + "; ".join(rows) + "]"
 
 
@@ -104,7 +147,8 @@ def matrix_from_str(value: str) -> MatrixValue:
         value: A string in allsolve matrix format "[r0c0, r0c1; r1c0, r1c1; ...]".
 
     Returns:
-        A nested list of floats (or strings if not numeric).
+        A nested list of floats (or strings if not numeric). A string that is not
+        a bracketed list, for example a variable name, is returned unchanged.
 
     Examples:
         >>> matrix_from_str("[1, 0; 0, 1; 0, 0]")
@@ -112,20 +156,15 @@ def matrix_from_str(value: str) -> MatrixValue:
         >>> matrix_from_str("[1.5, 2.0; 3.0, 4.5]")
         [[1.5, 2.0], [3.0, 4.5]]
     """
-    # Remove brackets and split by semicolon for rows
-    inner = value.strip()[1:-1]
-    row_strs = [r.strip() for r in inner.split(";")]
-    result: list[list[float | str]] = []
-    for row_str in row_strs:
-        cols = [c.strip() for c in row_str.split(",")]
-        row: list[float | str] = []
-        for col in cols:
-            try:
-                row.append(float(col))
-            except ValueError:
-                row.append(col)
-        result.append(row)
-    return result
+    inner = _bracket_content(value)
+    if inner is None:
+        return value
+    if not inner.strip():
+        return []
+    return [
+        [_parse_item(col) for col in _split_top_level(row, ",")]
+        for row in _split_top_level(inner, ";")
+    ]
 
 
 def boolean_to_str(value: BooleanValue) -> str:

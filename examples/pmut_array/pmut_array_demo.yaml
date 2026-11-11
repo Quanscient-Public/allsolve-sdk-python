@@ -312,12 +312,12 @@ materials:
     - 0.0
     - 23.2
   - - 0.0
-    - 0.0
-    - 0.0
-  - - 0.0
     - 17.0
     - 0.0
   - - 17.0
+    - 0.0
+    - 0.0
+  - - 0.0
     - 0.0
     - 0.0
 - name: Monocrystalline silicon
@@ -400,7 +400,7 @@ physicsSets:
       name: Voltage excitation
       namespace: lump
       target: pzt_top_surfaces
-      electrostaticsLumpVoltage: sin(2*pi*freq*t)
+      electrostaticsLumpVoltage: sn(1)
 variableOverrides:
 - name: freq_sweep
   overrides:
@@ -430,7 +430,6 @@ simulations:
   variableOverride: freq_sweep
   physicsSet: Physics 1
   fundamentalFrequency: freq
-  numFFTSamples: 3
   eigenmodePortAnalysis: false
   numericalJacobian: false
   disabledScriptSections: []

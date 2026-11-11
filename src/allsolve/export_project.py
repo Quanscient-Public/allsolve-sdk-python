@@ -33,6 +33,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PureWindowsPath
 from typing import Any, Dict
 import json
+import re
 
 from allsolve.util import (
     FileOverwriteMode,
@@ -90,7 +91,7 @@ from allsolve.physics import Physic
 from allsolve.physics.conversions import export_enabled_value
 from allsolve.project import Project
 from allsolve.simulation import Simulation
-from allsolve.export_format import (
+from allsolve._export_format import (
     OUTPUT_PARAM_REVERSE as _OUTPUT_PARAM_REVERSE,
     OUTPUT_BOOL_ALIASES as _OUTPUT_BOOL_ALIASES,
 )
@@ -124,6 +125,13 @@ def _build_id_to_name_map(
     return {getattr(item, id_attr): getattr(item, name_attr) for item in items}
 
 
+# Same token rules as the backend expression tokenizer: numbers are matched
+# first so that an exponent such as the "e5" in "2e5" is not an identifier.
+_EXPRESSION_TOKEN = re.compile(
+    r"[0-9]+(?:\.[0-9]*)?(?:[eE][+-]?[0-9]+)?|([A-Za-z_][A-Za-z0-9_.]*)"
+)
+
+
 def _topological_sort_variables(variables: list[Variable]) -> list[Variable]:
     """
     Topologically sort variables so that variables that depend on others come after them.
@@ -135,17 +143,17 @@ def _topological_sort_variables(variables: list[Variable]) -> list[Variable]:
     name_to_var = {v.name: v for v in variables}
     var_names = set(name_to_var.keys())
 
-    # Build dependency graph by parsing expressions
-    # A variable depends on another if its expression contains the other's name
     dependencies: dict[str, set[str]] = defaultdict(set)
 
     for var in variables:
-        expr = var.expression or ""
-        # Check which other variable names appear in this expression
-        for other_name in var_names:
-            if other_name != var.name and other_name in expr:
-                # This variable depends on other_name
-                dependencies[var.name].add(other_name)
+        identifiers = {
+            m.group(1)
+            for m in _EXPRESSION_TOKEN.finditer(var.expression or "")
+            if m.group(1)
+        }
+        deps = (identifiers & var_names) - {var.name}
+        if deps:
+            dependencies[var.name] = deps
 
     # Kahn's algorithm for topological sort
     in_degree: dict[str, int] = {v.name: 0 for v in variables}
@@ -1558,18 +1566,19 @@ def _export_meshes(
                     )
                 mesh_dict["refinements"].append(ref_dict)
 
-        if mesh.extrusion:
-            simple_ext = mesh.extrusion
-            ext_data: dict[str, Any] = {
-                "subLayerCounts": simple_ext.sub_layer_counts,
-            }
-            if simple_ext.volume_ids is not None:
-                ext_data["volumeIds"] = simple_ext.volume_ids
-            elif simple_ext.regions is not None:
-                ext_data["regions"] = [
-                    region_id_to_name.get(r.id, r.name) for r in simple_ext.regions
-                ]
-            mesh_dict["simpleExtrusion"] = ext_data
+        if mesh.extrusions:
+            mesh_dict["simpleExtrusions"] = []
+            for simple_ext in mesh.extrusions:
+                ext_data: dict[str, Any] = {
+                    "subLayerCounts": simple_ext.sub_layer_counts,
+                }
+                if simple_ext.volume_ids is not None:
+                    ext_data["volumeIds"] = simple_ext.volume_ids
+                elif simple_ext.regions is not None:
+                    ext_data["regions"] = [
+                        region_id_to_name.get(r.id, r.name) for r in simple_ext.regions
+                    ]
+                mesh_dict["simpleExtrusions"].append(ext_data)
 
         if mesh.path_extrusions:
             mesh_dict["pathExtrusions"] = []
@@ -1650,12 +1659,14 @@ def _export_meshes(
             for flatten_ext in mesh.flatten_and_rebuild_extrusions:
                 flatten_ext_dict: dict[str, Any] = {
                     "layers": [
-                        {
-                            "relativeHeight": layer.relative_height,
-                            "subLayerCount": layer.sublayer_count,
-                        }
+                        [
+                            {
+                                "relativeHeight": layer.relative_height,
+                                "subLayerCount": layer.sublayer_count,
+                            }
+                            for layer in layer_group
+                        ]
                         for layer_group in flatten_ext.layers
-                        for layer in layer_group
                     ],
                 }
                 _export_entity_selection(
@@ -1705,28 +1716,6 @@ def _export_meshes(
     return result
 
 
-def _decode_param_value(value: str) -> str:
-    """Decode a parameter value that may be an ASCII char array.
-
-    The API stores enum-type values as ``"[102, 105, 101, ...]"`` (list of
-    ASCII codes).  This function detects the format and converts it back to
-    the plain string, leaving other values unchanged.
-    """
-    if not (value.startswith("[") and value.endswith("]")):
-        return value
-    inner = value[1:-1].strip()
-    if not inner:
-        return value
-    parts = inner.split(",")
-    try:
-        codes = [int(p.strip()) for p in parts]
-    except ValueError:
-        return value
-    if all(32 <= c < 127 for c in codes):
-        return "".join(chr(c) for c in codes)
-    return value
-
-
 def _export_interactions(
     physic: Physic,
     region_id_to_name: dict[str, str],
@@ -1770,7 +1759,7 @@ def _export_interactions(
 
         defaults = get_interaction_parameter_defaults(interaction.definition)
         for param in interaction.parameters:
-            value = _decode_param_value(param.value)
+            value = param.value
             if defaults.get(param.definition) == value:
                 continue
             i_dict[param.definition] = value
@@ -1930,7 +1919,7 @@ def _collapse_output_filter(
     if raw_filter_value is None:
         return None, set()
 
-    filter_type_value = _decode_param_value(raw_filter_value)
+    filter_type_value = raw_filter_value
 
     consumed: set[str] = {filter_type_param}
     prefix = f"{otype}FilterType"
@@ -1999,7 +1988,7 @@ def _export_outputs(
         for param in output.parameters:
             if param.definition in filter_consumed:
                 continue
-            value = _decode_param_value(param.value)
+            value = param.value
             if defaults.get(param.definition) == value:
                 continue
 
@@ -2046,6 +2035,11 @@ def _export_field_initialization(
             d["field"] = field_def
             d["physics"] = physics_def
         else:
+            warnings.warn(
+                f"Field initialization refers to unknown field ID {fi.field_id!r}; "
+                "import of this entry will fail",
+                stacklevel=3,
+            )
             d["field"] = fi.field_id
     if fi.source_output_specifier is not None:
         d["sourceValueOutputSpecifier"] = fi.source_output_specifier
@@ -2091,6 +2085,8 @@ def _export_simulations(
         }
 
         sim_dict["solverMode"] = sim.solver_mode.value
+        if sim.solver_precision is not None:
+            sim_dict["solverPrecision"] = sim.solver_precision.value
 
         if sim.analysis_type is not None:
             _analysis_type_export_map = {
@@ -2122,10 +2118,13 @@ def _export_simulations(
 
         node_type = sim.node_type
         if node_type is not None and node_type != CPU.DEFAULT:
-            sim_dict["runtime"] = {
+            runtime: dict[str, Any] = {
                 "nodeType": node_type.name,
                 "nodeCount": sim.node_count or 1,
             }
+            if sim.main_node_type is not None:
+                runtime["mainNodeType"] = sim.main_node_type.name
+            sim_dict["runtime"] = runtime
 
         if sim.physics and "physicsSet" not in sim_dict:
             sim_dict["physics"] = [

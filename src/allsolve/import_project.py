@@ -37,6 +37,7 @@ from allsolve.geometry.cad_file_import import (
     CadGdsLayer,
     CadGdsExtrudeParameters,
 )
+from allsolve.geometry.geometry_builder import CadElement
 from allsolve.geometry.cad_path import CadGlob, CadPath
 from allsolve.geometry.cad_utils import create_distance_unit
 from allsolve.geometry.cad_boolean_operation import (
@@ -57,6 +58,7 @@ from .expression import Variable, Function, InterpolatedFunction
 from .project import Project, GeometryPipelineVersion
 from .job import Job, OnError
 from .mesh import (
+    Mesh,
     MeshSettings,
     MeshDensity,
     MeshRefinement,
@@ -67,6 +69,7 @@ from .mesh import (
     FlattenAndRebuildExtrusion,
     ExtrusionLayerDefinition,
 )
+from .override import VariableOverrides
 from .region import KeyValueAttributePath, RegionOperation, Region
 from allsolve_rawapi.models.expression_bounding_box import (
     ExpressionBoundingBox,
@@ -96,11 +99,16 @@ from .simulation import (
 )
 from .physics import Physic
 from .physics_set import DEFAULT_PHYSICS_SET_NAME, PhysicsSet
-from allsolve.export_format import (
+from allsolve._export_format import (
     OUTPUT_TYPE_ALIASES as _OUTPUT_TYPE_ALIASES,
     OUTPUT_PARAM_ALIASES as _OUTPUT_PARAM_ALIASES,
 )
-from .physics.interaction import Interaction, InteractionParameter, OutputInteraction
+from .physics.interaction import (
+    Interaction,
+    InteractionBase,
+    InteractionParameter,
+    OutputInteraction,
+)
 from .physics.generated.registries import (
     get_interaction_class,
     get_interaction_parameter_defaults,
@@ -109,6 +117,7 @@ from .physics.generated.registries import (
     get_physics_class,
 )
 from .physics.conversions import boolean_to_str
+from .util import resolve_path_under_base
 
 import allsolve_rawapi as rawapi
 
@@ -356,6 +365,29 @@ def _resolve_path(
     return str(resolved)
 
 
+def _validate_save_mesh_paths(
+    meshes: list[dict],
+    *,
+    allow_paths_outside_project: bool = False,
+) -> None:
+    """
+    Ensure every ``saveMesh`` file name stays under the working directory.
+
+    Raises:
+        ValueError: If a mesh name gives a ``.msh`` path outside the working
+            directory and *allow_paths_outside_project* is ``False``.
+    """
+    if allow_paths_outside_project:
+        return
+    for mesh_data in meshes:
+        if not mesh_data.get("saveMesh", False) or mesh_data.get("createOnly", False):
+            continue
+        try:
+            resolve_path_under_base(Path.cwd(), f"{mesh_data['name']}.msh")
+        except ValueError as exc:
+            raise ValueError(f"Invalid saveMesh file name: {exc}") from exc
+
+
 def _validate_import_input_files_exist(
     import_data: dict,
     yaml_file_path: Path | None,
@@ -464,6 +496,8 @@ def import_project(
             (the parent folder of a YAML/JSON file). Set to ``True`` only for trusted
             import data that must use absolute paths to files outside that directory
             (e.g. shared assets on a secure host). **Do not** use for untrusted bundles.
+            The ``.msh`` files that ``saveMesh`` writes must also stay under the
+            working directory unless this is ``True``.
 
     Returns:
         The imported project object.
@@ -477,14 +511,20 @@ def import_project(
     if isinstance(file_or_data, str):
         yaml_file_path = Path(file_or_data).parent.resolve()
         with open(file_or_data, "r") as f:
+            content = f.read()
+        try:
+            import_data = yaml.safe_load(content)
+        except yaml.YAMLError as yaml_error:
             try:
-                import_data = yaml.safe_load(f)
-            except yaml.YAMLError:
-                import_data = json.load(f)
-            except json.JSONDecodeError as e:
+                import_data = json.loads(content)
+            except json.JSONDecodeError:
                 raise ValueError(
-                    f"Failed to parse given file {file_or_data}, it needs to be valid JSON or YAML. Error: {e}"
-                )
+                    f"Failed to parse given file {file_or_data}, it needs to be valid JSON or YAML. Error: {yaml_error}"
+                ) from yaml_error
+        if not isinstance(import_data, dict):
+            raise ValueError(
+                f"Import file {file_or_data} must contain a mapping at the top level"
+            )
     else:
         import_data = file_or_data
 
@@ -497,6 +537,11 @@ def import_project(
         yaml_file_path,
         allow_paths_outside_project=allow_paths_outside_project,
     )
+    if run_meshes_and_simulations:
+        _validate_save_mesh_paths(
+            import_data.get("meshes", []),
+            allow_paths_outside_project=allow_paths_outside_project,
+        )
 
     project = None
     try:
@@ -656,13 +701,18 @@ def import_project(
             )
 
     except Exception as e:
-        if project is not None:
-            # project.delete()
-            pass
+        kept_note = ""
+        if project is not None and project is not project_to_modify:
+            kept_note = (
+                f". The incomplete project '{project.name}' (id {project.id}) "
+                "is kept in Allsolve."
+            )
         if isinstance(file_or_data, str):
-            raise ValueError(f"Failed to import project from {file_or_data}: {e}")
+            raise ValueError(
+                f"Failed to import project from {file_or_data}: {e}{kept_note}"
+            ) from e
         else:
-            raise ValueError(f"Failed to import project: {e}")
+            raise ValueError(f"Failed to import project: {e}{kept_note}") from e
 
     return project
 
@@ -891,9 +941,11 @@ def _snake_to_camel(name: str) -> str:
 
 
 def _resolve_interaction_targets(
-    interaction_class: type[Interaction],
+    interaction_class: type[InteractionBase],
     interaction_entry: dict[str, Any],
     regions: dict[str, Region],
+    *,
+    targets_optional: bool = False,
 ) -> tuple[dict[str, Region | str | None], set[str]]:
     """
     Resolve interaction targets from YAML using class metadata.
@@ -904,6 +956,7 @@ def _resolve_interaction_targets(
     - targetless interactions (no target fields required)
     - camelCase and snake_case target dict keys
     - optional targets that may be omitted
+    - ``targets_optional``: treat every target as optional (output interactions)
     """
 
     consumed_keys: set[str] = {"target", "targets"}
@@ -914,10 +967,13 @@ def _resolve_interaction_targets(
     if target_definition_ids:
         resolved_targets: dict[str, Region | str | None] = {}
         expected_keys = list(target_definition_ids.keys())
-        optional_keys: set[str] = getattr(
-            interaction_class, "optional_target_definition_ids", set()
+        optional_keys: set[str] = (
+            set(expected_keys)
+            if targets_optional
+            else getattr(interaction_class, "optional_target_definition_ids", set())
         )
         required_keys = [k for k in expected_keys if k not in optional_keys]
+        shorthand_keys = expected_keys if targets_optional else required_keys
 
         # Accept both camelCase and snake_case in targets dict
         key_lookup: dict[str, str] = {}
@@ -971,18 +1027,18 @@ def _resolve_interaction_targets(
 
         # Shorthand: "target" maps to the single required key.
         if interaction_entry.get("target") is not None:
-            if len(required_keys) == 1 and required_keys[0] not in resolved_targets:
-                resolved_targets[required_keys[0]] = _resolve_region_id(
+            if len(shorthand_keys) == 1 and shorthand_keys[0] not in resolved_targets:
+                resolved_targets[shorthand_keys[0]] = _resolve_region_id(
                     str(interaction_entry["target"]), regions
                 )
-            elif len(required_keys) > 1:
+            elif len(shorthand_keys) > 1:
                 raise ValueError(
                     f"Interaction '{interaction_entry.get('type')}' has multiple "
                     "required targets; provide targets via 'targets' or explicit "
                     "target keys"
                 )
 
-        if not resolved_targets:
+        if not resolved_targets and not targets_optional:
             raise ValueError(
                 f"Interaction '{interaction_entry.get('type')}' is missing targets. "
                 f"Expected keys: {expected_keys}"
@@ -1335,30 +1391,17 @@ def import_interactions_for_physics(
             if v is None:
                 continue
             provided_keys.add(k)
-            str_val = boolean_to_str(v)
-            if str_val.startswith(k):
-                parameters.append(
-                    InteractionParameter(definition=str(k), ascii_value=str_val)
-                )
-            else:
-                parameters.append(
-                    InteractionParameter(definition=str(k), value=str_val)
-                )
+            parameters.append(
+                InteractionParameter(definition=str(k), value=boolean_to_str(v))
+            )
         # Fill in defaults for parameters not provided in the YAML
         for param_id, default_val in get_interaction_parameter_defaults(
             str(itype)
         ).items():
             if param_id not in provided_keys:
-                if default_val.startswith(param_id):
-                    parameters.append(
-                        InteractionParameter(
-                            definition=param_id, ascii_value=default_val
-                        )
-                    )
-                else:
-                    parameters.append(
-                        InteractionParameter(definition=param_id, value=default_val)
-                    )
+                parameters.append(
+                    InteractionParameter(definition=param_id, value=default_val)
+                )
         namespace_raw = i.get("namespace")
         namespace = str(namespace_raw) if namespace_raw is not None else None
 
@@ -1385,11 +1428,12 @@ def _expand_output_filter(
 ) -> tuple[list[InteractionParameter], set[str]]:
     """Expand a user-friendly filter dict into raw InteractionParameters.
 
-    Supported YAML syntax::
-
-        filter:
-          type: EveryNthStep
-          value: 5
+    Supported YAML syntax:
+    ```yaml
+    filter:
+      type: EveryNthStep
+      value: 5
+    ```
 
     The ``type`` maps to ``{otype}FilterType{type}`` and the optional
     ``value`` maps to ``{otype}Filter{type}``.  When ``type`` is omitted
@@ -1436,11 +1480,12 @@ def import_outputs_for_simulation(
     Import simulation output interactions (e.g. fieldOutput) nested under a simulation entry.
 
     Output parameters are provided at the top level (camelCase or snake_case keys).
-    Friendly aliases are supported::
-
-        expression  → {outputType}            (e.g. fieldOutput)
-        skinOnly    → {outputType}SkinOnly    (e.g. fieldOutputSkinOnly)
-        deformedMesh→ {outputType}DeformedMesh(e.g. fieldOutputDeformedMesh)
+    Friendly aliases are supported:
+    ```text
+    expression  → {outputType}            (e.g. fieldOutput)
+    skinOnly    → {outputType}SkinOnly    (e.g. fieldOutputSkinOnly)
+    deformedMesh→ {outputType}DeformedMesh(e.g. fieldOutputDeformedMesh)
+    ```
 
     A ``filter`` key is expanded into the raw filter parameters; see
     :func:`_expand_output_filter`.
@@ -1495,6 +1540,17 @@ def import_outputs_for_simulation(
             raise ValueError(
                 "Output 'args' is not supported; provide parameters at the top level"
             )
+        output_class = get_output_class(str(otype))
+        if output_class is None:
+            raise ValueError(f"Unknown output type '{otype}'")
+
+        targets, target_skip_keys = _resolve_interaction_targets(
+            interaction_class=output_class,
+            interaction_entry=o,
+            regions=regions or {},
+            targets_optional=True,
+        )
+
         provided_keys: set[str] = set()
         filter_spec = o.get("filter")
         if filter_spec is not None:
@@ -1506,40 +1562,26 @@ def import_outputs_for_simulation(
             parameters.extend(filter_params)
             provided_keys.update(filter_keys)
         for k, v in o.items():
-            if k in top_level_skip:
+            if k in top_level_skip or k in target_skip_keys:
                 continue
             if v is None:
                 continue
             param_id = _resolve_output_alias(str(otype), k)
             provided_keys.add(param_id)
-            parameters.append(InteractionParameter(definition=param_id, value=str(v)))
+            parameters.append(
+                InteractionParameter(definition=param_id, value=boolean_to_str(v))
+            )
         # Fill in defaults for parameters not provided in the YAML
         for param_id, default_val in get_output_parameter_defaults(str(otype)).items():
             if param_id not in provided_keys:
-                if default_val.startswith(param_id):
-                    parameters.append(
-                        InteractionParameter(
-                            definition=param_id, ascii_value=default_val
-                        )
-                    )
-                else:
-                    parameters.append(
-                        InteractionParameter(definition=param_id, value=default_val)
-                    )
-        output_class = get_output_class(str(otype))
-        if output_class is None:
-            raise ValueError(f"Unknown output type '{otype}'")
-
-        targets: dict[str, Region | str | None] | None = None
-        raw_target = o.get("target")
-        if raw_target is not None and regions:
-            targets = {"target": _resolve_region_id(str(raw_target), regions)}
-
+                parameters.append(
+                    InteractionParameter(definition=param_id, value=default_val)
+                )
         instance = output_class.__new__(output_class)
         OutputInteraction.__init__(
             instance,
             name=str(name),
-            targets=targets,
+            targets=targets or None,
             enabled=enabled,
             parameters=parameters,
         )
@@ -1569,6 +1611,11 @@ def import_cad_geometries(
 
     geometry_builder = project.geometry_builder()
 
+    def add_element(element: CadElement) -> None:
+        if geometry.get("enabled") is not None:
+            element.enabled = geometry["enabled"]
+        geometry_builder.add(element)
+
     for geometry in geometries:
         if geometry["type"] == "box":
             position = parse_tuple(geometry["position"])
@@ -1577,7 +1624,7 @@ def import_cad_geometries(
             name = geometry["name"]
             if position is None or size is None:
                 raise ValueError("Box requires position and size")
-            geometry_builder.add(
+            add_element(
                 CadBox(
                     position=position,  # type: ignore[arg-type]
                     size=size,  # type: ignore[arg-type]
@@ -1596,7 +1643,7 @@ def import_cad_geometries(
             rotation = parse_tuple(geometry.get("rotation"))
             if position is None or axis is None:
                 raise ValueError("Cylinder requires position and axis")
-            geometry_builder.add(
+            add_element(
                 CadCylinder(
                     position=position,  # type: ignore[arg-type]
                     axis=axis,  # type: ignore[arg-type]
@@ -1618,7 +1665,7 @@ def import_cad_geometries(
             rotation = parse_tuple(geometry.get("rotation"))
             if position is None:
                 raise ValueError("Sphere requires position")
-            geometry_builder.add(
+            add_element(
                 CadSphere(
                     position=position,  # type: ignore[arg-type]
                     radius=geometry["radius"],
@@ -1635,7 +1682,7 @@ def import_cad_geometries(
             rotation = parse_tuple(geometry.get("rotation"))
             if position is None or axis is None:
                 raise ValueError("Cone requires position and axis")
-            geometry_builder.add(
+            add_element(
                 CadCone(
                     position=position,  # type: ignore[arg-type]
                     axis=axis,  # type: ignore[arg-type]
@@ -1657,7 +1704,7 @@ def import_cad_geometries(
             rotation = parse_tuple(geometry.get("rotation"))
             if position is None:
                 raise ValueError("Torus requires position")
-            geometry_builder.add(
+            add_element(
                 CadTorus(
                     position=position,  # type: ignore[arg-type]
                     radius1=geometry["radius1"],
@@ -1674,7 +1721,7 @@ def import_cad_geometries(
             rotation = parse_tuple(geometry.get("rotation"))
             if position is None:
                 raise ValueError("Disk requires position")
-            geometry_builder.add(
+            add_element(
                 CadDisk(
                     position=position,  # type: ignore[arg-type]
                     radius=geometry["radius"],
@@ -1691,7 +1738,7 @@ def import_cad_geometries(
             rotation = parse_tuple(geometry.get("rotation"))
             if position is None or size is None:
                 raise ValueError("Rectangle requires position and size")
-            geometry_builder.add(
+            add_element(
                 CadRectangle(
                     position=position,  # type: ignore[arg-type]
                     size=size,  # type: ignore[arg-type]
@@ -1725,7 +1772,7 @@ def import_cad_geometries(
             offset = parse_tuple(geometry["offset"])
             if size is None or offset is None:
                 raise ValueError("SurfaceRectangle requires size and offset")
-            geometry_builder.add(
+            add_element(
                 CadSurfaceRectangle(
                     name=geometry["name"],
                     size=size,  # type: ignore[arg-type]
@@ -1743,28 +1790,28 @@ def import_cad_geometries(
             step_file = CadStepFile(
                 filepath=filepath, name=geometry.get("name"), cleanup=cleanup
             )
-            geometry_builder.add(step_file)
+            add_element(step_file)
         elif geometry["type"] == "iges":
             filepath = _rp(geometry["filepath"])
             cleanup = geometry.get("cleanup", False)
             iges_file = CadIgesFile(
                 filepath=filepath, name=geometry.get("name"), cleanup=cleanup
             )
-            geometry_builder.add(iges_file)
+            add_element(iges_file)
         elif geometry["type"] == "sat":
             filepath = _rp(geometry["filepath"])
             cleanup = geometry.get("cleanup", False)
             sat_file = CadSatFile(
                 filepath=filepath, name=geometry.get("name"), cleanup=cleanup
             )
-            geometry_builder.add(sat_file)
+            add_element(sat_file)
         elif geometry["type"] == "brep":
             filepath = _rp(geometry["filepath"])
             cleanup = geometry.get("cleanup", False)
             brep_file = CadBrepFile(
                 filepath=filepath, name=geometry.get("name"), cleanup=cleanup
             )
-            geometry_builder.add(brep_file)
+            add_element(brep_file)
         elif geometry["type"] == "gds2":
             filepath = _rp(geometry["filepath"])
             cleanup = geometry.get("cleanup", False)
@@ -1801,7 +1848,7 @@ def import_cad_geometries(
                 extrude_parameters=extrude_parameters,
                 unit=create_distance_unit(unit) or CadDistanceUnit.MICROMETER,
             )
-            geometry_builder.add(gds2_file)
+            add_element(gds2_file)
         elif geometry["type"] == "union":
             name = geometry["name"]
             entity_tags = geometry.get("entityTags") or geometry.get("entity_tags")
@@ -1816,7 +1863,7 @@ def import_cad_geometries(
                     geometry, "booleanTolerance", "boolean_tolerance"
                 ),
             )
-            geometry_builder.add(union)
+            add_element(union)
         elif geometry["type"] == "difference":
             name = geometry["name"]
             entity_tags_1 = geometry.get("entityTags1") or geometry.get("entity_tags_1")
@@ -1839,7 +1886,7 @@ def import_cad_geometries(
                     geometry, "booleanTolerance", "boolean_tolerance"
                 ),
             )
-            geometry_builder.add(difference)
+            add_element(difference)
         elif geometry["type"] == "intersection":
             name = geometry["name"]
             entity_tags_1 = geometry.get("entityTags1") or geometry.get("entity_tags_1")
@@ -1862,7 +1909,7 @@ def import_cad_geometries(
                     geometry, "booleanTolerance", "boolean_tolerance"
                 ),
             )
-            geometry_builder.add(intersection)
+            add_element(intersection)
         elif geometry["type"] == "fragments":
             name = geometry["name"]
             entity_tags_1 = geometry.get("entityTags1") or geometry.get("entity_tags_1")
@@ -1885,7 +1932,7 @@ def import_cad_geometries(
                     geometry, "booleanTolerance", "boolean_tolerance"
                 ),
             )
-            geometry_builder.add(fragments)
+            add_element(fragments)
         elif geometry["type"] == "fragmentAll" or geometry["type"] == "fragment_all":
             name = geometry["name"]
             fragment_all = CadFragmentAll(
@@ -1894,7 +1941,7 @@ def import_cad_geometries(
                     geometry, "booleanTolerance", "boolean_tolerance"
                 ),
             )
-            geometry_builder.add(fragment_all)
+            add_element(fragment_all)
         elif geometry["type"] == "translate":
             name = geometry["name"]
             translation = parse_tuple(geometry["translation"])
@@ -1914,7 +1961,7 @@ def import_cad_geometries(
                 copy_object=copy_object,
                 repeat=repeat,
             )
-            geometry_builder.add(translate)
+            add_element(translate)
         elif geometry["type"] == "rotate":
             name = geometry["name"]
             axis = parse_tuple(geometry["axis"])
@@ -1938,7 +1985,7 @@ def import_cad_geometries(
                 copy_object=copy_object,
                 repeat=repeat,
             )
-            geometry_builder.add(rotate)
+            add_element(rotate)
         elif geometry["type"] == "grid":
             name = geometry["name"]
             translation = parse_tuple(geometry["translation"])
@@ -1956,7 +2003,7 @@ def import_cad_geometries(
                 cad_names=cad_names,
                 cad_paths=cad_paths,
             )
-            geometry_builder.add(grid)
+            add_element(grid)
         elif geometry["type"] == "remove":
             name = geometry["name"]
             entity_tags = geometry.get("entityTags") or geometry.get("entity_tags")
@@ -1968,7 +2015,7 @@ def import_cad_geometries(
                 cad_names=cad_names,
                 cad_paths=cad_paths,
             )
-            geometry_builder.add(remove)
+            add_element(remove)
         else:
             raise ValueError(f"Unknown geometry type: {geometry['type']}")
 
@@ -2207,6 +2254,12 @@ def import_regions(project: Project, regions: list[dict], verbose: bool = False)
                 entity_type = Region.CURVE
             elif region["entityType"] == "point":
                 entity_type = Region.POINT
+            else:
+                warnings.warn(
+                    f"Region '{region['name']}': unknown entityType "
+                    f"{region['entityType']!r}, using 'volume'",
+                    stacklevel=2,
+                )
 
             operation = RegionOperation.UNION
             if region["operation"] == "union":
@@ -2221,6 +2274,12 @@ def import_regions(project: Project, regions: list[dict], verbose: bool = False)
                 operation = RegionOperation.BOUNDARY
             elif region["operation"] == "complement":
                 operation = RegionOperation.COMPLEMENT
+            else:
+                warnings.warn(
+                    f"Region '{region['name']}': unknown operation "
+                    f"{region['operation']!r}, using 'union'",
+                    stacklevel=2,
+                )
 
             imported_regions[region["name"]] = project.create_region_computed(
                 name=region["name"],
@@ -2498,18 +2557,30 @@ def import_meshes(
                     )
                 )
 
-        extrusion = None
-        if "simpleExtrusion" in mesh_data:
-            extrusion_data = mesh_data["simpleExtrusion"]
-            extrusion = MeshExtrusion(
-                sub_layer_counts=[count for count in extrusion_data["subLayerCounts"]],
-                regions=(
-                    [regions[region] for region in extrusion_data["regions"]]
-                    if "regions" in extrusion_data
-                    else None
-                ),
-                volume_ids=extrusion_data.get("volumeIds"),
+        if "simpleExtrusion" in mesh_data and "simpleExtrusions" in mesh_data:
+            raise ValueError(
+                f"Mesh '{mesh_data['name']}': use either 'simpleExtrusion' or "
+                "'simpleExtrusions', not both"
             )
+        extrusions_data = mesh_data.get("simpleExtrusions")
+        if "simpleExtrusion" in mesh_data:
+            extrusions_data = [mesh_data["simpleExtrusion"]]
+        extrusions = None
+        if extrusions_data:
+            extrusions = [
+                MeshExtrusion(
+                    sub_layer_counts=[
+                        count for count in extrusion_data["subLayerCounts"]
+                    ],
+                    regions=(
+                        [regions[region] for region in extrusion_data["regions"]]
+                        if "regions" in extrusion_data
+                        else None
+                    ),
+                    volume_ids=extrusion_data.get("volumeIds"),
+                )
+                for extrusion_data in extrusions_data
+            ]
 
         path_extrusions = None
         if "pathExtrusions" in mesh_data:
@@ -2605,6 +2676,10 @@ def import_meshes(
                         y=flatten_and_rebuild_extrusion_data["directionVector"]["y"],
                         z=flatten_and_rebuild_extrusion_data["directionVector"]["z"],
                     )
+                layers_data = flatten_and_rebuild_extrusion_data["layers"]
+                # Older exports wrote one flat list of layers, which is one group
+                if layers_data and not isinstance(layers_data[0], list):
+                    layers_data = [layers_data]
                 flatten_and_rebuild_extrusions.append(
                     FlattenAndRebuildExtrusion(
                         volumes=vol_regions,
@@ -2614,10 +2689,9 @@ def import_meshes(
                                     relative_height=layer["relativeHeight"],
                                     sublayer_count=layer["subLayerCount"],
                                 )
-                                for layer in flatten_and_rebuild_extrusion_data[
-                                    "layers"
-                                ]
+                                for layer in layer_group
                             ]
+                            for layer_group in layers_data
                         ],
                         quadrangles=flatten_and_rebuild_extrusion_data.get(
                             "useQuadrangles", False
@@ -2679,7 +2753,7 @@ def import_meshes(
                 mesh_size_max=mesh_data.get("meshSizeMax"),
                 mesh_size_min=mesh_data.get("meshSizeMin"),
                 refinements=refinements,
-                extrusion=extrusion,
+                extrusions=extrusions,
                 path_extrusions=path_extrusions,
                 slanted_extrusions=slanted_extrusions,
                 flatten_and_rebuild_extrusions=flatten_and_rebuild_extrusions,
@@ -2744,6 +2818,16 @@ def run_imported_meshes(
             )
 
 
+def _parse_cpu(name: str) -> CPU:
+    try:
+        return CPU[name]
+    except KeyError:
+        raise ValueError(
+            f"Unknown node type: {name}. Must be one of: "
+            f"{', '.join([e.name for e in CPU if e.name != 'DEFAULT'])}"
+        )
+
+
 def import_simulations(
     project: Project,
     simulations: list[dict],
@@ -2764,6 +2848,10 @@ def import_simulations(
     imported_simulations: dict[str, Simulation] = {}
     if shared_file_registry is None:
         shared_file_registry = {}
+
+    project_meshes: list[Mesh] | None = None
+    project_physics: list[Physic] | None = None
+    project_variable_overrides: list[VariableOverrides] | None = None
 
     for simulation_data in simulations:
         if verbose:
@@ -2822,7 +2910,9 @@ def import_simulations(
                 mesh_id = meshes[mesh_name].id
             else:
                 mesh_found = False
-                for mesh in project.get_meshes():
+                if project_meshes is None:
+                    project_meshes = project.get_meshes()
+                for mesh in project_meshes:
                     if mesh.name == mesh_name:
                         mesh_id = mesh.id
                         mesh_found = True
@@ -2836,7 +2926,8 @@ def import_simulations(
         physics = None
         if "physics" in simulation_data:
             enabled_physics_defs = simulation_data["physics"]
-            project_physics = project.get_physics()
+            if project_physics is None:
+                project_physics = project.get_physics()
             definition_to_id = {p.definition: p.id for p in project_physics}
             id_set = {p.id for p in project_physics}
             physics = []
@@ -2896,7 +2987,9 @@ def import_simulations(
         if "variableOverride" in simulation_data:
             var_override_name = simulation_data["variableOverride"]
             var_override_found = False
-            for var_override in project.get_variable_overrides():
+            if project_variable_overrides is None:
+                project_variable_overrides = project.get_variable_overrides()
+            for var_override in project_variable_overrides:
                 if var_override.name == var_override_name:
                     sim.variable_overrides = var_override
                     var_override_found = True
@@ -2909,18 +3002,22 @@ def import_simulations(
         # Set runtime if specified
         if "runtime" in simulation_data:
             runtime_data = simulation_data["runtime"]
-            node_type_str = runtime_data.get("nodeType", "CORES_3_10GB_FAST_START")
+            node_type = _parse_cpu(
+                runtime_data.get("nodeType", "CORES_3_10GB_FAST_START")
+            )
             node_count = runtime_data.get("nodeCount", 1)
+            main_node_type_str = runtime_data.get("mainNodeType")
+            main_node_type = (
+                None if main_node_type_str is None else _parse_cpu(main_node_type_str)
+            )
 
-            try:
-                node_type = CPU[node_type_str]
-            except KeyError:
-                raise ValueError(
-                    f"Unknown node type: {node_type_str}. Must be one of: "
-                    f"{', '.join([e.name for e in CPU if e.name != 'DEFAULT'])}"
+            sim.set_runtime(
+                Runtime(
+                    node_type=node_type,
+                    node_count=node_count,
+                    main_node_type=main_node_type,
                 )
-
-            sim.set_runtime(Runtime(node_type=node_type, node_count=node_count))
+            )
 
         _apply_simulation_input_files(
             sim,
@@ -2985,7 +3082,9 @@ def import_simulations(
                     field_def = fi["field"]
                     physics_def = fi.get("physics")
                     resolved = False
-                    for physic in project.get_physics():
+                    if project_physics is None:
+                        project_physics = project.get_physics()
+                    for physic in project_physics:
                         if physics_def is not None and physic.definition != physics_def:
                             continue
                         for field in physic.fields:
@@ -3023,6 +3122,11 @@ def import_simulations(
                 DisableableSection(DisabledScriptSection(s))
                 for s in simulation_data["disabledScriptSections"]
             ]
+
+        if "solverPrecision" in simulation_data:
+            sim.solver_precision = rawapi.SolverPrecision(
+                simulation_data["solverPrecision"]
+            )
 
         # Save changes before starting
         sim.save()

@@ -19,7 +19,7 @@ from .resource_reservation import (
     keep_reservation_alive,
 )
 from .util import prevent_deleted, JobError
-from .job_mixin import JobMixin
+from ._job_mixin import JobMixin
 import allsolve_rawapi as rawapi
 from .api import (
     check_for_project_api_key,
@@ -28,8 +28,16 @@ from .api import (
     get_auth,
     get_http_session,
 )
-from .http_transfer import CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S, validate_url_scheme
-from .job import Job, OnError
+from ._http_transfer import CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S, validate_url_scheme
+from .job import (
+    Job,
+    OnError,
+    _add_start_error,
+    _raise_if_none_started,
+    _raise_on_failed_entries,
+    _start_entry,
+    run_meshes,
+)
 from .region import Region
 
 
@@ -331,6 +339,7 @@ class MeshSettings:
         target_width_to_height_ratio: float | int | str | None = None,
         refinements: List[MeshRefinement] | None = None,
         extrusion: MeshExtrusion | None = None,
+        extrusions: List[MeshExtrusion] | None = None,
         variable_overrides: List[VariableOverrides] | None = None,
         slanted_extrusions: List[SlantedExtrusion] | None = None,
         path_extrusions: List[PathExtrusion] | None = None,
@@ -346,7 +355,11 @@ class MeshSettings:
         self.parameters: rawapi.MeshParameters | None = None
         self.support_data: rawapi.MeshSupportData | None = None
         self.refinements: List[MeshRefinement] | None = refinements
-        self.extrusion: MeshExtrusion | None = extrusion
+        if extrusion is not None and extrusions is not None:
+            raise ValueError("Provide either 'extrusion' or 'extrusions', not both")
+        self.extrusions: List[MeshExtrusion] | None = (
+            [extrusion] if extrusion is not None else extrusions
+        )
         self.variable_overrides: List[VariableOverrides] | None = variable_overrides
         self.slanted_extrusions: List[SlantedExtrusion] | None = slanted_extrusions
         self.path_extrusions: List[PathExtrusion] | None = path_extrusions
@@ -376,7 +389,7 @@ class MeshSettings:
             or has_user_defined_density
             or curved_mesh is True
             or (refinements is not None and len(refinements) > 0)
-            or extrusion is not None
+            or (self.extrusions is not None and len(self.extrusions) > 0)
             or slanted_extrusions is not None
             or path_extrusions is not None
             or flatten_and_rebuild_extrusions is not None
@@ -412,12 +425,11 @@ class MeshSettings:
                 curvedMesh=curved_mesh,
                 selectiveRefinement=None,
                 structuredMeshing=None,
-                meshExtrusion=None,
             )
 
         self._parse_refinements()
         self._parse_extrusion()
-        self._parse_simple_extrusion()
+        self._parse_simple_extrusions()
         self._parse_auto_transfinite()
 
     @staticmethod
@@ -471,27 +483,35 @@ class MeshSettings:
                     self.parameters.selective_refinement.curves = [refinement_item]
                 else:
                     self.parameters.selective_refinement.curves.append(refinement_item)
+            else:
+                type_name = getattr(entity_type, "value", entity_type)
+                raise ValueError(
+                    f"Mesh refinement is not supported for entity type "
+                    f"'{type_name}'; use a volume, surface or curve region"
+                )
 
-    def _parse_simple_extrusion(self):
-        if self.extrusion is None:
+    def _parse_simple_extrusions(self):
+        if self.extrusions is None or len(self.extrusions) == 0:
             return
         if self.parameters is None:
             self.parameters = rawapi.MeshParameters()
-        if self.parameters.mesh_extrusion is None:
-            self.parameters.mesh_extrusion = rawapi.MeshExtrusion(
-                extrusionOverlapMode=self.extrusion.extrusion_overlap_mode,
+        self.parameters.mesh_extrusions = [
+            rawapi.MeshExtrusion(
+                extrusionOverlapMode=extrusion.extrusion_overlap_mode,
                 volumeRegions=(
-                    [region.id for region in self.extrusion.regions]
-                    if self.extrusion.regions is not None
+                    [region.id for region in extrusion.regions]
+                    if extrusion.regions is not None
                     else None
                 ),
-                volumeIds=self.extrusion.volume_ids,
+                volumeIds=extrusion.volume_ids,
                 sublayers=[
                     str(sub_layer_count)
-                    for sub_layer_count in self.extrusion.sub_layer_counts
+                    for sub_layer_count in extrusion.sub_layer_counts
                 ],
-                type=self.extrusion.type,
+                type=extrusion.type,
             )
+            for extrusion in self.extrusions
+        ]
 
     def _parse_extrusion(self) -> None:
         if (
@@ -671,7 +691,9 @@ class _MockJob(Job):
     def get_logs(self, limit: int = 100) -> List[str]:
         return []
 
-    def print_new_loglines(self, file: TextIO = sys.stdout, limit: int = 100) -> None:
+    def print_new_loglines(
+        self, file: TextIO = sys.stdout, limit: int | None = None
+    ) -> None:
         return
 
     def get_status_reason(self) -> str | None:
@@ -1000,6 +1022,10 @@ class MeshInstance(JobMixin):
     ) -> None:
         """Process the mesh instance and return when the processing is complete.
 
+        Blocks until the job completes, fails, or stops at the server time limit.
+        The time in the queue is included. To wait with your own limit, call
+        :meth:`start` and then :meth:`is_running` in a loop.
+
         Parameters:
             print_logs: If True, print logs to the console.
             refresh_delay_s: Delay in seconds between status checks.
@@ -1084,28 +1110,29 @@ class Mesh(JobMixin):
     :meth:`get_override` which return :class:`MeshInstance` objects that
     carry their own job lifecycle.
 
-    Example::
+    Example:
+    ```python
+    # Run the default mesh instance
+    mesh = project.create_mesh()
+    mesh.run()
+    print(mesh.get_status())
 
-        # Run the default mesh instance
-        mesh = project.create_mesh()
-        mesh.run()
-        print(mesh.get_status())
-
-        # Run a mesh with custom settings and refinement
-        mesh = project.create_mesh(
-            mesh_settings=allsolve.MeshSettings(
-                mesh_size_max=0.2,
-                refinements=[
-                    allsolve.MeshRefinement(region=target_region, max_size=0.1),
-                ],
-            )
+    # Run a mesh with custom settings and refinement
+    mesh = project.create_mesh(
+        mesh_settings=allsolve.MeshSettings(
+            mesh_size_max=0.2,
+            refinements=[
+                allsolve.MeshRefinement(region=target_region, max_size=0.1),
+            ],
         )
+    )
 
-        # Run a mesh with variable overrides
-        mesh = project.create_mesh()
-        instance = mesh.create_override(variable_override=my_variable_override)
-        instance.run()
-        print(instance.get_status())
+    # Run a mesh with variable overrides
+    mesh = project.create_mesh()
+    instance = mesh.create_override(variable_override=my_variable_override)
+    instance.run()
+    print(instance.get_status())
+    ```
     """
 
     @staticmethod
@@ -1314,7 +1341,7 @@ class Mesh(JobMixin):
     @prevent_deleted
     def use_mesh_refiner(self, use_mesh_refiner: bool) -> None:
         """Set whether the mesh uses the mesh refiner. Use save() to commit the change."""
-        self._on_set_parameter(set_user_defined=use_mesh_refiner is not None)
+        self._on_set_parameter()
         self._current_uncommitted_update().parameters.mesh_algorithm = (
             rawapi.MeshAlgorithm.MESH_MINUS_REFINER
             if use_mesh_refiner
@@ -1472,7 +1499,7 @@ class Mesh(JobMixin):
     @prevent_deleted
     def curved_mesh(self, curved_mesh: bool) -> None:
         """Set whether the mesh is curved. Use save() to commit the change."""
-        self._on_set_parameter(set_user_defined=curved_mesh is not None)
+        self._on_set_parameter()
         self._current_uncommitted_update().parameters.curved_mesh = curved_mesh
 
     @property
@@ -1624,6 +1651,9 @@ class Mesh(JobMixin):
         self._on_set_parameter(
             set_user_defined=refinements is not None and len(refinements) > 0
         )
+        if not refinements:
+            self._current_uncommitted_update().parameters.selective_refinement = None
+            return
         mesh_settings = MeshSettings(refinements=refinements)
         if mesh_settings.parameters is None:
             raise ValueError("Error setting refinements")
@@ -1633,42 +1663,67 @@ class Mesh(JobMixin):
 
     @property
     @prevent_deleted
-    def extrusion(self) -> MeshExtrusion | None:
-        """Get the extrusion of the mesh."""
-        if (
-            self._mesh.parameters is None
-            or self._mesh.parameters.mesh_extrusion is None
-        ):
+    def extrusions(self) -> List[MeshExtrusion] | None:
+        """Get the extrusions of the mesh."""
+        if self._mesh.parameters is None:
             return None
-        raw_ext = self._mesh.parameters.mesh_extrusion
+        raw_extrusions = self._mesh.parameters.mesh_extrusions
+        if raw_extrusions is None and self._mesh.parameters.mesh_extrusion is not None:
+            raw_extrusions = [self._mesh.parameters.mesh_extrusion]
+        if not raw_extrusions:
+            return None
 
-        regions = None
-        if raw_ext.volume_regions is not None:
+        project_regions = None
+        if any(raw_ext.volume_regions is not None for raw_ext in raw_extrusions):
             project_regions = Region.get_all(self._project_id)
-            regions = [
-                region
-                for region in project_regions
-                if region.id in raw_ext.volume_regions
-            ]
 
-        return MeshExtrusion(
-            regions=regions,
-            sub_layer_counts=list(raw_ext.sublayers),
-            extrusion_overlap_mode=raw_ext.extrusion_overlap_mode,
-            volume_ids=raw_ext.volume_ids,
-        )
+        extrusions = []
+        for raw_ext in raw_extrusions:
+            regions = None
+            if raw_ext.volume_regions is not None and project_regions is not None:
+                regions = [
+                    region
+                    for region in project_regions
+                    if region.id in raw_ext.volume_regions
+                ]
+            extrusions.append(
+                MeshExtrusion(
+                    regions=regions,
+                    sub_layer_counts=list(raw_ext.sublayers),
+                    extrusion_overlap_mode=raw_ext.extrusion_overlap_mode,
+                    volume_ids=raw_ext.volume_ids,
+                )
+            )
+        return extrusions
+
+    @extrusions.setter
+    @prevent_deleted
+    def extrusions(self, extrusions: List[MeshExtrusion] | None) -> None:
+        """Set the extrusions of the mesh. Use save() to commit the change."""
+        has_extrusions = extrusions is not None and len(extrusions) > 0
+        self._on_set_parameter(set_user_defined=has_extrusions)
+        parameters = self._current_uncommitted_update().parameters
+        parameters.mesh_extrusion = None
+        if not has_extrusions:
+            parameters.mesh_extrusions = None
+            return
+        mesh_settings = MeshSettings(extrusions=extrusions)
+        if mesh_settings.parameters is None:
+            raise ValueError("Error setting extrusions")
+        parameters.mesh_extrusions = mesh_settings.parameters.mesh_extrusions
+
+    @property
+    @prevent_deleted
+    def extrusion(self) -> MeshExtrusion | None:
+        """Get the first extrusion of the mesh. Use extrusions to get all of them."""
+        extrusions = self.extrusions
+        return extrusions[0] if extrusions else None
 
     @extrusion.setter
     @prevent_deleted
-    def extrusion(self, extrusion: MeshExtrusion) -> None:
-        """Set the extrusion of the mesh. Use save() to commit the change."""
-        self._on_set_parameter(set_user_defined=extrusion is not None)
-        mesh_settings = MeshSettings(extrusion=extrusion)
-        if mesh_settings.parameters is None:
-            raise ValueError("Error setting extrusion")
-        self._current_uncommitted_update().parameters.mesh_extrusion = (
-            mesh_settings.parameters.mesh_extrusion
-        )
+    def extrusion(self, extrusion: MeshExtrusion | None) -> None:
+        """Replace the extrusions of the mesh with one extrusion. Use save() to commit the change."""
+        self.extrusions = [extrusion] if extrusion is not None else None
 
     @property
     @prevent_deleted
@@ -1726,6 +1781,9 @@ class Mesh(JobMixin):
             set_user_defined=slanted_extrusions is not None
             and len(slanted_extrusions) > 0
         )
+        if not slanted_extrusions:
+            self._structured_mesh_definitions_update().slanted_extrusions = None
+            return
         mesh_settings = MeshSettings(slanted_extrusions=slanted_extrusions)
         if (
             mesh_settings.parameters is None
@@ -1797,6 +1855,9 @@ class Mesh(JobMixin):
         self._on_set_parameter(
             set_user_defined=path_extrusions is not None and len(path_extrusions) > 0
         )
+        if not path_extrusions:
+            self._structured_mesh_definitions_update().path_extrusions = None
+            return
         mesh_settings = MeshSettings(path_extrusions=path_extrusions)
         if (
             mesh_settings.parameters is None
@@ -1879,6 +1940,11 @@ class Mesh(JobMixin):
             set_user_defined=flatten_and_rebuild_extrusions is not None
             and len(flatten_and_rebuild_extrusions) > 0
         )
+        if not flatten_and_rebuild_extrusions:
+            self._structured_mesh_definitions_update().flatten_and_rebuild_extrusions = (
+                None
+            )
+            return
         mesh_settings = MeshSettings(
             flatten_and_rebuild_extrusions=flatten_and_rebuild_extrusions
         )
@@ -1950,12 +2016,14 @@ class Mesh(JobMixin):
         Returns:
             The newly created MeshInstance.
         """
-        current = self.variable_overrides or []
-        if any(vo.id == variable_override.id for vo in current):
+        current = self._override_set_ids()
+        if variable_override.id in current:
             raise ValueError(
                 f"Variable override {variable_override.id!r} already exists on this mesh"
             )
-        self.variable_overrides = current + [variable_override]
+        self._current_uncommitted_update().override_sets = current + [
+            variable_override.id
+        ]
         self.save()
         return self.get_override(variable_override=variable_override)
 
@@ -2007,14 +2075,21 @@ class Mesh(JobMixin):
             variable_override: A :class:`VariableOverrides` object or its ID.
         """
         override_id = self._resolve_variable_overrides_id(variable_override)
-        current = self.variable_overrides or []
-        new_overrides = [vo for vo in current if vo.id != override_id]
+        current = self._override_set_ids()
+        new_overrides = [vo_id for vo_id in current if vo_id != override_id]
         if len(new_overrides) == len(current):
             raise ValueError(
                 f"Variable override {override_id!r} not found on this mesh"
             )
-        self.variable_overrides = new_overrides if new_overrides else None
+        self._current_uncommitted_update().override_sets = new_overrides
         self.save()
+
+    def _override_set_ids(self) -> List[str]:
+        return [
+            mesh_instance.override_set
+            for mesh_instance in (self._mesh.instances or [])
+            if mesh_instance.override_set is not None
+        ]
 
     @prevent_deleted
     def save(self) -> None:
@@ -2039,29 +2114,71 @@ class Mesh(JobMixin):
                 mesh_update=mesh_update,
             )
 
-            self._uncommitted_update = None
-
             self._mesh = api.get_mesh(
                 authorization=get_auth(),
                 project_id=self._project_id,
                 mesh_id=self._mesh.id,
             )
+            self._uncommitted_update = None
 
     @prevent_deleted
     def start(
         self,
         *,
+        include_overrides: bool = False,
         resource_reservation: ResourceReservation | str | None = None,
     ) -> None:
         """Start processing the default mesh instance.
 
         Parameters:
+            include_overrides: If True, also start all variable-override instances.
+                Get them with :meth:`get_overrides` to follow their status. If an
+                instance fails to start, the other instances are still started, and
+                then a :exc:`JobError` that names it is raised. If no instance
+                starts, the first start error is raised.
             resource_reservation: Optional reservation for the job
                 (:class:`~allsolve.resource_reservation.ResourceReservation` or id
                 string). Assigns reserved compute to the job start request. Does not
                 renew the lease while the job runs; use :meth:`run` or wrap manual
                 polling in :func:`~allsolve.resource_reservation.keep_reservation_alive`.
         """
+        if not include_overrides:
+            self._start_default_instance(resource_reservation)
+            return
+
+        entries: list[tuple[str, JobMixin]] = []
+        start_errors: list[tuple[str, Exception]] = []
+        _start_entry(
+            entries,
+            start_errors,
+            f"mesh '{self.name}'",
+            self,
+            lambda: self._start_default_instance(resource_reservation),
+            warn=False,
+        )
+        try:
+            overrides = self.get_overrides()
+        except Exception as e:
+            _add_start_error(
+                start_errors, f"mesh '{self.name}' overrides", e, warn=False
+            )
+            overrides = []
+        for instance in overrides:
+            _start_entry(
+                entries,
+                start_errors,
+                f"mesh '{self.name}' instance {instance.id}",
+                instance,
+                lambda: instance.start(resource_reservation=resource_reservation),
+                warn=False,
+            )
+        _raise_if_none_started(entries, start_errors)
+        _raise_on_failed_entries("Meshing", entries, start_errors, OnError.IGNORE, ())
+
+    def _start_default_instance(
+        self,
+        resource_reservation: ResourceReservation | str | None,
+    ) -> None:
         project_id = check_for_project_api_key(self._project_id)
 
         self.save()
@@ -2106,6 +2223,7 @@ class Mesh(JobMixin):
         refresh_delay_s: float = 1,
         on_error: OnError = OnError.IGNORE,
         *,
+        include_overrides: bool = False,
         resource_reservation: ResourceReservation | str | None = None,
     ) -> None:
         """Process the default mesh instance and return when the processing is complete.
@@ -2118,10 +2236,28 @@ class Mesh(JobMixin):
                 ``OnError.RAISE`` — raises :exc:`JobError` unless status is ``SUCCESS`` or
                 ``PARTIAL_SUCCESS``.
                 ``OnError.STRICT`` — raises :exc:`JobError` unless status is exactly ``SUCCESS``.
+                With ``include_overrides``, this applies to each instance and the error
+                names each instance that failed. If an instance fails to start, the
+                other instances are still processed and a :exc:`JobError` that names
+                it is raised at the end, also with ``OnError.IGNORE``.
+            include_overrides: If True, also process all variable-override instances,
+                at the same time as the default instance. A simulation that sweeps
+                variable overrides needs them. To process many meshes at the same
+                time, use :func:`~allsolve.job.run_meshes`.
             resource_reservation: Optional reservation for the job
                 (:class:`~allsolve.resource_reservation.ResourceReservation` or id
                 string). Renews the reservation lease for the full duration of this call.
         """
+        if include_overrides:
+            run_meshes(
+                [self],
+                include_overrides=True,
+                refresh_delay_s=refresh_delay_s,
+                on_error=on_error,
+                print_logs=print_logs,
+                resource_reservation=resource_reservation,
+            )
+            return
         with keep_reservation_alive(resource_reservation):
             self.start(resource_reservation=resource_reservation)
             while self.is_running(refresh_delay_s=refresh_delay_s):
@@ -2209,12 +2345,15 @@ class Mesh(JobMixin):
         return super().get_logs(limit=limit)
 
     @prevent_deleted
-    def print_new_loglines(self, file: TextIO = sys.stdout, limit: int = 100) -> None:
+    def print_new_loglines(
+        self, file: TextIO = sys.stdout, limit: int | None = None
+    ) -> None:
         """Print new log lines from the default mesh instance.
 
         Parameters:
             file: Output stream.
-            limit: Maximum number of log entries.
+            limit: Optional maximum number of new log lines to print.
+                If None, print all new log lines.
         """
         return super().print_new_loglines(file=file, limit=limit)
 
@@ -2351,21 +2490,25 @@ class Mesh(JobMixin):
                 project_id=self._project_id,
                 mesh_file_id=mesh_file_id,
             )
-            url = response.download_url
-            if url is None:
-                raise ValueError("Failed to get mesh file download URL")
-            validate_url_scheme(url, get_allow_insecure_http())
-            session = get_http_session()
-            with session.get(
-                url,
-                stream=True,
-                timeout=(CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S),
-            ) as r:
-                r.raise_for_status()
+        url = response.download_url
+        if url is None:
+            raise ValueError("Failed to get mesh file download URL")
+        validate_url_scheme(url, get_allow_insecure_http())
+        session = get_http_session()
+        with session.get(
+            url,
+            stream=True,
+            timeout=(CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S),
+        ) as r:
+            r.raise_for_status()
 
+            try:
                 with open(filepath, "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
+            except BaseException:
+                filepath.unlink(missing_ok=True)
+                raise
 
     def _get_filepath(self, output_dir: str, filename: str) -> pathlib.Path:
         """
@@ -2389,9 +2532,10 @@ class Mesh(JobMixin):
 
         if not path.exists():
             path.mkdir(parents=True, exist_ok=True)
+        stem, suffix = filename.rsplit(".", 1)
         i = 1
         while path.joinpath(target_filename).exists():
-            target_filename = f"{filename.split('.')[0]}_({i}).{filename.split('.')[1]}"
+            target_filename = f"{stem}_({i}).{suffix}"
             i += 1
         return path.joinpath(target_filename)
 
@@ -2408,15 +2552,22 @@ class Mesh(JobMixin):
                 nodeType=self._mesh.node_type,
                 parameters=copy.deepcopy(self._mesh.parameters),
                 overrideSets=[
-                    override_set_id
+                    mesh_instance.override_set
                     for mesh_instance in (self._mesh.instances or [])
                     if mesh_instance.override_set is not None
-                    for override_set_id in mesh_instance.override_set
                 ],
                 supportData=copy.deepcopy(self._mesh.support_data),
             )
 
         return self._uncommitted_update
+
+    def _structured_mesh_definitions_update(
+        self,
+    ) -> rawapi.StructuredMeshDefinitions:
+        parameters = self._current_uncommitted_update().parameters
+        if parameters.structured_mesh_definitions is None:
+            parameters.structured_mesh_definitions = rawapi.StructuredMeshDefinitions()
+        return parameters.structured_mesh_definitions
 
     @prevent_deleted
     def _on_set_parameter(self, set_user_defined: bool = False) -> None:
@@ -2431,7 +2582,9 @@ class Mesh(JobMixin):
         if default is None or default.meshing_job is None:
             return
         raw_job = default.meshing_job
-        job = Job(self._project_id, raw_job.id)
+        job = self._job
+        if job is None or isinstance(job, _MockJob) or job.id != raw_job.id:
+            job = Job(self._project_id, raw_job.id)
         job._job_status = rawapi.JobStatus(
             jobId=raw_job.id,
             status=raw_job.status,

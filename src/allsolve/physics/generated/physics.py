@@ -11,7 +11,8 @@ from ..physic import Physic, Field, Fields
 
 
 class SolidMechanics(Physic):
-    """Solid mechanics physics.
+    """
+    Solid mechanics physics.
 
     Fields: ``displacement``
     """
@@ -26,7 +27,8 @@ class SolidMechanics(Physic):
 
 
 class CurrentFlow(Physic):
-    """Current flow physics.
+    """
+    Current flow physics.
 
     Fields: ``electricPotential``
     """
@@ -41,7 +43,8 @@ class CurrentFlow(Physic):
 
 
 class AcousticWaves(Physic):
-    """Acoustic waves physics.
+    """
+    Acoustic waves physics.
 
     Fields: ``pressure``
     """
@@ -56,7 +59,8 @@ class AcousticWaves(Physic):
 
 
 class ElectromagneticWaves(Physic):
-    """Electromagnetic waves physics.
+    """
+    Electromagnetic waves physics.
 
     Fields: ``electric``
     """
@@ -71,7 +75,8 @@ class ElectromagneticWaves(Physic):
 
 
 class Electrostatics(Physic):
-    """Electrostatics physics.
+    """
+    Electrostatics physics.
 
     Fields: ``electricPotential``
     """
@@ -86,7 +91,8 @@ class Electrostatics(Physic):
 
 
 class MagnetismA(Physic):
-    """Magnetism A physics.
+    """
+    Magnetism A physics.
 
     Fields: ``magneticVectorPotential``
     """
@@ -101,7 +107,8 @@ class MagnetismA(Physic):
 
 
 class MagnetismPhi(Physic):
-    """magnetism phi physics.
+    """
+    magnetism phi physics.
 
     Fields: ``magneticScalarPotential``
     """
@@ -116,7 +123,8 @@ class MagnetismPhi(Physic):
 
 
 class MagnetismH(Physic):
-    """Magnetism H physics.
+    """
+    Magnetism H physics.
 
     Fields: ``magnetic``
     """
@@ -131,7 +139,8 @@ class MagnetismH(Physic):
 
 
 class LaminarFlow(Physic):
-    """Laminar flow physics.
+    """
+    Laminar flow physics.
 
     Fields: ``pressure``, ``velocity``
     """
@@ -147,7 +156,8 @@ class LaminarFlow(Physic):
 
 
 class HeatTransfer(Physic):
-    """Heat solid physics.
+    """
+    Heat solid physics.
 
     Fields: ``temperature``
     """
@@ -162,7 +172,8 @@ class HeatTransfer(Physic):
 
 
 class HeatFluid(Physic):
-    """Heat fluid physics.
+    """
+    Heat fluid physics.
 
     Fields: ``temperature``
     """
@@ -177,7 +188,8 @@ class HeatFluid(Physic):
 
 
 class ElasticWaves(Physic):
-    """Elastic waves physics.
+    """
+    Elastic waves physics.
 
     Fields: ``displacement``
     """
@@ -192,7 +204,8 @@ class ElasticWaves(Physic):
 
 
 class MeshDeformation(Physic):
-    """Mesh deformation physics.
+    """
+    Mesh deformation physics.
 
     Fields: ``meshDeformation``
     """

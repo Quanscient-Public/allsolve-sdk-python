@@ -1,6 +1,7 @@
 # Copyright 2026 Quanscient Oy
 # SPDX-License-Identifier: Apache-2.0
 
+import copy
 from enum import Enum
 from typing import List, Optional, Union, Tuple
 from typing_extensions import Self
@@ -9,21 +10,25 @@ import allsolve_rawapi as rawapi
 from .api import get_api, get_auth, check_for_project_api_key
 
 
-class ExpressionType(Enum):
+class ExpressionType(str, Enum):
     """
     Type of a shared expression.
 
     Used when creating or filtering :class:`SharedExpression` objects
     (variables, functions, and interpolated functions).
+
+    The members are strings with the API values, so they are equal to the
+    ``rawapi.SharedExpressionType`` values that ``SharedExpression.type`` returns:
+    ``expr.type == ExpressionType.FUNCTION``.
     """
 
-    EXPRESSION = rawapi.SharedExpressionType.EXPRESSION
+    EXPRESSION = rawapi.SharedExpressionType.EXPRESSION.value
     """A simple expression or variable."""
 
-    INTERPOLATED_FUNCTION = rawapi.SharedExpressionType.INTERPOLATEDFUNCTION
+    INTERPOLATED_FUNCTION = rawapi.SharedExpressionType.INTERPOLATEDFUNCTION.value
     """A function defined by discrete data points with interpolation between them."""
 
-    FUNCTION = rawapi.SharedExpressionType.FUNCTION
+    FUNCTION = rawapi.SharedExpressionType.FUNCTION.value
     """An analytic function with named arguments."""
 
 
@@ -82,7 +87,7 @@ class SharedExpression:
                 project_id=project_id,
                 shared_expression_update=rawapi.SharedExpressionUpdate(
                     name=name,
-                    type=expression_type.value,
+                    type=rawapi.SharedExpressionType(expression_type.value),
                     description=description,
                     expression=expression,
                     args=args,
@@ -154,7 +159,7 @@ class SharedExpression:
         """
         Get the name of the shared expression.
         """
-        return self._get_current_state().name
+        return self._shared_expression.name
 
     @name.setter
     @prevent_deleted
@@ -171,7 +176,7 @@ class SharedExpression:
         """
         Get the description of the shared expression.
         """
-        return self._get_current_state().description
+        return self._shared_expression.description
 
     @description.setter
     @prevent_deleted
@@ -187,16 +192,22 @@ class SharedExpression:
     def type(self) -> rawapi.SharedExpressionType:
         """
         Get the type of the shared expression.
+
+        The value is equal to the ``ExpressionType`` member of the same type.
         """
-        return self._get_current_state().type
+        return self._shared_expression.type
 
     @type.setter
     @prevent_deleted
-    def type(self, expression_type: rawapi.SharedExpressionType) -> None:
+    def type(
+        self, expression_type: ExpressionType | rawapi.SharedExpressionType
+    ) -> None:
         """
         Set the type of the shared expression.
         Use save() to commit the change.
         """
+        if isinstance(expression_type, ExpressionType):
+            expression_type = rawapi.SharedExpressionType(expression_type.value)
         self._current_uncommitted_update().type = expression_type
 
     @property
@@ -205,7 +216,7 @@ class SharedExpression:
         """
         Get the origin (original shared expression ID if this is a copy).
         """
-        return self._get_current_state().origin
+        return self._shared_expression.origin
 
     @origin.setter
     @prevent_deleted
@@ -222,7 +233,7 @@ class SharedExpression:
         """
         Get the arguments of the shared expression.
         """
-        return self._get_current_state().args
+        return self._shared_expression.args
 
     @args.setter
     @prevent_deleted
@@ -239,7 +250,7 @@ class SharedExpression:
         """
         Get the expression string.
         """
-        return self._get_current_state().expression
+        return self._shared_expression.expression
 
     @expression.setter
     @prevent_deleted
@@ -248,6 +259,8 @@ class SharedExpression:
         Set the expression string.
         Use save() to commit the change.
         """
+        if expression is not None:
+            expression = str(expression)
         self._current_uncommitted_update().expression = expression
 
     @property
@@ -256,7 +269,7 @@ class SharedExpression:
         """
         Get the values of the shared expression.
         """
-        return self._get_current_state().values
+        return self._shared_expression.values
 
     @values.setter
     @prevent_deleted
@@ -275,7 +288,7 @@ class SharedExpression:
         When True, values are interpolated using a natural cubic spline.
         When False or None, linear interpolation is used.
         """
-        return self._get_current_state().cubic_interpolation
+        return self._shared_expression.cubic_interpolation
 
     @cubic_interpolation.setter
     @prevent_deleted
@@ -320,13 +333,12 @@ class SharedExpression:
                 shared_expression_update=expression_update,
             )
 
-            self._uncommitted_update = None
-
             self._shared_expression = api.get_shared_expression(
                 authorization=get_auth(),
                 project_id=self._project_id,
                 expr_id=self.id,
             )
+            self._uncommitted_update = None
 
     @prevent_deleted
     def _current_uncommitted_update(self) -> rawapi.SharedExpressionUpdate:
@@ -339,22 +351,13 @@ class SharedExpression:
                 type=self._shared_expression.type,
                 description=self._shared_expression.description,
                 origin=self._shared_expression.origin,
-                args=self._shared_expression.args,
+                args=copy.deepcopy(self._shared_expression.args),
                 expression=self._shared_expression.expression,
-                values=self._shared_expression.values,
+                values=copy.copy(self._shared_expression.values),
                 cubicInterpolation=self._shared_expression.cubic_interpolation,
             )
 
         return self._uncommitted_update
-
-    @prevent_deleted
-    def _get_current_state(
-        self,
-    ) -> rawapi.SharedExpression | rawapi.SharedExpressionUpdate:
-        """Get the current state of the shared expression."""
-        if self._uncommitted_update is not None:
-            return self._uncommitted_update
-        return self._shared_expression
 
     def __str__(self) -> str:
         return f"SharedExpression(name={self.name}, id={self.id}, type={self.type})"

@@ -22,7 +22,7 @@ CadPath = List[Union[str, Tuple[str, str], CadGlob]]
 A path to select CAD entities in a hierarchical structure.
 
 A CAD path is a list of segments, where each segment can be:
-- A string: Name of a geometry element at that level
+- A string: Name of a geometry element at that level, matched exactly ("*" is not a wildcard)
 - A tuple of (key, value): Attribute filter matching entities with the given attribute
 - A CadGlob enum: Wildcard pattern for matching multiple entities
 

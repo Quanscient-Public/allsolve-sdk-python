@@ -31,7 +31,7 @@ class TeamQuota(BaseModel):
     id: Annotated[str, Field(min_length=1, strict=True)]
     name: StrictStr
     total_credits: StrictInt = Field(description="Team's allocated credit pool.", alias="totalCredits")
-    used_credits: Union[StrictFloat, StrictInt] = Field(description="Credits consumed by the team since the organization quota start date.", alias="usedCredits")
+    used_credits: Union[StrictFloat, StrictInt] = Field(description="Credits consumed by the team since the organization quota start date, by compute jobs and by the team's share of the organization's object storage usage above its threshold. ", alias="usedCredits")
     __properties: ClassVar[List[str]] = ["id", "name", "totalCredits", "usedCredits"]
 
     model_config = ConfigDict(

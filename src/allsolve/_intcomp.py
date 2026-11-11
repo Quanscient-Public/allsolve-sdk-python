@@ -11,7 +11,7 @@ from enum import IntEnum
 from typing import List, Optional
 import zstandard as zstd
 
-import allsolve.varint as varint
+from allsolve import _varint
 
 
 class Scheme(IntEnum):
@@ -154,20 +154,20 @@ def _decode_header(byte: int) -> _Header:
 
 def _encode_varint_list(ints: List[int]) -> bytes:
     """Encode a list of signed integers as varints."""
-    return varint.encode_signed(ints)
+    return _varint.encode_signed(ints)
 
 
 def _encode_diff(header_byte: int, diffs: List[int]) -> bytes:
     """Encode using simple differential scheme."""
-    return bytes([header_byte]) + varint.encode_signed(diffs)
+    return bytes([header_byte]) + _varint.encode_signed(diffs)
 
 
 def _encode_diff_rle(header_byte: int, diffs: List[int]) -> bytes:
     """Encode using differential + RLE scheme."""
     # Encode all parts using array functions and concatenate
     # This reduces individual function calls
-    signed_parts = varint.encode_signed([diffs[0], diffs[1]])
-    run_length_part = varint.encode_one(len(diffs) - 1)
+    signed_parts = _varint.encode_signed([diffs[0], diffs[1]])
+    run_length_part = _varint.encode_one(len(diffs) - 1)
     return bytes([header_byte]) + signed_parts + run_length_part
 
 
@@ -197,7 +197,7 @@ def _decode_diff(data: bytes) -> List[int]:
         return []
 
     # Decode all diffs at once
-    diffs = varint.decode_signed(data)
+    diffs = _varint.decode_signed(data)
 
     # Convert from differences to absolute values
     result = [diffs[0]]
@@ -214,15 +214,15 @@ def _decode_diff_rle(data: bytes) -> List[int]:
     buffer = memoryview(data)
 
     # First value (signed)
-    first_value, read = varint.decode_one_signed(buffer)
+    first_value, read = _varint.decode_one_signed(buffer)
     buffer = buffer[read:]
 
     # Repeating difference (signed)
-    repeating_value, read = varint.decode_one_signed(buffer)
+    repeating_value, read = _varint.decode_one_signed(buffer)
     buffer = buffer[read:]
 
     # Run length (unsigned)
-    run_length = varint.decode_one(buffer)[0]
+    run_length = _varint.decode_one(buffer)[0]
 
     # Reconstruct the sequence
     result = [first_value]

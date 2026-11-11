@@ -1,0 +1,15 @@
+{
+  "name": "quanscient",
+  "description": "Quanscient plugins for Claude Code",
+  "owner": {
+    "name": "Quanscient",
+    "url": "https://quanscient.com"
+  },
+  "plugins": [
+    {
+      "name": "allsolve",
+      "source": "./plugins/allsolve",
+      "description": "Agent skills to build, run and debug Allsolve multiphysics simulations with the Allsolve Python SDK"
+    }
+  ]
+}

@@ -71,6 +71,7 @@ from .interactions import (
     ElectromagneticWavesAbsorbingBoundary,
     ElectromagneticWavesBoundaryAdmittance,
     ElectromagneticWavesInitialValue,
+    ElectromagneticWavesBoundaryCurrentDensity,
     ElectrostaticsConstraint,
     ElectrostaticsPiezoelectricity,
     ElectrostaticsLump,
@@ -232,6 +233,9 @@ class Interaction:
     ElectromagneticWavesAbsorbingBoundary = ElectromagneticWavesAbsorbingBoundary
     ElectromagneticWavesBoundaryAdmittance = ElectromagneticWavesBoundaryAdmittance
     ElectromagneticWavesInitialValue = ElectromagneticWavesInitialValue
+    ElectromagneticWavesBoundaryCurrentDensity = (
+        ElectromagneticWavesBoundaryCurrentDensity
+    )
     ElectrostaticsConstraint = ElectrostaticsConstraint
     ElectrostaticsPiezoelectricity = ElectrostaticsPiezoelectricity
     ElectrostaticsLump = ElectrostaticsLump

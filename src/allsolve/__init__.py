@@ -3,6 +3,16 @@
 
 # pyright: reportUnusedImport=false
 
+"""Allsolve Python SDK: build, run and post-process Quanscient Allsolve multiphysics cloud simulations.
+
+Agent skills that teach AI coding agents (Claude Code, Cursor, Codex and others) to use this SDK
+are in https://github.com/Quanscient-Public/allsolve-sdk-python/tree/main/plugins/allsolve/skills.
+Install them in Claude Code with:
+
+    claude plugin marketplace add Quanscient-Public/allsolve-sdk-python
+    claude plugin install allsolve@quanscient
+"""
+
 
 def _resolve_package_version() -> str:
     from importlib.metadata import PackageNotFoundError, version
@@ -84,6 +94,7 @@ __all__ = [
     "Runtime",
     "CPU",
     "SolverMode",
+    "SolverPrecision",
     "TimestepAlgorithm",
     "AnalysisType",
     "SimulationOutputData",
@@ -120,6 +131,9 @@ __all__ = [
     # job
     "Job",
     "OnError",
+    "refresh_statuses",
+    "run_meshes",
+    "run_simulations",
     # material
     "Material",
     "MaterialProperty",
@@ -132,6 +146,7 @@ __all__ = [
     "Interaction",
     "InteractionParameter",
     "OutputInteraction",
+    "PhysicsInteraction",
     "Expression",
     "ScalarValue",
     "VectorValue",
@@ -283,6 +298,7 @@ from .simulation import (
     Runtime,
     CPU,
     SolverMode,
+    SolverPrecision,
     TimestepAlgorithm,
     AnalysisType,
     SimulationOutputData,
@@ -308,7 +324,13 @@ from .resource_reservation import ResourceReservation, ReservationStatus
 from .api import setup, is_setup, is_project_api_key, get_cache_dir, clean_cache
 from .quota import get_quota
 from .team import get_teams
-from .job import Job, OnError
+from .job import (
+    Job,
+    OnError,
+    refresh_statuses,
+    run_meshes,
+    run_simulations,
+)
 from .material import Material, MaterialProperty
 from .physics import (
     Physics,
@@ -319,6 +341,7 @@ from .physics import (
     Interaction,
     InteractionParameter,
     OutputInteraction,
+    PhysicsInteraction,
     # Parameter type aliases and conversion utilities
     Expression,
     ScalarValue,

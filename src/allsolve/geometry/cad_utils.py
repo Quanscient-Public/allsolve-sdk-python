@@ -8,6 +8,8 @@ This module provides conversion functions for creating and extracting values
 from raw API CAD geometry objects.
 """
 
+import warnings
+
 from allsolve.geometry.cad_path import CadGlob, CadPath
 import allsolve_rawapi as rawapi
 
@@ -54,10 +56,30 @@ def extract_entities_from_elements(
     return entity_tags, cad_names, cad_paths
 
 
+def _check_cad_path_segment(segment: object) -> None:
+    if not isinstance(segment, (str, tuple, CadGlob)):
+        raise TypeError(
+            f"Invalid CAD path segment {segment!r}: expected str, "
+            "(key, value) tuple or CadGlob"
+        )
+
+
+def _warn_if_star(name: str) -> None:
+    if "*" in name:
+        warnings.warn(
+            f"CAD name {name!r} contains '*', which matches only that exact name. "
+            "For wildcards, use CadGlob.STAR or CadGlob.DOUBLESTAR in cad_paths.",
+            stacklevel=3,
+        )
+
+
 def validate_cad_path(cad_path: CadPath) -> None:
     """Validate a CAD path."""
     if len(cad_path) == 0:
         raise ValueError("CAD path is empty")
+
+    for segment in cad_path:
+        _check_cad_path_segment(segment)
 
     # Check usage of CadGlob.DOUBLESTAR next to other CadGlob
     for i in range(len(cad_path) - 1):
@@ -114,14 +136,16 @@ def create_cad_entities_from_lists(
             elements.append(rawapi.CadEntity(tag=tag))
     if cad_names is not None:
         for name in cad_names:
+            _warn_if_star(name)
             elements.append(rawapi.CadEntity(name=name))
     if cad_paths is not None:
         for path in cad_paths:
             path_segments = []
             for segment in path:
                 if isinstance(segment, str):
+                    _warn_if_star(segment)
                     path_segments.append(rawapi.CadPathSegment(name=segment))
-                if isinstance(segment, tuple):
+                elif isinstance(segment, tuple):
                     path_segments.append(
                         rawapi.CadPathSegment(
                             attribute=rawapi.CadAttribute(
@@ -140,6 +164,8 @@ def create_cad_entities_from_lists(
                         )
                     else:
                         raise ValueError(f"Invalid CadGlob: {segment}")
+                else:
+                    _check_cad_path_segment(segment)
             elements.append(rawapi.CadEntity(path=path_segments))
     return elements
 

@@ -58,7 +58,7 @@ from ..api import (
 )
 from ..file import mark_files_uploaded_batch
 from ..job import Job, OnError
-from ..job_mixin import JobMixin
+from .._job_mixin import JobMixin
 from ..resource_reservation import (
     ResourceReservation,
     build_start_job_request,
@@ -1144,13 +1144,17 @@ class GeometryBuilder(JobMixin):
 
     def create_element(self, geometry: CadElement) -> CadElement:
         """
-        Creates new geometry elements in the project.
+        Creates a new geometry element in the project.
+
+        Use the returned element after this call. It can be a different object
+        from the one passed in, and later changes to the passed object do not
+        show in the returned one.
 
         Parameters:
-            geometry: A list of CAD geometry elements or a single CAD geometry element.
+            geometry: The CAD geometry element to create.
 
         Returns:
-            A list of created CAD geometry elements or a single created CAD geometry element.
+            The created CAD geometry element.
         """
         return self._create_element(geometry)
 
@@ -1158,11 +1162,16 @@ class GeometryBuilder(JobMixin):
         """
         Creates new geometry elements in the project.
 
+        Use the returned elements after this call. They can be different objects
+        from the ones passed in, and later changes to the passed objects do not
+        show in the returned ones.
+
         Parameters:
-            geometry: A list of CAD geometry elements or a single CAD geometry element.
+            geometries: A list of CAD geometry elements to create.
 
         Returns:
-            A list of created CAD geometry elements or a single created CAD geometry element.
+            A list of the created CAD geometry elements, in the same order as
+            ``geometries``.
         """
         if len(geometries) <= 1:
             return [self._create_element(geometry) for geometry in geometries]
@@ -1202,7 +1211,7 @@ class GeometryBuilder(JobMixin):
 
         Parameters:
             last_element_id: Optional last geometry element id to process in the project.
-            If not provided, all geometry elements in the project will be processed.
+                If not provided, all geometry elements in the project will be processed.
             resource_reservation: Optional reservation for the job
                 (:class:`~allsolve.resource_reservation.ResourceReservation` or id
                 string). Assigns reserved compute to the job start request. Does not
@@ -1239,7 +1248,7 @@ class GeometryBuilder(JobMixin):
             print_logs: If True, print logs to the console.
             refresh_delay_s: Optional delay in seconds between checking the status of the job.
             last_element_id: Optional last geometry element id to process in the project.
-            If not provided, all geometry elements in the project will be processed.
+                If not provided, all geometry elements in the project will be processed.
             resource_reservation: Optional reservation for the job
                 (:class:`~allsolve.resource_reservation.ResourceReservation` or id
                 string). Renews the reservation lease for the full duration of this call.
@@ -1306,13 +1315,16 @@ class GeometryBuilder(JobMixin):
         """
         return super().get_logs(limit)
 
-    def print_new_loglines(self, file: TextIO = sys.stdout, limit: int = 100) -> None:
+    def print_new_loglines(
+        self, file: TextIO = sys.stdout, limit: int | None = None
+    ) -> None:
         """
         Print the new log lines of the processing of the geometry elements in the project.
 
         Parameters:
             file: Optional file to print the logs to.
-            limit: Optional maximum number of logs to print.
+            limit: Optional maximum number of new log lines to print.
+                If None, print all new log lines.
         """
         return super().print_new_loglines(file, limit)
 
@@ -1323,8 +1335,10 @@ class GeometryBuilder(JobMixin):
 
         Parameters:
             geometry: Optional geometry element to delete.
-            If not provided, all geometry elements in the project will be deleted.
+                If not provided, all geometry elements in the project will be deleted.
         """
+        if geometry is not None and geometry.id is None:
+            raise ValueError("Geometry element ID is not set")
         project_id = check_for_project_api_key(self._project_id)
         element_id = geometry.id if geometry is not None else None
         with get_api() as api:
@@ -1333,6 +1347,8 @@ class GeometryBuilder(JobMixin):
                 project_id=project_id,
                 element_id=element_id,
             )
+        if geometry is not None:
+            geometry._deleted = True
 
     def _convert_cad_element_from_rawapi(
         self,
@@ -1345,7 +1361,6 @@ class GeometryBuilder(JobMixin):
         Parameters:
             rawapi_element: The rawapi GeometryElement to convert.
             project_id: The project ID.
-            cad_type: The CAD geometry type.
 
         Returns:
             The converted CAD element.
@@ -1481,17 +1496,33 @@ class GeometryBuilder(JobMixin):
                     return (file_import.id, completion)
 
                 completions: list[tuple[str, rawapi.FileUploadCompletion]] = []
+                failures: list[tuple[str, BaseException]] = []
                 with concurrent.futures.ThreadPoolExecutor(
                     max_workers=_BATCH_UPLOAD_MAX_WORKERS
                 ) as pool:
-                    futures = [
-                        pool.submit(_upload_one, geometry, url_info)
+                    futures = {
+                        pool.submit(_upload_one, geometry, url_info): geometry
                         for geometry, url_info in upload_tasks
-                    ]
+                    }
                     for future in concurrent.futures.as_completed(futures):
-                        completions.append(future.result())
+                        error = future.exception()
+                        if error is None:
+                            completions.append(future.result())
+                        else:
+                            failures.append((str(futures[future].name), error))
 
-                mark_files_uploaded_batch(completions, project_id=project_id)
+                if completions:
+                    mark_files_uploaded_batch(completions, project_id=project_id)
+
+                if failures:
+                    error = failures[0][1]
+                    add_note = getattr(error, "add_note", None)
+                    if add_note is not None:
+                        failed_names = ", ".join(repr(name) for name, _ in failures)
+                        add_note(
+                            f"File upload failed for geometry elements: {failed_names}"
+                        )
+                    raise error
 
             results.extend(chunk_results)
 

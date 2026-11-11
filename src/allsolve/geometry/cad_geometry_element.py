@@ -156,8 +156,9 @@ class CadGeometryElement(abc.ABC):
 
     @name.setter
     def name(self, value: str | None) -> None:
-        """Set the name of the geometry element."""
+        """Set the name of the geometry element. Use save() to commit the change."""
         self._name = value
+        self._current_uncommitted_update()
 
     @property
     @prevent_deleted
@@ -167,8 +168,13 @@ class CadGeometryElement(abc.ABC):
 
     @enabled.setter
     def enabled(self, value: str | bool | None) -> None:
-        """Set the enabled state of the geometry element. Can be a boolean or a string expression."""
+        """
+        Set the enabled state of the geometry element. Can be a boolean or a string expression.
+
+        Use save() to commit the change.
+        """
         self._enabled = value
+        self._current_uncommitted_update()
 
     @property
     @abc.abstractmethod
@@ -188,6 +194,8 @@ class CadGeometryElement(abc.ABC):
         """
         Delete the geometry element from the project.
         """
+        if self.id is None:
+            raise ValueError("Geometry element ID is not set")
         project_id = check_for_project_api_key(self._project_id)
         with get_api() as api:
             api.delete_geometry_elements(
@@ -217,8 +225,7 @@ class CadGeometryElement(abc.ABC):
         geometry_element.id = self.id
         geometry_element.name = self.name
         geometry_element.cad_elem.name = self.name
-        if geometry_element.cad_elem is not None:
-            geometry_element.cad_elem.enabled = create_boolean(self._enabled)
+        geometry_element.cad_elem.enabled = create_boolean(self._enabled)
 
         with get_api() as api:
             api.update_geometry_element(

@@ -40,6 +40,19 @@ class ReservationStatus(Enum):
     FAILED = rawapi.ReservationStatus.FAILED
 
 
+def _is_transient_renew_error(cause: BaseException | None) -> bool:
+    """
+    Return whether a renew API error can succeed on a later attempt.
+
+    The backend returns 400 or 404 when the reservation is not active, not found or
+    out of quota; those errors are definitive.
+    """
+    if not isinstance(cause, rawapi.ApiException):
+        return False
+    status = cause.status or 0
+    return status in (0, 401, 408, 429) or status >= 500
+
+
 class _ReservationLeaseKeeper:  # pyright: ignore[reportUnusedClass]
     """Background lease renewal for a single reservation id (used by :class:`~allsolve.client.Client`).
 
@@ -78,6 +91,7 @@ class _ReservationLeaseKeeper:  # pyright: ignore[reportUnusedClass]
         self._auto_renew_started_at: float | None = None
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
+        self._last_renewed_at = time.monotonic()
 
     def acquire_job(self) -> None:
         """
@@ -149,10 +163,12 @@ class _ReservationLeaseKeeper:  # pyright: ignore[reportUnusedClass]
 
         Caller must hold ``self._lock``.
         """
-        if self._thread is None or not self._thread.is_alive():
-            self._stop.clear()
+        if self._thread is None or not self._thread.is_alive() or self._stop.is_set():
+            self._stop = threading.Event()
+            self._last_renewed_at = time.monotonic()
             self._thread = threading.Thread(
                 target=self._run,
+                args=(self._stop,),
                 name=f"reservation-lease-{self._reservation_id}",
                 daemon=True,
             )
@@ -201,7 +217,7 @@ class _ReservationLeaseKeeper:  # pyright: ignore[reportUnusedClass]
             self._max_idle_seconds = None
             self._auto_renew_started_at = None
             self._stop.set()
-        self._client._drop_lease_keeper(self._reservation_id)
+        self._client._drop_lease_keeper(self._reservation_id, self)
 
     def _renew_lease(self) -> None:
         """
@@ -221,7 +237,7 @@ class _ReservationLeaseKeeper:  # pyright: ignore[reportUnusedClass]
                 error_code, message = parse_api_error(e)
                 raise ResourceReservationError(message, error_code=error_code) from e
 
-    def _tick_renewal(self) -> bool:
+    def _tick_renewal(self, stop: threading.Event) -> bool:
         """
         Perform one renewal cycle while the keeper is active.
 
@@ -229,7 +245,7 @@ class _ReservationLeaseKeeper:  # pyright: ignore[reportUnusedClass]
             False if the keeper should stop (inactive, stopped, expired, or renewal
             failed); True to continue the renewal loop.
         """
-        if self._stop.is_set():
+        if stop.is_set():
             return False
         if not self.is_active():
             return False
@@ -239,6 +255,13 @@ class _ReservationLeaseKeeper:  # pyright: ignore[reportUnusedClass]
         try:
             self._renew_lease()
         except ResourceReservationError as e:
+            if _is_transient_renew_error(e.__cause__) and self._can_retry_renewal():
+                logger.warning(
+                    "Failed to renew reservation %s lease, retrying: %s",
+                    self._reservation_id,
+                    e,
+                )
+                return True
             logger.error(
                 "Failed to renew reservation %s lease (error_code=%s): %s",
                 self._reservation_id,
@@ -248,21 +271,34 @@ class _ReservationLeaseKeeper:  # pyright: ignore[reportUnusedClass]
             self._deactivate_on_renew_failure()
             return False
         except Exception:
+            if self._can_retry_renewal():
+                logger.warning(
+                    "Failed to renew reservation %s lease, retrying",
+                    self._reservation_id,
+                    exc_info=True,
+                )
+                return True
             logger.exception(
                 "Unexpected error renewing reservation %s",
                 self._reservation_id,
             )
             self._deactivate_on_renew_failure()
             return False
+        self._last_renewed_at = time.monotonic()
         return True
 
-    def _run(self) -> None:
-        """Background loop: renew periodically until stopped or inactive."""
+    def _can_retry_renewal(self) -> bool:
+        """Return whether the lease can still be valid since the last successful renewal."""
+        elapsed = time.monotonic() - self._last_renewed_at
+        return elapsed < ResourceReservation._LEASE_DURATION_S
+
+    def _run(self, stop: threading.Event) -> None:
+        """Background loop: renew periodically until *stop* is set or inactive."""
         with self._client.in_thread():
             while True:
-                if not self._tick_renewal():
+                if not self._tick_renewal(stop):
                     break
-                if self._stop.wait(RENEW_INTERVAL_S):
+                if stop.wait(RENEW_INTERVAL_S):
                     break
 
 
@@ -363,6 +399,8 @@ class ResourceReservation:
         Parameters:
             node_type: Compute size (:class:`~allsolve.CPU`), same as simulation ``nodeType``.
                 When omitted or :attr:`~allsolve.CPU.DEFAULT`, the server uses ``large-new``.
+                :attr:`~allsolve.CPU.CORES_3_10GB_FAST_START` cannot be reserved: it
+                runs on lambda, and the reservation goes to ``FAILING``.
             main_node_type: Optional main / coordinator node size; defaults to ``node_type``.
                 You may need to select a bigger main node if the mesh is very large or
                 memory limitations require it.

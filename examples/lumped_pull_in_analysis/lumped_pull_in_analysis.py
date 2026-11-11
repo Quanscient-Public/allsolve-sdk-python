@@ -499,19 +499,19 @@ def create_initial_state_simulation(
     sim.set_field_initializations(
         [
             allsolve.FieldInitialization(
-                type=allsolve.FieldInitializationType.POSTPROCESSING,
+                type=allsolve.FieldInitializationType.FIELDSTATE,
                 source_simulation=field_state_sim,
                 source_output_name="u",
                 field=physics.solid_mechanics.fields.displacement,
             ),
             allsolve.FieldInitialization(
-                type=allsolve.FieldInitializationType.POSTPROCESSING,
+                type=allsolve.FieldInitializationType.FIELDSTATE,
                 source_simulation=field_state_sim,
                 source_output_name="v",
                 field=physics.electrostatics.fields.electricPotential,
             ),
             allsolve.FieldInitialization(
-                type=allsolve.FieldInitializationType.POSTPROCESSING,
+                type=allsolve.FieldInitializationType.FIELDSTATE,
                 source_simulation=field_state_sim,
                 source_output_name="umesh",
                 field=physics.mesh_deformation.fields.meshDeformation,

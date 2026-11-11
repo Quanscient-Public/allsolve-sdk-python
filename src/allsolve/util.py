@@ -45,13 +45,13 @@ def deprecated(
 
             @wraps(cast(Any, func1))
             def new_func1(*args: P.args, **kwargs: P.kwargs) -> R:
-                warnings.simplefilter("always", DeprecationWarning)
-                warnings.warn(
-                    fmt1.format(name=func1.__name__, reason=reason),
-                    category=DeprecationWarning,
-                    stacklevel=2,
-                )
-                warnings.simplefilter("default", DeprecationWarning)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("always", DeprecationWarning)
+                    warnings.warn(
+                        fmt1.format(name=func1.__name__, reason=reason),
+                        category=DeprecationWarning,
+                        stacklevel=2,
+                    )
                 return func1(*args, **kwargs)
 
             return new_func1
@@ -68,13 +68,13 @@ def deprecated(
 
         @wraps(func2)
         def new_func2(*args: P.args, **kwargs: P.kwargs) -> R:
-            warnings.simplefilter("always", DeprecationWarning)
-            warnings.warn(
-                fmt2.format(name=func2.__name__),
-                category=DeprecationWarning,
-                stacklevel=2,
-            )
-            warnings.simplefilter("default", DeprecationWarning)
+            with warnings.catch_warnings():
+                warnings.simplefilter("always", DeprecationWarning)
+                warnings.warn(
+                    fmt2.format(name=func2.__name__),
+                    category=DeprecationWarning,
+                    stacklevel=2,
+                )
             return func2(*args, **kwargs)
 
         return new_func2
@@ -130,7 +130,7 @@ def resolve_path_under_base(base: Path, relative: str) -> Path:
     base_resolved = base.resolve()
     relative_path = Path(relative)
     if relative_path.is_absolute() or relative_path.drive:
-        raise ValueError(f"Path {relative!r} must be relative to the export directory.")
+        raise ValueError(f"Path {relative!r} must be a relative path.")
     resolved = (base_resolved / relative_path).resolve()
     if not resolved.is_relative_to(base_resolved):
         raise ValueError(

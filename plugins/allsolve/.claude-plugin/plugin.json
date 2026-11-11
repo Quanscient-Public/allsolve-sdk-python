@@ -1,0 +1,20 @@
+{
+  "name": "allsolve",
+  "displayName": "Allsolve SDK",
+  "description": "Agent skills to build, run and debug Allsolve multiphysics cloud simulations with the Allsolve Python SDK: an entry skill and domain skills for RF, structural, thermal and acoustics",
+  "author": {
+    "name": "Quanscient",
+    "url": "https://quanscient.com"
+  },
+  "homepage": "https://allsolve.quanscient.com/documentation/reference/allsolve-sdk",
+  "repository": "https://github.com/Quanscient-Public/allsolve-sdk-python",
+  "license": "Apache-2.0",
+  "keywords": [
+    "allsolve",
+    "quanscient",
+    "simulation",
+    "multiphysics",
+    "fem"
+  ],
+  "version": "0.5.3"
+}

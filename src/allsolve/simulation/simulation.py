@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import os
 import pathlib
@@ -14,6 +15,7 @@ import warnings
 from enum import Enum
 from typing_extensions import Self, List, TextIO
 
+import requests
 import zstandard as zstd
 import allsolve_rawapi as rawapi
 
@@ -29,8 +31,14 @@ from ..resource_reservation import (
     build_start_job_request,
     keep_reservation_alive,
 )
-from ..util import JobError, NotInitializedError, prevent_deleted
-from ..job_mixin import JobMixin
+from ..util import (
+    JobError,
+    NotInitializedError,
+    prevent_deleted,
+    reject_unsafe_path_component,
+    resolve_path_under_base,
+)
+from .._job_mixin import JobMixin
 from ..api import (
     check_for_project_api_key,
     get_allow_insecure_http,
@@ -38,7 +46,7 @@ from ..api import (
     get_auth,
     get_http_session,
 )
-from ..http_transfer import (
+from .._http_transfer import (
     CONNECT_TIMEOUT_S,
     TRANSFER_TIMEOUT_S,
     stream_response_to_file,
@@ -50,14 +58,17 @@ from ..job import Job, OnError
 _ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
 _HDF5_MAGIC = b"\x89HDF\r\n\x1a\n"
 _DECOMPRESS_CHUNK_SIZE = 131072
+_DOWNLOAD_MAX_WORKERS = 8
+_DOWNLOAD_URL_BATCH_SIZE = 10000
 
-_GENERATED_HELPER_MODULES = (
+_GENERATED_SCRIPT_MODULES = (
     "utils",
     "tagmappings",
     "regions",
     "expressions",
     "materials",
     "parameters",
+    "simulation",
 )
 
 
@@ -107,6 +118,64 @@ def _decompress_downloaded_hdf(file_path: pathlib.Path) -> None:
         raise
 
 
+def _check_server_file_names(file_names: List[str]) -> None:
+    for file_name in file_names:
+        reject_unsafe_path_component(file_name, context="output file name")
+
+
+def _download_url_to_file(
+    session: requests.Session,
+    allow_insecure_http: bool,
+    download_url: str,
+    file_path: pathlib.Path,
+) -> None:
+    validate_url_scheme(download_url, allow_insecure_http)
+    with session.get(
+        download_url,
+        stream=True,
+        timeout=(CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S),
+    ) as r:
+        r.raise_for_status()
+
+        try:
+            with open(file_path, "wb") as f:
+                stream_response_to_file(r, f)
+        except BaseException:
+            file_path.unlink(missing_ok=True)
+            raise
+
+    _decompress_downloaded_hdf(file_path)
+
+
+def _download_urls_to_files(downloads: List[tuple[str, pathlib.Path]]) -> None:
+    session = get_http_session()
+    allow_insecure_http = get_allow_insecure_http()
+
+    if len(downloads) <= 1:
+        for download_url, file_path in downloads:
+            _download_url_to_file(session, allow_insecure_http, download_url, file_path)
+        return
+
+    pool = concurrent.futures.ThreadPoolExecutor(
+        max_workers=min(_DOWNLOAD_MAX_WORKERS, len(downloads))
+    )
+    try:
+        futures = [
+            pool.submit(
+                _download_url_to_file,
+                session,
+                allow_insecure_http,
+                download_url,
+                file_path,
+            )
+            for download_url, file_path in downloads
+        ]
+        for future in futures:
+            future.result()
+    finally:
+        pool.shutdown(wait=True, cancel_futures=True)
+
+
 class CPU(Enum):
     """
     Compute instance size used to run a simulation.
@@ -124,7 +193,12 @@ class CPU(Enum):
     """2 CPU cores, 32 GB RAM."""
 
     CORES_3_10GB_FAST_START = "lambda"
-    """3 CPU cores, 10 GB RAM — optimised for fast start."""
+    """3 CPU cores, 10 GB RAM — optimised for fast start.
+
+    Starts faster than the other sizes, so it suits small models. Limits: 1 node
+    and a max run time of 15 minutes. ``Simulation.set_runtime`` raises
+    ``ValueError`` if these limits are exceeded.
+    """
 
     CORES_4_64GB = "2xlarge-new"
     """4 CPU cores, 64 GB RAM."""
@@ -142,13 +216,28 @@ class CPU(Enum):
 class Runtime:
     """
     Runtime for a simulation.
+
+    Parameters:
+        node_count: Number of nodes.
+        node_type: Compute size of the nodes. Defaults to
+            ``CPU.CORES_3_10GB_FAST_START``, which allows only 1 node and a max
+            run time of 15 minutes.
+        main_node_type: Optional compute size of the main (coordinator) node.
+            When omitted, the main node uses ``node_type``. Must be omitted or
+            equal to ``node_type`` when ``node_count`` is 1.
     """
 
     def __init__(
-        self, node_count: int = 1, node_type: CPU = CPU.CORES_3_10GB_FAST_START
+        self,
+        node_count: int = 1,
+        node_type: CPU = CPU.CORES_3_10GB_FAST_START,
+        main_node_type: CPU | None = None,
     ) -> None:
         self._node_count: int = node_count
         self._node_type: CPU = node_type
+        self._main_node_type: CPU | None = (
+            None if main_node_type == CPU.DEFAULT else main_node_type
+        )
 
     @property
     def node_count(self) -> int:
@@ -157,6 +246,10 @@ class Runtime:
     @property
     def node_type(self) -> CPU:
         return self._node_type
+
+    @property
+    def main_node_type(self) -> CPU | None:
+        return self._main_node_type
 
 
 class DisableableSection(Enum):
@@ -207,65 +300,75 @@ class CustomSection(Enum):
     sections. Custom sections let you insert your own Python code at specific points
     in the script. Use ``Simulation.set_scripts`` to assign code to a section.
 
-    Script structure example::
+    Section content is inserted verbatim, without re-indentation. Write it at the
+    indentation of its position in the script. In a transient simulation,
+    ``BEFORE_TRANSIENT_SOLVE`` and ``AFTER_SOLVE`` are inside the time loop, so
+    their code needs the indentation of the loop body; code at column 0 ends the
+    loop and the job fails with ``IndentationError``. In a harmonic simulation,
+    ``AFTER_SOLVE`` is inserted only when the simulation has outputs that are
+    evaluated after the solve; put post-solve code in ``AFTER_ALL``. Disabling
+    the ``SOLVE`` section also comments out the custom sections inside it
+    (``AFTER_TIMESTEPPER_CREATED``, ``BEFORE_TRANSIENT_SOLVE`` and ``AFTER_SOLVE``).
 
+    Script structure example:
+    ```python
+    # imports
+    import quanscient as qs
+    from utils import Mesh, Variables, Empty, Fields, DerivedFields
 
-        # imports
-        import quanscient as qs
-        from utils import Mesh, Variables, Empty, Fields, DerivedFields
+    # AFTER_IMPORTS
 
-        # AFTER_IMPORTS
+    # setup
+    var = Variables()
+    mesh = Mesh()
 
-        # setup
-        var = Variables()
-        mesh = Mesh()
+    # BEFORE_MESH_LOAD
 
-        # BEFORE_MESH_LOAD
+    # mesh
+    mesh.mesh = qs.mesh()
+    mesh.mesh.setphysicalregions(*reg.get_region_data())
 
-        # mesh
-        mesh.mesh = qs.mesh()
-        mesh.mesh.setphysicalregions(*reg.get_region_data())
+    # AFTER_MESH_LOAD
 
-        # AFTER_MESH_LOAD
+    # fields
+    fld.u = qs.field("h1xyz", [1])
+    fld.u.setorder(reg.all, 2)
 
-        # fields
-        fld.u = qs.field("h1xyz", [1])
-        fld.u.setorder(reg.all, 2)
+    # AFTER_FIELDS_CREATED
 
-        # AFTER_FIELDS_CREATED
+    # derivedFields
+    df.sigma = qs.parameter(6, 1)
+    df.vm = qs.parameter(1, 1)
 
-        # derivedFields
-        df.sigma = qs.parameter(6, 1)
-        df.vm = qs.parameter(1, 1)
+    # AFTER_DERIVED_FIELDS_CREATED
 
-        # AFTER_DERIVED_FIELDS_CREATED
+    # constraints
+    fld.u.setconstraint(reg.clamp)
 
-        # constraints
-        fld.u.setconstraint(reg.clamp)
+    # AFTER_CONSTRAINTS_CREATED
 
-        # AFTER_CONSTRAINTS_CREATED
+    # ports
+    port.lump.V = qs.port([2, 3])
 
-        # ports
-        port.lump.V = qs.port([2, 3])
+    # AFTER_PORTS_CREATED
 
-        # AFTER_PORTS_CREATED
+    # fieldInits
 
-        # fieldInits
+    # AFTER_FIELD_INITS
 
-        # AFTER_FIELD_INITS
+    # formulations
+    form = qs.formulation()
+    form += qs.integral(reg.solid_mechanics, qs.predefinedelasticity(qs.dof(fld.u), qs.tf(fld.u), par.H()))
 
-        # formulations
-        form = qs.formulation()
-        form += qs.integral(reg.solid_mechanics, qs.predefinedelasticity(qs.dof(fld.u), qs.tf(fld.u), par.H()))
+    # AFTER_FORMULATIONS_CREATED
 
-        # AFTER_FORMULATIONS_CREATED
+    # solve. Contains analysis-type-specific sub-sections
+    form.allsolve(relrestol=1e-06, maxnumit=1000, nltol=1e-05, maxnumnlit=-1, relaxvalue=-1)
 
-        # solve. Contains analysis-type-specific sub-sections
-        form.allsolve(relrestol=1e-06, maxnumit=1000, nltol=1e-05, maxnumnlit=-1, relaxvalue=-1)
+    # AFTER_SOLVE and other analysis-type-specific sections
 
-        # AFTER_SOLVE and other analysis-type-specific sections
-
-        #AFTER_ALL
+    # AFTER_ALL
+    ```
 
     Values:
 
@@ -287,7 +390,8 @@ class CustomSection(Enum):
       conditions.
     - ``AFTER_FORMULATIONS_CREATED`` -- After formulations and regular interactions
       are created. Modify the formulation before solving.
-    - ``AFTER_SOLVE`` -- After the solve section.
+    - ``AFTER_SOLVE`` -- After the solve section. Inside the time loop in a
+      transient simulation; not always inserted in a harmonic simulation.
     - ``AFTER_ALL`` -- After the solve section and all outputs. Post-processing,
       custom outputs, or cleanup.
 
@@ -365,16 +469,17 @@ class Script:
             added automatically if missing.
         content: Inline Python code as a string.
 
-    Example::
-
-        # Custom section script
-        sim.set_scripts([
-            allsolve.Script(
-                name="afterMeshLoad.py",
-                section_name=allsolve.CustomSection.AFTER_MESH_LOAD,
-                content="print('mesh loaded')",
-            )
-        ])
+    Example:
+    ```python
+    # Custom section script
+    sim.set_scripts([
+        allsolve.Script(
+            name="afterMeshLoad.py",
+            section_name=allsolve.CustomSection.AFTER_MESH_LOAD,
+            content="print('mesh loaded')",
+        )
+    ])
+    ```
     """
 
     def __init__(
@@ -424,6 +529,19 @@ class FieldInitialization:
 
     Initializes a simulation field from the output of another simulation.
 
+    Field initialization types:
+        - ``FIELDSTATE`` loads a field from a FieldState output of the source
+          simulation and uses it as the initial value of the field. The simulation
+          then solves normally.
+        - ``TRANSIENTSTATE`` continues a transient simulation from a stored
+          TransientState output.
+        - ``HPHISTATE`` initializes the H and phi fields from a stored H-phi state.
+        - ``POSTPROCESSING`` (experimental) makes the whole simulation a
+          post-processing simulation: nothing is solved. For each stored step of
+          the source, the fields are loaded and the outputs of this simulation are
+          evaluated. Outputs that need a solve, such as eigenvalues, are not
+          supported.
+
     Parameters:
         type: The type of field initialization.
         source_simulation: The source simulation (``Simulation`` object or
@@ -445,16 +563,17 @@ class FieldInitialization:
             step (time step, eigenvalue index, etc.) of the source simulation.
         harmonic: If specified, only this harmonic of the field is initialized.
 
-    Example::
-
-        sim.set_field_initializations([
-            allsolve.FieldInitialization(
-                type=allsolve.FieldInitializationType.FIELDSTATE,
-                source_simulation=source_sim,
-                source_output_name="u",
-                field=solid_mechanics_physics.fields[0]
-            )
-        ])
+    Example:
+    ```python
+    sim.set_field_initializations([
+        allsolve.FieldInitialization(
+            type=allsolve.FieldInitializationType.FIELDSTATE,
+            source_simulation=source_sim,
+            source_output_name="u",
+            field=solid_mechanics_physics.fields[0]
+        )
+    ])
+    ```
     """
 
     _FIELD_OPTIONAL_TYPES = frozenset(
@@ -582,9 +701,26 @@ class SolverMode:
     ITERATIVE = rawapi.DistributedSolverMode.ITERATIVE
 
 
+class SolverPrecision:
+    """
+    Solver precision for a simulation.
+
+    ``DOUBLE`` (default) uses 64-bit floats with 64-bit integers, ``QUADRUPLE``
+    uses 128-bit floats with 64-bit integers and ``DOUBLE_INT32`` uses 64-bit
+    floats with 32-bit integers.
+    """
+
+    DOUBLE = rawapi.SolverPrecision.DOUBLE
+    QUADRUPLE = rawapi.SolverPrecision.QUADRUPLE
+    DOUBLE_INT32 = rawapi.SolverPrecision.DOUBLE_INT32
+
+
 class TimestepAlgorithm:
     """
     Timestep algorithm for a transient simulation.
+
+    The members are the members of ``rawapi.TimestepAlgorithm``, so ``repr()``
+    shows the API names.
     """
 
     IMPLICIT_EULER = rawapi.TimestepAlgorithm.IMPLICITEULER
@@ -594,6 +730,9 @@ class TimestepAlgorithm:
 class AnalysisType:
     """
     Simulation analysis type.
+
+    The members are the members of ``rawapi.AnalysisType``, so ``repr()`` shows
+    the API names.
     """
 
     STATIC = rawapi.AnalysisType.STEADYSTATE
@@ -759,13 +898,16 @@ class Simulation(JobMixin):
             mesh_id: The ID of the mesh to use in the simulation.
             variable_overrides_id: The optional ID of the VariableOverrides to use in the simulation.
             physics_set: The PhysicsSet to use (PhysicsSet object or ID string).
-            analysis_type: The analysis type of the simulation. Defaults to STATIC.
+                All physics of the set are enabled.
+            analysis_type: The analysis type of the simulation, for example
+                ``AnalysisType.TRANSIENT``. Defaults to ``AnalysisType.STATIC``.
             harmonics: The harmonics of the simulation.
             physics: Deprecated. List of physics IDs to simulate. Use physics_set instead.
             transient_start_time: The transient start time expression (for transient simulations).
             transient_end_time: The transient end time expression (for transient simulations).
             transient_timestep_size: The transient timestep size expression (for transient simulations).
-            timestep_algorithm: The timestep algorithm (for transient simulations).
+            timestep_algorithm: The timestep algorithm (for transient simulations):
+                ``TimestepAlgorithm.IMPLICIT_EULER`` or ``TimestepAlgorithm.GEN_ALPHA``.
             fundamental_frequency: The fundamental frequency expression (for harmonic simulations).
             num_fft_samples: The number of FFT samples (minimum 3).
             num_requested_eigenmodes: The number of requested eigenmodes expression.
@@ -787,13 +929,13 @@ class Simulation(JobMixin):
         if physics_set is not None and physics is not None:
             raise ValueError("Cannot specify both physics_set and physics")
         if physics is not None and physics_set is None:
-            warnings.simplefilter("always", DeprecationWarning)
-            warnings.warn(
-                "The physics parameter is deprecated; use physics_set instead.",
-                category=DeprecationWarning,
-                stacklevel=2,
-            )
-            warnings.simplefilter("default", DeprecationWarning)
+            with warnings.catch_warnings():
+                warnings.simplefilter("always", DeprecationWarning)
+                warnings.warn(
+                    "The physics parameter is deprecated; use physics_set instead.",
+                    category=DeprecationWarning,
+                    stacklevel=2,
+                )
 
         physics_set_id = resolve_physics_set_id(physics_set)
         project_id = check_for_project_api_key(project_id)
@@ -921,10 +1063,6 @@ class Simulation(JobMixin):
     @prevent_deleted
     def physics_set_id(self) -> str | None:
         """Get the ID of the physics set, or ``None`` if unset."""
-        if self._uncommitted_update is not None:
-            update_set_id = self._uncommitted_update.physics_set
-            if update_set_id is not None:
-                return update_set_id
         return self._simulation.physics_set
 
     @property
@@ -936,7 +1074,11 @@ class Simulation(JobMixin):
     @name.setter
     @prevent_deleted
     def name(self, name: str) -> None:
-        """Set the name of the simulation."""
+        """
+        Set the name of the simulation.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().name = name
 
     @property
@@ -948,7 +1090,11 @@ class Simulation(JobMixin):
     @description.setter
     @prevent_deleted
     def description(self, description: str) -> None:
-        """Set the description of the simulation."""
+        """
+        Set the description of the simulation.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().description = description
 
     @property
@@ -960,7 +1106,11 @@ class Simulation(JobMixin):
     @mesh_id.setter
     @prevent_deleted
     def mesh_id(self, mesh_id: str) -> None:
-        """Set the ID of the mesh used in the simulation."""
+        """
+        Set the ID of the mesh used in the simulation.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().mesh = mesh_id
 
     @property
@@ -972,7 +1122,11 @@ class Simulation(JobMixin):
     @max_run_time_minutes.setter
     @prevent_deleted
     def max_run_time_minutes(self, max_run_time_minutes: int) -> None:
-        """Set the maximum run time of the simulation."""
+        """
+        Set the maximum run time of the simulation.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().max_run_time_minutes = max_run_time_minutes
 
     @property
@@ -984,7 +1138,11 @@ class Simulation(JobMixin):
     @solver_mode.setter
     @prevent_deleted
     def solver_mode(self, solver_mode: rawapi.DistributedSolverMode) -> None:
-        """Set the solver mode of the simulation."""
+        """
+        Set the solver mode of the simulation.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().solver_mode = solver_mode
 
     @property
@@ -998,6 +1156,13 @@ class Simulation(JobMixin):
     def node_type(self) -> CPU:
         """Get the type of nodes used in the simulation."""
         return CPU(self._simulation.node_type)
+
+    @property
+    @prevent_deleted
+    def main_node_type(self) -> CPU | None:
+        """Get the type of the main node, or None when it is the same as ``node_type``."""
+        main_node_type = self._simulation.main_node_type
+        return None if main_node_type is None else CPU(main_node_type)
 
     @property
     @prevent_deleted
@@ -1074,7 +1239,11 @@ class Simulation(JobMixin):
     @variable_overrides.setter
     @prevent_deleted
     def variable_overrides(self, variable_overrides: VariableOverrides | None) -> None:
-        """Set the variable overrides of the simulation."""
+        """
+        Set the variable overrides of the simulation.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         if variable_overrides is None:
             self._current_uncommitted_update().override_set = None
             return
@@ -1096,23 +1265,41 @@ class Simulation(JobMixin):
     @physics_set.setter
     @prevent_deleted
     def physics_set(self, physics_set: PhysicsSet | None) -> None:
-        """Set the physics set of the simulation."""
+        """
+        Set the physics set of the simulation.
+
+        This also enables all physics of the new set (none for ``None``), as the
+        web app does. To enable only some of them, set :attr:`physics` after this.
+        Setting the physics set that the simulation already has keeps :attr:`physics`.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
+        update = self._current_uncommitted_update()
+        physics_set_id = None if physics_set is None else physics_set.id
+        if physics_set_id == update.physics_set:
+            return
         if physics_set is None:
-            self._current_uncommitted_update().physics_set = None
+            update.physics_set = None
+            update.physics = []
             return
 
-        self._current_uncommitted_update().physics_set = physics_set.id
+        update.physics_set = physics_set.id
+        update.physics = [physic.id for physic in physics_set.get_physics()]
 
     @property
     @prevent_deleted
     def analysis_type(self) -> rawapi.AnalysisType | None:
-        """Get the analysis type of the simulation."""
+        """Get the analysis type of the simulation (see ``AnalysisType``)."""
         return self._simulation.analysis_type
 
     @analysis_type.setter
     @prevent_deleted
     def analysis_type(self, value: rawapi.AnalysisType | None) -> None:
-        """Set the analysis type of the simulation."""
+        """
+        Set the analysis type of the simulation, for example ``AnalysisType.TRANSIENT``.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().analysis_type = value
 
     @property
@@ -1124,7 +1311,11 @@ class Simulation(JobMixin):
     @harmonics.setter
     @prevent_deleted
     def harmonics(self, value: List[int] | None) -> None:
-        """Set the harmonics of the simulation."""
+        """
+        Set the harmonics of the simulation.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().harmonics = value
 
     @property
@@ -1162,13 +1353,14 @@ class Simulation(JobMixin):
         Parameters:
             value: List of sections to disable.
 
-        Example::
-
-            sim.disabled_script_sections = [
-                allsolve.DisableableSection.SETUP,
-                allsolve.DisableableSection.MESH,
-            ]
-            sim.save()
+        Example:
+        ```python
+        sim.disabled_script_sections = [
+            allsolve.DisableableSection.SETUP,
+            allsolve.DisableableSection.MESH,
+        ]
+        sim.save()
+        ```
         """
         if value is not None:
             self._current_uncommitted_update().disabled_script_sections = [
@@ -1186,7 +1378,14 @@ class Simulation(JobMixin):
     @physics.setter
     @prevent_deleted
     def physics(self, value: List[str] | None) -> None:
-        """Set the list of physics IDs to simulate."""
+        """
+        Set the list of physics IDs to simulate.
+
+        Setting :attr:`physics_set` after this replaces the list with all physics
+        of the new set.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().physics = value
 
     @property
@@ -1198,7 +1397,11 @@ class Simulation(JobMixin):
     @transient_start_time.setter
     @prevent_deleted
     def transient_start_time(self, value: str | None) -> None:
-        """Set the transient start time expression."""
+        """
+        Set the transient start time expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().internal_start_time = value
 
     @property
@@ -1210,7 +1413,11 @@ class Simulation(JobMixin):
     @transient_end_time.setter
     @prevent_deleted
     def transient_end_time(self, value: str | None) -> None:
-        """Set the transient end time expression."""
+        """
+        Set the transient end time expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().internal_end_time = value
 
     @property
@@ -1222,19 +1429,29 @@ class Simulation(JobMixin):
     @transient_timestep_size.setter
     @prevent_deleted
     def transient_timestep_size(self, value: str | None) -> None:
-        """Set the transient timestep size expression."""
+        """
+        Set the transient timestep size expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().internal_timestep_size = value
 
     @property
     @prevent_deleted
     def timestep_algorithm(self) -> rawapi.TimestepAlgorithm | None:
-        """Get the timestep algorithm."""
+        """Get the timestep algorithm (see ``TimestepAlgorithm``)."""
         return self._simulation.timestep_algorithm
 
     @timestep_algorithm.setter
     @prevent_deleted
     def timestep_algorithm(self, value: rawapi.TimestepAlgorithm | None) -> None:
-        """Set the timestep algorithm."""
+        """
+        Set the timestep algorithm.
+
+        Use ``TimestepAlgorithm.IMPLICIT_EULER`` or ``TimestepAlgorithm.GEN_ALPHA``.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().timestep_algorithm = value
 
     @property
@@ -1246,7 +1463,11 @@ class Simulation(JobMixin):
     @fundamental_frequency.setter
     @prevent_deleted
     def fundamental_frequency(self, value: str | None) -> None:
-        """Set the fundamental frequency expression."""
+        """
+        Set the fundamental frequency expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().fundamental_frequency = value
 
     @property
@@ -1258,7 +1479,11 @@ class Simulation(JobMixin):
     @num_fft_samples.setter
     @prevent_deleted
     def num_fft_samples(self, value: int | None) -> None:
-        """Set the number of FFT samples (minimum 3)."""
+        """
+        Set the number of FFT samples (minimum 3).
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().num_fft_samples = value
 
     @property
@@ -1270,7 +1495,11 @@ class Simulation(JobMixin):
     @num_requested_eigenmodes.setter
     @prevent_deleted
     def num_requested_eigenmodes(self, value: str | None) -> None:
-        """Set the number of requested eigenmodes expression."""
+        """
+        Set the number of requested eigenmodes expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().num_requested_eigenmodes = value
 
     @property
@@ -1282,7 +1511,11 @@ class Simulation(JobMixin):
     @target_eigenfrequency.setter
     @prevent_deleted
     def target_eigenfrequency(self, value: str | None) -> None:
-        """Set the target eigenfrequency expression."""
+        """
+        Set the target eigenfrequency expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().target_eigenfrequency = value
 
     @property
@@ -1294,8 +1527,29 @@ class Simulation(JobMixin):
     @eigenmode_port_analysis.setter
     @prevent_deleted
     def eigenmode_port_analysis(self, value: bool | None) -> None:
-        """Set whether eigenmode port analysis is enabled."""
+        """
+        Set whether eigenmode port analysis is enabled.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().eigenmode_port_analysis = value
+
+    @property
+    @prevent_deleted
+    def solver_precision(self) -> rawapi.SolverPrecision | None:
+        """Get the solver precision of the simulation, or None if not set."""
+        return self._simulation.solver_precision
+
+    @solver_precision.setter
+    @prevent_deleted
+    def solver_precision(self, value: rawapi.SolverPrecision | None) -> None:
+        """
+        Set the solver precision of the simulation, e.g.
+        ``SolverPrecision.QUADRUPLE``.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
+        self._current_uncommitted_update().solver_precision = value
 
     @property
     @prevent_deleted
@@ -1306,7 +1560,11 @@ class Simulation(JobMixin):
     @solver_tolerance.setter
     @prevent_deleted
     def solver_tolerance(self, value: str | None) -> None:
-        """Set the solver tolerance expression."""
+        """
+        Set the solver tolerance expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().solver_tolerance = value
 
     @property
@@ -1318,7 +1576,11 @@ class Simulation(JobMixin):
     @nonlinear_solver_tolerance.setter
     @prevent_deleted
     def nonlinear_solver_tolerance(self, value: str | None) -> None:
-        """Set the nonlinear solver tolerance expression."""
+        """
+        Set the nonlinear solver tolerance expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().nonlinear_solver_tolerance = value
 
     @property
@@ -1330,7 +1592,11 @@ class Simulation(JobMixin):
     @nonlinear_solver_max_iterations.setter
     @prevent_deleted
     def nonlinear_solver_max_iterations(self, value: str | None) -> None:
-        """Set the nonlinear solver maximum iterations expression."""
+        """
+        Set the nonlinear solver maximum iterations expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().nonlinear_solver_max_iterations = value
 
     @property
@@ -1342,7 +1608,11 @@ class Simulation(JobMixin):
     @eigenmode_solver_tolerance.setter
     @prevent_deleted
     def eigenmode_solver_tolerance(self, value: str | None) -> None:
-        """Set the eigenmode solver tolerance expression."""
+        """
+        Set the eigenmode solver tolerance expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().eigenmode_solver_tolerance = value
 
     @property
@@ -1354,7 +1624,11 @@ class Simulation(JobMixin):
     @eigenmode_solver_max_iterations.setter
     @prevent_deleted
     def eigenmode_solver_max_iterations(self, value: str | None) -> None:
-        """Set the eigenmode solver maximum iterations expression."""
+        """
+        Set the eigenmode solver maximum iterations expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().eigenmode_solver_max_iterations = value
 
     @property
@@ -1366,7 +1640,11 @@ class Simulation(JobMixin):
     @target_frequency.setter
     @prevent_deleted
     def target_frequency(self, value: str | None) -> None:
-        """Set the target frequency expression."""
+        """
+        Set the target frequency expression.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().target_frequency = value
 
     @property
@@ -1378,7 +1656,11 @@ class Simulation(JobMixin):
     @numerical_jacobian.setter
     @prevent_deleted
     def numerical_jacobian(self, value: bool | None) -> None:
-        """Set whether numerical Jacobian is enabled."""
+        """
+        Set whether numerical Jacobian is enabled.
+
+        Use save() to commit the change. start() and run() also save it.
+        """
         self._current_uncommitted_update().numerical_jacobian = value
 
     @property
@@ -1472,8 +1754,10 @@ class Simulation(JobMixin):
                 description=self.description,
                 maxRunTimeMinutes=self.max_run_time_minutes,
                 nodeCount=self.node_count,
-                nodeType=self.node_type.value,
+                nodeType=self._simulation.node_type,
+                mainNodeType=self._simulation.main_node_type,
                 solverMode=self.solver_mode,
+                solverPrecision=self._simulation.solver_precision,
                 overrideSet=self._simulation.override_set,
                 physicsSet=self._simulation.physics_set,
                 analysisType=self._simulation.analysis_type,
@@ -1501,6 +1785,16 @@ class Simulation(JobMixin):
 
         return self._uncommitted_update
 
+    def _pending_analysis_type(self) -> rawapi.AnalysisType | None:
+        if self._uncommitted_update is not None:
+            return self._uncommitted_update.analysis_type
+        return self._simulation.analysis_type
+
+    def _pending_max_run_time_minutes(self) -> int:
+        if self._uncommitted_update is not None:
+            return self._uncommitted_update.max_run_time_minutes
+        return self._simulation.max_run_time_minutes
+
     @prevent_deleted
     def set_scripts(self, scripts: List[Script]) -> None:
         """
@@ -1513,20 +1807,21 @@ class Simulation(JobMixin):
         Parameters:
             scripts: List of ``Script`` objects to upload.
 
-        Example::
-
-            sim.set_scripts([
-                allsolve.Script(
-                    name="afterMeshLoad.py",
-                    section_name=allsolve.CustomSection.AFTER_MESH_LOAD,
-                    content="print('mesh loaded')",
-                ),
-                allsolve.Script(
-                    name="afterAll.py",
-                    section_name=allsolve.CustomSection.AFTER_ALL,
-                    filepath="my_postprocessing.py",
-                ),
-            ])
+        Example:
+        ```python
+        sim.set_scripts([
+            allsolve.Script(
+                name="afterMeshLoad.py",
+                section_name=allsolve.CustomSection.AFTER_MESH_LOAD,
+                content="print('mesh loaded')",
+            ),
+            allsolve.Script(
+                name="afterAll.py",
+                section_name=allsolve.CustomSection.AFTER_ALL,
+                filepath="my_postprocessing.py",
+            ),
+        ])
+        ```
         """
         scriptUpdates = []
         for script in scripts:
@@ -1544,11 +1839,12 @@ class Simulation(JobMixin):
 
             if script.section_name is not None:
                 required = _SECTION_REQUIRED_ANALYSIS_TYPE.get(script.section_name)
-                if required is not None and self.analysis_type != required:
+                analysis_type = self._pending_analysis_type()
+                if required is not None and analysis_type != required:
                     raise ValueError(
                         f"Custom section {script.section_name.name} requires "
                         f"analysis type {required.value}, but this simulation "
-                        f"uses {self.analysis_type.value if self.analysis_type else None}"
+                        f"uses {analysis_type.value if analysis_type else None}"
                     )
             if script.is_main and script.section_name is not None:
                 raise ValueError("Main script cannot have a section name")
@@ -1653,7 +1949,8 @@ class Simulation(JobMixin):
             refresh_delay_s: Optional delay in seconds between checking the status of the simulation.
 
         Returns:
-            True if the simulation is running, False otherwise.
+            True if the simulation is running, False otherwise
+            (also when the simulation has not been started).
         """
         if refresh_delay_s is None:
             status = self.get_status()
@@ -1661,6 +1958,7 @@ class Simulation(JobMixin):
             status = self.refresh_status(delay_s=refresh_delay_s)
 
         return status not in (
+            Job.NOT_STARTED,
             Job.SUCCESS,
             Job.ERROR,
             Job.ABORTED,
@@ -1675,6 +1973,10 @@ class Simulation(JobMixin):
         Returns:
             The status reason of the simulation.
         """
+        tracked = self._get_job()
+        if tracked is not None and tracked.get_status() is not Job.NOT_STARTED:
+            return tracked.get_status_reason()
+
         job = self._simulation.simulation_job
         if job is None:
             return ""
@@ -1695,19 +1997,44 @@ class Simulation(JobMixin):
         return super().get_logs(limit)
 
     @prevent_deleted
-    def print_new_loglines(self, file: TextIO = sys.stdout, limit: int = 100) -> None:
+    def print_new_loglines(
+        self, file: TextIO = sys.stdout, limit: int | None = None
+    ) -> None:
         """
         Print the new log lines of the simulation.
 
         Parameters:
             file: Optional file to print the logs to.
-            limit: Optional maximum number of logs to print.
+            limit: Optional maximum number of new log lines to print.
+                If None, print all new log lines.
         """
         return super().print_new_loglines(file, limit)
 
     @prevent_deleted
     def set_runtime(self, runtime: Runtime) -> None:
-        """Set the runtime of the simulation."""
+        """
+        Set the runtime of the simulation.
+
+        Replaces the whole runtime: omitting ``main_node_type`` makes the main node
+        use ``node_type``.
+
+        Use save() to commit the change. start() and run() also save it.
+
+        Raises:
+            ValueError: If ``node_count`` is 1 and ``main_node_type`` differs from
+                ``node_type``, or if ``node_type`` is ``CPU.CORES_3_10GB_FAST_START``
+                and ``node_count`` is more than 1 or ``max_run_time_minutes`` is
+                more than 15.
+        """
+        if (
+            runtime.node_count == 1
+            and runtime.main_node_type is not None
+            and runtime.main_node_type != runtime.node_type
+        ):
+            raise ValueError(
+                "Main node type must be the same as node type when node count is 1"
+            )
+
         if runtime.node_type == CPU.CORES_3_10GB_FAST_START:
             if runtime.node_count > 1:
                 raise ValueError(
@@ -1716,7 +2043,7 @@ class Simulation(JobMixin):
                     )
                 )
 
-            if self.max_run_time_minutes > 15:
+            if self._pending_max_run_time_minutes() > 15:
                 raise ValueError(
                     "Max run time for type {} must be 15 minutes or less".format(
                         CPU.CORES_3_10GB_FAST_START
@@ -1725,6 +2052,9 @@ class Simulation(JobMixin):
 
         self._current_uncommitted_update().node_count = runtime.node_count
         self._current_uncommitted_update().node_type = runtime.node_type.value
+        self._current_uncommitted_update().main_node_type = (
+            None if runtime.main_node_type is None else runtime.main_node_type.value
+        )
 
     @prevent_deleted
     def save(self) -> None:
@@ -1733,7 +2063,8 @@ class Simulation(JobMixin):
         setting any of the following properties:
 
         ``name``, ``description``, ``mesh_id``, ``max_run_time_minutes``,
-        ``solver_mode``, ``variable_overrides``, ``analysis_type``, ``harmonics``,
+        ``solver_mode``, ``variable_overrides``, ``physics_set``, ``analysis_type``,
+        ``harmonics``,
         ``disabled_script_sections``, ``physics``, ``transient_start_time``,
         ``transient_end_time``, ``transient_timestep_size``, ``timestep_algorithm``,
         ``fundamental_frequency``, ``num_fft_samples``, ``num_requested_eigenmodes``,
@@ -2010,6 +2341,10 @@ class Simulation(JobMixin):
     ) -> None:
         """Runs the simulation and returns when the processing is complete.
 
+        Blocks until the job completes, fails, or stops at the server time limit.
+        The time in the queue is included. To wait with your own limit, call
+        :meth:`start` and then :meth:`is_running` in a loop.
+
         Parameters:
             print_logs: If True, print logs to the console.
             refresh_delay_s: Optional delay in seconds between checking the status of the job.
@@ -2097,7 +2432,7 @@ class Simulation(JobMixin):
     @prevent_deleted
     def get_output_csv(
         self,
-        delimiter=",",
+        delimiter: str = ",",
         refresh: bool = False,
         csv_format: CsvExportFormat = CsvExportFormat.EXPLODED,
     ) -> str:
@@ -2141,7 +2476,9 @@ class Simulation(JobMixin):
             refresh: Whether to refresh the output values.
 
         Returns:
-            The output values of the simulation.
+            A dict ``{step_label: {header: list[float]}}``. Each value is a list,
+            also for a scalar output, which is a list with one item. Example:
+            ``v[label]["T_avg"][0]``.
         """
         return self.get_output_data(refresh).to_dict(sweep_index)
 
@@ -2151,8 +2488,29 @@ class Simulation(JobMixin):
         Clean the output data cache for this simulation.
         This invalidates any existing SimulationOutputData objects for this simulation.
         """
-        output_data = self.get_output_data(refresh=False)
+        output_data = self._output_data
+        if output_data is None:
+            output_data = SimulationOutputData(self._project_id, self.id)
         output_data.clean_cache()
+
+    def _get_download_urls(
+        self, file_names: List[str], job_id: str | None
+    ) -> List[str]:
+        download_urls: List[str] = []
+        with get_api() as api:
+            for start in range(0, len(file_names), _DOWNLOAD_URL_BATCH_SIZE):
+                download_urls.extend(
+                    api.get_simulation_output_data_download_urls(
+                        authorization=get_auth(),
+                        project_id=self._project_id,
+                        simulation_id=self.id,
+                        job_id=job_id,
+                        request_body=file_names[
+                            start : start + _DOWNLOAD_URL_BATCH_SIZE
+                        ],
+                    )
+                )
+        return download_urls
 
     @prevent_deleted
     def _download_files(
@@ -2162,30 +2520,9 @@ class Simulation(JobMixin):
         output_dir: str = "./",
     ) -> None:
         path = pathlib.Path(output_dir)
-
-        with get_api() as api:
-            download_urls = api.get_simulation_output_data_download_urls(
-                authorization=get_auth(),
-                project_id=self._project_id,
-                simulation_id=self.id,
-                job_id=job_id,
-                request_body=all_files,
-            )
-
-        for download_url, filename in zip(download_urls, all_files):
-            validate_url_scheme(download_url, get_allow_insecure_http())
-            session = get_http_session()
-            with session.get(
-                download_url,
-                stream=True,
-                timeout=(CONNECT_TIMEOUT_S, TRANSFER_TIMEOUT_S),
-            ) as r:
-                r.raise_for_status()
-
-                with open(path.joinpath(filename), "wb") as f:
-                    stream_response_to_file(r, f)
-
-            _decompress_downloaded_hdf(path.joinpath(filename))
+        file_paths = [resolve_path_under_base(path, name) for name in all_files]
+        download_urls = self._get_download_urls(all_files, job_id)
+        _download_urls_to_files(list(zip(download_urls, file_paths)))
 
     @prevent_deleted
     def save_output_field(
@@ -2198,6 +2535,24 @@ class Simulation(JobMixin):
     ) -> None:
         """
         Save the output field of the simulation.
+
+        The field is saved as VTKHDF files (`.hdf`), one file for each rank that
+        wrote the field. Compressed (zstd) files are decompressed automatically.
+        ParaView and the VTK `vtkHDFReader` (also through pyvista) can open the
+        files. The cells can be quadratic, and each cell has its own copies of
+        its vertices, so the same point can occur more than one time.
+
+        To save many fields, sweep steps or steps, use `save_output_fields`.
+
+        Example:
+        ```python
+        import pyvista as pv
+
+        sim.save_output_field("u", output_dir="results", step_index=-1)
+        output_data = sim.get_output_data(refresh=False)
+        for file_name in output_data.get_filenames_for_output_field("u", step_index=-1):
+            mesh = pv.read(f"results/{file_name}")
+        ```
 
         Parameters:
             name: The name of the field to save.
@@ -2214,8 +2569,92 @@ class Simulation(JobMixin):
         file_names = output_data.get_filenames_for_output_field(
             name, sweep_index, step_index
         )
+        _check_server_file_names(file_names)
         job_id = output_data.get_simulation_job_id(sweep_index, step_index)
         self._download_files(file_names, job_id, output_dir=output_dir)
+
+    @prevent_deleted
+    def save_output_fields(
+        self,
+        names: str | List[str] | None = None,
+        output_dir: str = "./",
+        sweep_indices: List[int] | None = None,
+        step_indices: List[int] | None = None,
+        refresh: bool = False,
+    ) -> List[str]:
+        """
+        Save many output fields of the simulation in parallel.
+
+        This method saves all the files of the given fields, sweep steps and steps.
+        It sends one request for download URLs for each sweep step and downloads
+        the files in parallel. The files have the same format as the files from
+        `save_output_field`: VTKHDF files (`.hdf`), one file for each rank.
+
+        When the files come from more than one sweep step, the files of each sweep
+        step go into a subdirectory `sweep-NNNNN` of `output_dir`, for example
+        `sweep-00002` for sweep index 2. Otherwise the files go into `output_dir`.
+
+        Example:
+        ```python
+        # All steps of the fields "u" and "T" in all sweep steps
+        paths = sim.save_output_fields(["u", "T"], output_dir="results")
+
+        # All fields in the last step of sweep step 0
+        paths = sim.save_output_fields(
+            output_dir="results", sweep_indices=[0], step_indices=[-1]
+        )
+        ```
+
+        Parameters:
+            names: The name or the names of the fields to save. None saves all
+                fields. A name without a specifier, for example "E", also selects
+                "E (real)" and "E (imaginary)".
+            output_dir: The directory to save the files to.
+            sweep_indices: The indices of the sweep steps. None saves all sweep steps.
+            step_indices: The indices of the steps. None saves all steps.
+            refresh: Whether to refresh the output data.
+
+        Returns:
+            The paths of the saved files, sorted by sweep step, step, field and rank.
+
+        Raises:
+            ValueError: If `output_dir` does not exist, a name is not a field
+                output, or an index is out of range.
+        """
+        path = pathlib.Path(output_dir)
+        if not path.exists():
+            raise ValueError("Given output_dir does not exist")
+
+        if isinstance(names, str):
+            names = [names]
+
+        output_data = self.get_output_data(refresh=refresh)
+        files_by_sweep = output_data._get_field_filenames_by_sweep(
+            names, sweep_indices, step_indices
+        )
+        use_sweep_dirs = len(files_by_sweep) > 1
+
+        planned: List[tuple[str, List[str], List[pathlib.Path]]] = []
+        for sweep_index, job_id, file_names in files_by_sweep:
+            if not file_names:
+                continue
+            _check_server_file_names(file_names)
+            sweep_path = path
+            if use_sweep_dirs:
+                sweep_path = path.joinpath(f"sweep-{sweep_index:05d}")
+            file_paths = [
+                resolve_path_under_base(sweep_path, name) for name in file_names
+            ]
+            planned.append((job_id, file_names, file_paths))
+
+        downloads: List[tuple[str, pathlib.Path]] = []
+        for job_id, file_names, file_paths in planned:
+            file_paths[0].parent.mkdir(exist_ok=True)
+            download_urls = self._get_download_urls(file_names, job_id)
+            downloads.extend(zip(download_urls, file_paths))
+
+        _download_urls_to_files(downloads)
+        return [str(file_path) for _, file_path in downloads]
 
     @prevent_deleted
     def save_output_mesh(
@@ -2228,6 +2667,9 @@ class Simulation(JobMixin):
     ) -> None:
         """
         Save the output mesh of the simulation.
+
+        The mesh is saved in the format that the simulation wrote, for example
+        Gmsh (`.msh`), one file for each rank.
 
         Parameters:
             name: The name of the mesh to save.
@@ -2242,6 +2684,7 @@ class Simulation(JobMixin):
 
         output_data = self.get_output_data(refresh=refresh)
         file_names = output_data.get_filenames_for_mesh(name, sweep_index, step_index)
+        _check_server_file_names(file_names)
         job_id = output_data.get_simulation_job_id(sweep_index, step_index)
         self._download_files(file_names, job_id, output_dir=output_dir)
 
@@ -2307,10 +2750,11 @@ class Simulation(JobMixin):
     @prevent_deleted
     def save_generated_scripts(self, output_dir: str = "./") -> List[str]:
         """
-        Fetch the server-generated simulation helper scripts and save them to disk.
+        Fetch the server-generated simulation scripts and save them to disk.
 
         This writes the generated Python helper modules (utils, tagmappings,
-        regions, expressions, materials, parameters) into ``output_dir``.
+        regions, expressions, materials, parameters) and the main simulation
+        script (simulation.py) into ``output_dir``.
         These files are normally generated server-side and injected at
         simulation runtime. Having them on disk enables IDE features like
         autocomplete and type checking when editing custom simulation scripts.
@@ -2332,14 +2776,17 @@ class Simulation(JobMixin):
                 simulation_id=self.id,
             )
 
+        scripts = [getattr(generated, attr) for attr in _GENERATED_SCRIPT_MODULES]
+        for script in scripts:
+            reject_unsafe_path_component(script.module, context="script module name")
+
         written: List[str] = []
-        for attr in _GENERATED_HELPER_MODULES:
-            script = getattr(generated, attr)
+        for script in scripts:
             imports_block = "\n".join(_import_to_string(imp) for imp in script.imports)
             content = (
                 imports_block + "\n\n" + script.code if imports_block else script.code
             )
-            file_path = path / f"{script.module}.py"
+            file_path = resolve_path_under_base(path, f"{script.module}.py")
             file_path.write_text(content, encoding="utf-8")
             written.append(str(file_path))
 

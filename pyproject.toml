@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "allsolve"
-version = "0.5.2"
+version = "0.5.3"
 authors = [
   { name="Asser Lähdemäki", email="asser.lahdemaki@quanscient.com" },
   { name="Toni Partanen", email="toni.partanen@quanscient.com" },
@@ -72,6 +72,7 @@ Homepage = "https://quanscient.com"
 Repository = "https://github.com/Quanscient-Public/allsolve-sdk-python"
 Issues = "https://github.com/Quanscient-Public/allsolve-sdk-python/issues"
 Changelog = "https://github.com/Quanscient-Public/allsolve-sdk-python/blob/main/CHANGELOG.md"
+"Agent skills" = "https://github.com/Quanscient-Public/allsolve-sdk-python/tree/main/plugins/allsolve/skills"
 
 [tool.hatch.build]
 include = [

@@ -21,6 +21,10 @@ from ..conversions import (
     vector_to_str,
     boolean_to_str,
 )
+from ..conversions import (  # noqa: F401
+    MatrixValue,  # pyright: ignore[reportUnusedImport]
+    matrix_to_str,  # pyright: ignore[reportUnusedImport]
+)
 
 if TYPE_CHECKING:
     from allsolve.region import Region
@@ -92,34 +96,51 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
             VectorValue | None
         ) = None,
         acoustic_waves_acoustic_extrapolation_points: ScalarValue | None = None,
+        acoustic_waves_acoustic_extrapolation_symmetry_x: BooleanValue = False,
+        acoustic_waves_acoustic_extrapolation_symmetry_y: BooleanValue = False,
+        acoustic_waves_acoustic_extrapolation_symmetry_z: BooleanValue = False,
+        acoustic_waves_acoustic_extrapolation_patterning_pitch: (
+            VectorValue | None
+        ) = None,
+        acoustic_waves_acoustic_extrapolation_patterning_num_copies: (
+            VectorValue | None
+        ) = None,
+        acoustic_waves_acoustic_extrapolation_attenuation: ScalarValue | None = None,
     ) -> None:
-        """Create a acoustic extrapolation output.
+        """
+        Create a acoustic extrapolation output.
 
         Parameters:
             name: Name of the output.
             extrapolation_target: Target region for extrapolation_target.
             extrapolation_skin_target: Target region for extrapolation_skin_target.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            acoustic_waves_acoustic_extrapolation_c: acoustic waves acoustic extrapolation c
-            acoustic_waves_acoustic_extrapolation_rho: acoustic waves acoustic extrapolation rho
-            acoustic_waves_acoustic_extrapolation_target_times: acoustic waves acoustic extrapolation target times
-            acoustic_waves_acoustic_extrapolation_time_aggregation_operation: acoustic waves acoustic extrapolation time aggregation operation
-            acoustic_waves_acoustic_extrapolation_time_aggregation_data_operation: acoustic waves acoustic extrapolation time aggregation data operation
-            acoustic_waves_acoustic_extrapolation_target_shape: acoustic waves acoustic extrapolation target shape
-            acoustic_waves_acoustic_extrapolation_line_num_sample_points: acoustic waves acoustic extrapolation line num sample points
-            acoustic_waves_acoustic_extrapolation_line_start_point: acoustic waves acoustic extrapolation line start point
-            acoustic_waves_acoustic_extrapolation_line_end_point: acoustic waves acoustic extrapolation line end point
-            acoustic_waves_acoustic_extrapolation_arc_num_sample_points: acoustic waves acoustic extrapolation arc num sample points
-            acoustic_waves_acoustic_extrapolation_arc_start_point: acoustic waves acoustic extrapolation arc start point
-            acoustic_waves_acoustic_extrapolation_arc_end_point: acoustic waves acoustic extrapolation arc end point
-            acoustic_waves_acoustic_extrapolation_arc_center: acoustic waves acoustic extrapolation arc center
-            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1: acoustic waves acoustic extrapolation quadrangle num sample points1
-            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2: acoustic waves acoustic extrapolation quadrangle num sample points2
-            acoustic_waves_acoustic_extrapolation_quadrangle_point1: acoustic waves acoustic extrapolation quadrangle point1
-            acoustic_waves_acoustic_extrapolation_quadrangle_point2: acoustic waves acoustic extrapolation quadrangle point2
-            acoustic_waves_acoustic_extrapolation_quadrangle_point3: acoustic waves acoustic extrapolation quadrangle point3
-            acoustic_waves_acoustic_extrapolation_quadrangle_point4: acoustic waves acoustic extrapolation quadrangle point4
-            acoustic_waves_acoustic_extrapolation_points: For example [x1, x2; y1, y2; z1, z2]
+            acoustic_waves_acoustic_extrapolation_c: Speed of sound of the homogeneous medium the field is extrapolated into.
+            acoustic_waves_acoustic_extrapolation_rho: Density of the homogeneous medium the field is extrapolated into.
+            acoustic_waves_acoustic_extrapolation_target_times: Times the extrapolated field is evaluated at, in the order they are listed.
+            acoustic_waves_acoustic_extrapolation_time_aggregation_operation: Reduces the values over the target times into a single one instead of keeping every one of them.
+            acoustic_waves_acoustic_extrapolation_time_aggregation_data_operation: Applied to each value before it is aggregated, to aggregate magnitudes rather than signed values for example.
+            acoustic_waves_acoustic_extrapolation_target_shape: Shape the points the field is extrapolated to are laid out on.
+            acoustic_waves_acoustic_extrapolation_line_num_sample_points: How many points the field is extrapolated to along the shape.
+            acoustic_waves_acoustic_extrapolation_line_start_point: Point the extrapolation line starts from.
+            acoustic_waves_acoustic_extrapolation_line_end_point: Point the extrapolation line ends at.
+            acoustic_waves_acoustic_extrapolation_arc_num_sample_points: How many points the field is extrapolated to along the shape.
+            acoustic_waves_acoustic_extrapolation_arc_start_point: Point the extrapolation arc starts from. It has to lie exactly on the arc, at the same distance from the center as the end point.
+            acoustic_waves_acoustic_extrapolation_arc_end_point: Point the extrapolation arc ends at. It has to lie exactly on the arc, at the same distance from the center as the start point.
+            acoustic_waves_acoustic_extrapolation_arc_center: Center of the arc the field is extrapolated along.
+            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points1: How many points the field is extrapolated to along the edges from corner 1 to 2 and from corner 3 to 4.
+            acoustic_waves_acoustic_extrapolation_quadrangle_num_sample_points2: How many points the field is extrapolated to along the edges from corner 2 to 3 and from corner 4 to 1.
+            acoustic_waves_acoustic_extrapolation_quadrangle_point1: First corner of the quadrangle the field is extrapolated over. The corners follow its edges in order, 1 to 2 to 3 to 4 and back to 1.
+            acoustic_waves_acoustic_extrapolation_quadrangle_point2: Second corner, sharing an edge with corners 1 and 3.
+            acoustic_waves_acoustic_extrapolation_quadrangle_point3: Third corner, sharing an edge with corners 2 and 4. It lies diagonally across from corner 1.
+            acoustic_waves_acoustic_extrapolation_quadrangle_point4: Fourth corner, sharing an edge with corners 3 and 1.
+            acoustic_waves_acoustic_extrapolation_points: The points the field is extrapolated to, one column per point.
+            acoustic_waves_acoustic_extrapolation_symmetry_x: Mirrors the structure across the x = 0 plane when the field is extrapolated, so only one half has to be simulated.
+            acoustic_waves_acoustic_extrapolation_symmetry_y: Mirrors the structure across the y = 0 plane when the field is extrapolated, so only one half has to be simulated.
+            acoustic_waves_acoustic_extrapolation_symmetry_z: Mirrors the structure across the z = 0 plane when the field is extrapolated, so only one half has to be simulated.
+            acoustic_waves_acoustic_extrapolation_patterning_pitch: Spacing between the copies in each direction. The field of the whole array is extrapolated without simulating the copies.
+            acoustic_waves_acoustic_extrapolation_patterning_num_copies: Number of copies of the structure in each direction, the original included. Left empty, only the simulated structure radiates.
+            acoustic_waves_acoustic_extrapolation_attenuation: Attenuation of the medium the field is extrapolated into. Each contribution is weighted by the distance it travels.
         """
         _ebo_ctrl_0 = (
             acoustic_waves_acoustic_extrapolation_target_shape.value
@@ -454,6 +475,49 @@ class AcousticWavesAcousticExtrapolation(OutputInteraction):
                     value=str(acoustic_waves_acoustic_extrapolation_points),
                 )
             )
+        parameters.append(
+            InteractionParameter(
+                definition="acousticWavesAcousticExtrapolationSymmetryX",
+                value=boolean_to_str(acoustic_waves_acoustic_extrapolation_symmetry_x),
+            )
+        )
+        parameters.append(
+            InteractionParameter(
+                definition="acousticWavesAcousticExtrapolationSymmetryY",
+                value=boolean_to_str(acoustic_waves_acoustic_extrapolation_symmetry_y),
+            )
+        )
+        parameters.append(
+            InteractionParameter(
+                definition="acousticWavesAcousticExtrapolationSymmetryZ",
+                value=boolean_to_str(acoustic_waves_acoustic_extrapolation_symmetry_z),
+            )
+        )
+        if acoustic_waves_acoustic_extrapolation_patterning_pitch is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="acousticWavesAcousticExtrapolationPatterningPitch",
+                    value=vector_to_str(
+                        acoustic_waves_acoustic_extrapolation_patterning_pitch
+                    ),
+                )
+            )
+        if acoustic_waves_acoustic_extrapolation_patterning_num_copies is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="acousticWavesAcousticExtrapolationPatterningNumCopies",
+                    value=vector_to_str(
+                        acoustic_waves_acoustic_extrapolation_patterning_num_copies
+                    ),
+                )
+            )
+        if acoustic_waves_acoustic_extrapolation_attenuation is not None:
+            parameters.append(
+                InteractionParameter(
+                    definition="acousticWavesAcousticExtrapolationAttenuation",
+                    value=str(acoustic_waves_acoustic_extrapolation_attenuation),
+                )
+            )
         super().__init__(
             name=name,
             targets={
@@ -480,15 +544,16 @@ class AcousticWavesRadiationPattern(OutputInteraction):
         acoustic_waves_radiation_pattern_far_field_rho: ScalarValue = "1.2",
         acoustic_waves_radiation_pattern_plane_normal: VectorValue | None = None,
     ) -> None:
-        """Create a acoustic radiation pattern output.
+        """
+        Create a acoustic radiation pattern output.
 
         Parameters:
             name: Name of the output.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            acoustic_waves_radiation_pattern_num_points: acoustic waves radiation pattern num points
-            acoustic_waves_radiation_pattern_far_field_c: acoustic waves radiation pattern far field c
-            acoustic_waves_radiation_pattern_far_field_rho: acoustic waves radiation pattern far field rho
-            acoustic_waves_radiation_pattern_plane_normal: Normal of the plane to draw on as a column vector
+            acoustic_waves_radiation_pattern_num_points: How finely the radiation directions are sampled. A higher value gives a smoother pattern and takes longer.
+            acoustic_waves_radiation_pattern_far_field_c: Speed of sound of the homogeneous medium the far field is computed in.
+            acoustic_waves_radiation_pattern_far_field_rho: Density of the homogeneous medium the far field is computed in.
+            acoustic_waves_radiation_pattern_plane_normal: Normal of the plane the pattern is sampled in. Left empty, the full 3D pattern over a sphere is computed.
         """
         parameters: List[InteractionParameter] = []
         if acoustic_waves_radiation_pattern_num_points is not None:
@@ -536,11 +601,12 @@ class ValueOutput(OutputInteraction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a value output output.
+        """
+        Create a value output output.
 
         Parameters:
             name: Name of the output.
-            expression: The output expression
+            expression: Expression evaluated to a single number at every step and stored as a plottable value.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
         parameters: List[InteractionParameter] = []
@@ -565,7 +631,8 @@ class Eigenfrequencies(OutputInteraction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a eigenfrequencies output.
+        """
+        Create a eigenfrequencies output.
 
         Parameters:
             name: Name of the output.
@@ -590,7 +657,8 @@ class Eigenvalues(OutputInteraction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a eigenvalues output.
+        """
+        Create a eigenvalues output.
 
         Parameters:
             name: Name of the output.
@@ -617,13 +685,14 @@ class ElectromagneticWavesRadiationPattern(OutputInteraction):
         electromagnetic_waves_radiation_pattern_num_points: ScalarValue | None = None,
         electromagnetic_waves_radiation_pattern_plane_normal: VectorValue | None = None,
     ) -> None:
-        """Create a em radiation pattern output.
+        """
+        Create a em radiation pattern output.
 
         Parameters:
             name: Name of the output.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            electromagnetic_waves_radiation_pattern_num_points: electromagnetic waves radiation pattern num points
-            electromagnetic_waves_radiation_pattern_plane_normal: Normal of the plane to draw on as a column vector
+            electromagnetic_waves_radiation_pattern_num_points: How finely the radiation directions are sampled. A higher value gives a smoother pattern and takes longer.
+            electromagnetic_waves_radiation_pattern_plane_normal: Normal of the plane the pattern is sampled in. Left empty, the full 3D pattern over a sphere is computed.
         """
         parameters: List[InteractionParameter] = []
         if electromagnetic_waves_radiation_pattern_num_points is not None:
@@ -671,19 +740,20 @@ class FieldOnlyOutput(OutputInteraction):
         field_only_output_filter_step_indices: ScalarValue | None = None,
         field_only_output_filter_expression: ScalarValue | None = None,
     ) -> None:
-        """Create a field output output.
+        """
+        Create a field output output.
 
         Parameters:
             name: Name of the output.
-            field_only_output: The output expression
+            field_only_output: Field expression written over the target region so that it can be visualised.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            field_only_output_skin_only: If checked, only the skin of the region is written.
-            field_only_output_deformed_mesh: If checked, the field is written on the deformed mesh.
-            field_only_output_filter_type: How to select which steps to save.
-            field_only_output_filter_every_nth_step: Provide interval N as an integer. The output will be saved every Nth step.
-            field_only_output_filter_step_indices: Provide a list of step indices to output. For example [0, 2, 10]
-            field_only_output_filter_expression: Output the field when this expression evaluates to a non-zero value.
+            field_only_output_skin_only: Writes the field only on the outer surface of the target region, which keeps the result files smaller.
+            field_only_output_deformed_mesh: Writes the field on the mesh displaced by the Mesh deformation physics instead of on the original mesh.
+            field_only_output_filter_type: Chooses how often the output is written. Writing fewer steps keeps the result data smaller.
+            field_only_output_filter_every_nth_step: Stride between the written steps: 25 writes every 25th step.
+            field_only_output_filter_step_indices: The steps the output is written on, listed by index.
+            field_only_output_filter_expression: The output is written on the steps where this expression is true.
         """
         _ebo_ctrl_0 = (
             field_only_output_filter_type.value
@@ -794,19 +864,20 @@ class FieldOutput(OutputInteraction):
         field_output_filter_step_indices: ScalarValue | None = None,
         field_output_filter_expression: ScalarValue | None = None,
     ) -> None:
-        """Create a field output output.
+        """
+        Create a field output output.
 
         Parameters:
             name: Name of the output.
-            expression: The output expression
+            expression: Field expression written over the target region so that it can be visualised.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            field_output_skin_only: If checked, only the skin of the region is written.
-            field_output_deformed_mesh: If checked, the field is written on the deformed mesh.
-            field_output_filter_type: How to select which steps to save.
-            field_output_filter_every_nth_step: Provide interval N as an integer. The output will be saved every Nth step.
-            field_output_filter_step_indices: Provide a list of step indices to output. For example [0, 2, 10]
-            field_output_filter_expression: Output the field when this expression evaluates to a non-zero value.
+            field_output_skin_only: Writes the field only on the outer surface of the target region, which keeps the result files smaller.
+            field_output_deformed_mesh: Writes the field on the mesh displaced by the Mesh deformation physics instead of on the original mesh.
+            field_output_filter_type: Chooses how often the output is written. Writing fewer steps keeps the result data smaller.
+            field_output_filter_every_nth_step: Stride between the written steps: 25 writes every 25th step.
+            field_output_filter_step_indices: The steps the output is written on, listed by index.
+            field_output_filter_expression: The output is written on the steps where this expression is true.
         """
         _ebo_ctrl_0 = (
             field_output_filter_type.value
@@ -911,16 +982,17 @@ class FieldState(OutputInteraction):
         field_state_filter_step_indices: ScalarValue | None = None,
         field_state_filter_expression: ScalarValue | None = None,
     ) -> None:
-        """Create a field state output.
+        """
+        Create a field state output.
 
         Parameters:
             name: Name of the output.
-            field_state: field state
+            field_state: Field whose state is stored, so that a later simulation can be initialised from it.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            field_state_filter_type: How to select which steps to save.
-            field_state_filter_every_nth_step: Provide interval N as an integer. The output will be saved every Nth step.
-            field_state_filter_step_indices: Provide a list of step indices to output. For example [0, 2, 10]
-            field_state_filter_expression: Output the state when this expression evaluates to a non-zero value.
+            field_state_filter_type: Chooses how often the output is written. Writing fewer steps keeps the result data smaller.
+            field_state_filter_every_nth_step: Stride between the written steps: 25 writes every 25th step.
+            field_state_filter_step_indices: The steps the output is written on, listed by index.
+            field_state_filter_expression: The output is written on the steps where this expression is true.
         """
         _ebo_ctrl_0 = (
             field_state_filter_type.value
@@ -1006,12 +1078,13 @@ class FinalHPhiState(OutputInteraction):
         enabled: BooleanValue | None = None,
         final_h_phi_state_transient_projection: BooleanValue = True,
     ) -> None:
-        """Create a final h phi state output.
+        """
+        Create a final h phi state output.
 
         Parameters:
             name: Name of the output.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            final_h_phi_state_transient_projection: final h phi state transient projection
+            final_h_phi_state_transient_projection: Projects the steady state solution so that a transient H-φ simulation can start from it. Steady state simulations only.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -1040,7 +1113,8 @@ class MagneticForce(OutputInteraction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a magnetic force output.
+        """
+        Create a magnetic force output.
 
         Parameters:
             name: Name of the output.
@@ -1067,7 +1141,8 @@ class QFactors(OutputInteraction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a q-factors output.
+        """
+        Create a q-factors output.
 
         Parameters:
             name: Name of the output.
@@ -1092,7 +1167,8 @@ class SParameters(OutputInteraction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a s-parameters output.
+        """
+        Create a s-parameters output.
 
         Parameters:
             name: Name of the output.
@@ -1117,7 +1193,8 @@ class TransientState(OutputInteraction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a transient state output.
+        """
+        Create a transient state output.
 
         Parameters:
             name: Name of the output.

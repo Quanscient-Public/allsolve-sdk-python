@@ -14,6 +14,7 @@ __all__ = [
     "Runtime",
     "CPU",
     "SolverMode",
+    "SolverPrecision",
     "TimestepAlgorithm",
     "AnalysisType",
 ]
@@ -28,6 +29,7 @@ from .simulation import (
     Runtime,
     CPU,
     SolverMode,
+    SolverPrecision,
     TimestepAlgorithm,
     AnalysisType,
 )

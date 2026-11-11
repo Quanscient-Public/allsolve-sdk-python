@@ -9,6 +9,7 @@ import os
 import shutil
 from typing import TYPE_CHECKING, TextIO
 from allsolve.api import get_cache_dir, is_setup
+from allsolve.util import reject_unsafe_path_component
 from allsolve.simulation.simulation_output_database import (
     _NO_STEP,
     FieldOutputDefinitionRow,
@@ -25,6 +26,12 @@ if TYPE_CHECKING:
     import pandas as pd
 
 _DB_NOT_INITIALIZED_ERROR = "Database not initialized"
+
+
+def _csv_field(value: str, delimiter: str) -> str:
+    if delimiter in value or '"' in value or "\n" in value or "\r" in value:
+        return '"' + value.replace('"', '""') + '"'
+    return value
 
 
 class CsvExportFormat(Enum):
@@ -80,7 +87,7 @@ class SimulationOutputData:
 
     _simulations_sorted: list[SimulationOutput] | None
     _simulations_by_overrides: (
-        dict[str, dict[float | list[float], SimulationOutput]] | None
+        dict[str, dict[float | tuple[float, ...], SimulationOutput]] | None
     )
 
     _steps_sorted: list[SimulationStepRow] | None
@@ -111,6 +118,8 @@ class SimulationOutputData:
             base_dir = get_cache_dir()
             if base_dir is None:
                 raise ValueError("Cache directory not set")
+            reject_unsafe_path_component(project_id, context="project id")
+            reject_unsafe_path_component(simulation_id, context="simulation id")
             self._cache_dir = os.path.join(
                 base_dir,
                 project_id,
@@ -176,6 +185,8 @@ class SimulationOutputData:
         To use output data again, you need to call refresh to download the data again.
         """
         self._clear_cache_props()
+        if self._database is not None:
+            self._database._clear_downloads()
         if os.path.exists(self._cache_dir):
             shutil.rmtree(self._cache_dir)
 
@@ -233,11 +244,7 @@ class SimulationOutputData:
             raise ValueError(_DB_NOT_INITIALIZED_ERROR)
 
         sims_sorted = self._get_simulations_sorted()
-        if sweep_index < -len(sims_sorted) or sweep_index >= len(sims_sorted):
-            raise ValueError(f"Sweep index {sweep_index} out of range")
-
-        if sweep_index < 0:
-            sweep_index = len(sims_sorted) + sweep_index
+        sweep_index = self._resolve_sweep_index(sweep_index)
 
         return self._build_tidy_dataframe(
             [sims_sorted[sweep_index]],
@@ -253,9 +260,17 @@ class SimulationOutputData:
         Returns the value output data of a single sweep step as a dictionary.
 
         Args:
-            sweep_index: The sweep step index.
+            sweep_index: The sweep step index. A negative index counts from the end.
             include_overrides: If True, variable override values for the sweep step
                 are included as additional entries in each step's dictionary.
+
+        Returns:
+            A dict ``{step_label: {header: list[float]}}``. Each value is a list,
+            also for a scalar output, which is a list with one item. Example:
+            ``v[label]["T_avg"][0]``.
+
+        Raises:
+            ValueError: If ``sweep_index`` is out of range.
         """
         if self._database is None:
             raise ValueError(_DB_NOT_INITIALIZED_ERROR)
@@ -263,8 +278,7 @@ class SimulationOutputData:
         all_values: dict[str, dict[str, list[float]]] = {}
 
         sims_sorted = self._get_simulations_sorted()
-        if sweep_index < -len(sims_sorted) or sweep_index >= len(sims_sorted):
-            return {}
+        sweep_index = self._resolve_sweep_index(sweep_index)
         simulation_id = sims_sorted[sweep_index].rowid
 
         steps_sorted = self._get_steps_sorted()
@@ -371,12 +385,14 @@ class SimulationOutputData:
             None if stream was provided, StringIO if no stream was provided.
 
         Examples:
-            # Get a StringIO
-            csv_stream = data.to_csv_stream()
+        ```python
+        # Get a StringIO
+        csv_stream = data.to_csv_stream()
 
-            # Stream directly to a file
-            with open("output.csv", "w") as f:
-                data.to_csv_stream(stream=f)
+        # Stream directly to a file
+        with open("output.csv", "w") as f:
+            data.to_csv_stream(stream=f)
+        ```
         """
         if self._database is None:
             raise ValueError(_DB_NOT_INITIALIZED_ERROR)
@@ -479,8 +495,11 @@ class SimulationOutputData:
         if self._database is None:
             raise ValueError(_DB_NOT_INITIALIZED_ERROR)
 
-        if isinstance(value, list) and len(value) == 1:
-            value = value[0]
+        key: float | tuple[float, ...]
+        if isinstance(value, list):
+            key = value[0] if len(value) == 1 else tuple(value)
+        else:
+            key = value
 
         simulations_by_overrides = self._simulations_by_overrides
         if simulations_by_overrides is None:
@@ -488,7 +507,7 @@ class SimulationOutputData:
 
         val_dict = simulations_by_overrides.get(variable_name)
         if val_dict is not None:
-            sim = val_dict.get(value)
+            sim = val_dict.get(key)
             if sim is not None:
                 return sim.job_index
 
@@ -515,13 +534,16 @@ class SimulationOutputData:
         necessarily present in all sweep steps.
 
         If a sweep index is passed in, the number of steps in that sweep step
-        is returned.
+        is returned. A negative sweep index counts from the end. Raises
+        `ValueError` when the sweep index is out of range.
         """
         if self._database is None:
             raise ValueError(_DB_NOT_INITIALIZED_ERROR)
 
         if sweep_index is None:
             return len(self._get_steps_sorted())
+
+        sweep_index = self._resolve_sweep_index(sweep_index)
 
         # Combine steps collected from fields and values
         # TODO: this is really slow if this method is called frequently.
@@ -549,6 +571,13 @@ class SimulationOutputData:
         The label can either be a stringified numeric value or the special string
         `SimulationOutputData.NO_STEP`. `NO_STEP` is used as the step label when
         data is saved without specifying a step.
+
+        The labels merge the steps of all outputs. When field outputs are saved
+        only every Nth step, the first step, every Nth step and the last step are
+        kept, so the labels are not evenly spaced at the end. To get the files of
+        one field output at a step, use
+        `get_filenames_for_output_field(name, step_index=i)`. It returns an empty
+        list if that output has no data at the step.
         """
         if self._database is None:
             raise ValueError(_DB_NOT_INITIALIZED_ERROR)
@@ -623,6 +652,8 @@ class SimulationOutputData:
     ) -> int:
         """
         Equivalent to `len(get_values_at(sweep_index, step_index, value_header))`.
+
+        Raises `KeyError` when `value_header` is not a known value header or id.
         """
         # Hot path: don't use the prevent_uninitialized decorator.
         if self._database is None:
@@ -643,6 +674,8 @@ class SimulationOutputData:
     ) -> float | None:
         """
         Equivalent to `get_values_at(sweep_index, step_index, value_header)[array_index]`.
+
+        Raises `KeyError` when `value_header` is not a known value header or id.
         """
         # Hot path: don't use the prevent_uninitialized decorator.
         if self._database is None:
@@ -694,6 +727,12 @@ class SimulationOutputData:
         # Get the real part of the impedance using a header string
         values = data.get_values_at(sweep_index, step_index, "Impedance (real)")
         ```
+
+        Returns `None` when the value has no data at the given sweep index and step
+        index. Raises `KeyError` when `value_header` is not a known value header or id.
+        Use `get_value_headers` and `get_value_ids` to see the available values.
+        Raises `ValueError` when `sweep_index` is out of range. A negative
+        `sweep_index` counts from the end.
         """
         # Hot path: don't use the prevent_uninitialized decorator.
         if self._database is None:
@@ -711,6 +750,10 @@ class SimulationOutputData:
         sweep_index: int = 0,
         step_index: int | None = None,
     ) -> list[str]:
+        """
+        Returns the file names of a field output, one file for each rank.
+        The files are VTKHDF files (`.hdf`).
+        """
         if self._database is None:
             raise ValueError(_DB_NOT_INITIALIZED_ERROR)
 
@@ -744,6 +787,7 @@ class SimulationOutputData:
         sweep_index: int = 0,
         step_index: int | None = None,
     ) -> list[str]:
+        sweep_index = self._resolve_sweep_index(sweep_index)
         if step_index is None:
             step_label = SimulationOutputData.NO_STEP
         else:
@@ -770,7 +814,66 @@ class SimulationOutputData:
             raise ValueError(_DB_NOT_INITIALIZED_ERROR)
 
         sims_sorted = self._get_simulations_sorted()
-        return sims_sorted[sweep_index].job_id
+        return sims_sorted[self._resolve_sweep_index(sweep_index)].job_id
+
+    def _get_field_filenames_by_sweep(
+        self,
+        field_names: list[str] | None,
+        sweep_indices: list[int] | None,
+        step_indices: list[int] | None,
+    ) -> list[tuple[int, str, list[str]]]:
+        header = SimulationOutputData._get_header_for_field_def
+        fields = [
+            f for f in self._db.fields if f.definition.type == FieldOutputType.FIELD
+        ]
+
+        if field_names is not None:
+            headers = {header(f.definition) for f in fields}
+            known = headers | {f.definition.name for f in fields}
+            unknown = [name for name in field_names if name not in known]
+            if unknown:
+                raise ValueError(
+                    f"Unknown field outputs: {', '.join(unknown)}. "
+                    f"Available field outputs: {', '.join(sorted(headers))}"
+                )
+            selected = set(field_names)
+            fields = [
+                f
+                for f in fields
+                if f.definition.name in selected or header(f.definition) in selected
+            ]
+
+        sims_sorted = self._get_simulations_sorted()
+        if sweep_indices is None:
+            sweep_indices = list(range(len(sims_sorted)))
+        sweep_indices = list(
+            dict.fromkeys(self._resolve_sweep_index(i) for i in sweep_indices)
+        )
+
+        steps_sorted = self._get_steps_sorted()
+        if step_indices is not None:
+            step_labels = {self.get_step_label(i) for i in step_indices}
+            fields = [f for f in fields if f.step.raw_step in step_labels]
+
+        step_position = {step.raw_step: i for i, step in enumerate(steps_sorted)}
+        fields.sort(
+            key=lambda f: (
+                step_position.get(f.step.raw_step, len(steps_sorted)),
+                header(f.definition),
+            )
+        )
+
+        result: list[tuple[int, str, list[str]]] = []
+        for sweep_index in sweep_indices:
+            sim = sims_sorted[sweep_index]
+            file_names = [
+                file_name
+                for f in fields
+                if f.simulation.rowid == sim.rowid
+                for file_name in f.get_file_names()
+            ]
+            result.append((sweep_index, sim.job_id, file_names))
+        return result
 
     def _get_values_at(
         self,
@@ -781,6 +884,8 @@ class SimulationOutputData:
         sims_sorted = self._simulations_sorted
         if sims_sorted is None:
             sims_sorted = self._get_simulations_sorted()
+        if sweep_index < -len(sims_sorted) or sweep_index >= len(sims_sorted):
+            self._resolve_sweep_index(sweep_index)
         sim = sims_sorted[sweep_index]
 
         steps_sorted = self._steps_sorted
@@ -794,14 +899,30 @@ class SimulationOutputData:
                 value_defs_by_header = self._get_value_defs_by_header()
             value_def = value_defs_by_header.get(value_header)
             if value_def is None:
-                return None
+                raise KeyError(
+                    SimulationOutputData._unknown_value_message(
+                        value_header,
+                        [
+                            h
+                            for h in value_defs_by_header
+                            if h.startswith(f"{value_header} (")
+                        ],
+                        "get_value_headers()",
+                    )
+                )
         else:
             value_defs_by_id = self._value_defs_by_id
             if value_defs_by_id is None:
                 value_defs_by_id = self._get_value_defs_by_id()
             value_def = value_defs_by_id.get(value_header)
             if value_def is None:
-                return None
+                raise KeyError(
+                    SimulationOutputData._unknown_value_message(
+                        value_header,
+                        [i for i in value_defs_by_id if i[0] == value_header[0]],
+                        "get_value_ids()",
+                    )
+                )
 
         values_dict = self._values_by_sim_id_and_step_id_and_definition_id
         if values_dict is None:
@@ -821,6 +942,20 @@ class SimulationOutputData:
 
         return self._db.get_value_data(value)
 
+    def _resolve_sweep_index(self, sweep_index: int) -> int:
+        count = len(self._get_simulations_sorted())
+        if count == 0:
+            raise ValueError(
+                f"Sweep index {sweep_index} out of range: no sweep steps available"
+            )
+        # Negative indexes count from the end, like list indexing (-1 is the last step).
+        if sweep_index < -count or sweep_index >= count:
+            raise ValueError(
+                f"Sweep index {sweep_index} out of range "
+                f"(valid range: -{count} to {count - 1})"
+            )
+        return sweep_index % count
+
     def _get_simulations_sorted(self) -> list[SimulationOutput]:
         if self._simulations_sorted is not None:
             return self._simulations_sorted
@@ -832,7 +967,7 @@ class SimulationOutputData:
 
     def _get_simulations_by_overrides(
         self,
-    ) -> dict[str, dict[float | list[float], SimulationOutput]]:
+    ) -> dict[str, dict[float | tuple[float, ...], SimulationOutput]]:
         if self._simulations_by_overrides is not None:
             return self._simulations_by_overrides
 
@@ -840,9 +975,9 @@ class SimulationOutputData:
         self._simulations_by_overrides = {}
         for sim in sims_sorted:
             for key, value in sim.overrides.items():
-                val: float | list[float] = value
-                if len(value) == 1:
-                    val = value[0]
+                val: float | tuple[float, ...] = (
+                    value[0] if len(value) == 1 else tuple(value)
+                )
                 val_dict = self._simulations_by_overrides.setdefault(key, {})
                 if val not in val_dict:
                     val_dict[val] = sim
@@ -995,7 +1130,7 @@ class SimulationOutputData:
             headers.extend(override_names)
 
         headers.extend(value_headers)
-        output.write(delimiter.join(headers))
+        output.write(delimiter.join(_csv_field(h, delimiter) for h in headers))
         output.write("\n")
 
         # --- prepare lookup structures --------------------------------
@@ -1027,7 +1162,7 @@ class SimulationOutputData:
                     if _len(vals) == 1:
                         override_parts.append(_str(vals[0]))
                     else:
-                        override_parts.append(_str(vals))
+                        override_parts.append(_csv_field(_str(vals), delimiter))
                 override_prefix = delimiter + delimiter.join(override_parts)
 
             for step in steps_sorted:
@@ -1163,6 +1298,20 @@ class SimulationOutputData:
     def _create_cache_dir(self):
         if not os.path.exists(self._cache_dir):
             os.makedirs(self._cache_dir, mode=0o700, exist_ok=True)
+
+    @staticmethod
+    def _unknown_value_message(
+        value_header: ValueHeaderOrId,
+        suggestions: list[str] | list[ValueId],
+        list_method: str,
+    ) -> str:
+        message = (
+            f"Unknown value header {value_header!r}. "
+            f"Use {list_method} to see the available headers."
+        )
+        if suggestions:
+            message += f" Did you mean {' or '.join(repr(s) for s in suggestions)}?"
+        return message
 
     @staticmethod
     def _get_header_for_value_def(value_def: ValueOutputDefinitionRow) -> str:

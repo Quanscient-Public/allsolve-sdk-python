@@ -7875,12 +7875,13 @@ class universe:
     @staticmethod
     def setmumpsicntl(icntl: int, val: int) -> None: ...
     allowcohomologyreuse = False
+    allowcomplexdirectsolver = True
     allowmortardirectmapping = True
     allowsolveacceleration = True
     allowsolvescalecolumns = True
     allowsolvescalerows = True
+    allowsparserhsdirectsolve = True
     attemptfactorizationreuse = False
-    blocksofdofs: Any = []
     cohomologycuts: Any = []
     cohomologyloadfile = "cohomologydata"
     cohomologywritefile = "cohomologydata"
@@ -7897,8 +7898,6 @@ class universe:
     fastprocessrows = True
     fastquadblas = True
     fouriercroppingthreshold = 1e-14
-    gmresmodifiedgramschmidt = False
-    gmresreorthogonalize = True
     highestfrequencyofinterest = -1.0
     maxnumthreads = -1
     mindropfactorizationreuse = 10.0
@@ -7911,6 +7910,7 @@ class universe:
     peptype = "toar"
     pmlnoaux = True
     printconditionnumber = False
+    printmumpsused = False
     quadmaxnumits = 20
     quadrefinement = False
     quadrelrestol = 1e-14
@@ -8727,6 +8727,31 @@ def acos(input: expressionlike) -> expression:
     """
     return expression()
 
+def acosh(input: expressionlike) -> expression:
+    """
+    This returns an expression that is the inverse hyperbolic cosine $arcosh$ or $cosh^{-1}$ of input. The input must be
+    at least 1.
+
+    Example
+    -------
+    >>> expr = acosh(1)
+    >>> expr.print()
+    Expression size is 1x1
+     @ row 0, col 0 :
+    0
+    >>>
+    >>> expr = acosh(2)
+    >>> expr.print()
+    Expression size is 1x1
+     @ row 0, col 0 :
+    1.31696
+
+    See Also
+    --------
+    sinh, cosh, tanh, asinh, atanh
+    """
+    return expression()
+
 def adapt(verbosity: int = 0) -> bool:
     """
     This function is used to perform a h/p/hp adaptation according to the defined h/p/hp adaptivity settings. To define the
@@ -8894,6 +8919,7 @@ def allcomputesparameters(
     Rrefs: Sequence[float],
 ) -> list[list[float]]: ...
 def allcomputesparameters(*args, **kwargs) -> Any: ...
+def allcountphysicalram() -> float: ...
 def alldirection(
     vol: int, faceorig: int, facedest: int, verbosity: int = 1
 ) -> expression:
@@ -9308,6 +9334,20 @@ def allinitialize(verbosity: int = 1) -> None:
     """
     ...
 
+def allinitializekwsst(
+    fluid: int,
+    walls: int,
+    inlets: Sequence[int],
+    viscosityratios: Sequence[expressionlike],
+    v: expressionlike,
+    k: field,
+    rho: expressionlike,
+    mu: expressionlike,
+    walldist: expressionlike,
+) -> tuple[field, expression]:
+    return (field(), expression())
+
+@overload
 def allintegrate(physreg: int, expr: expressionlike, integrationorder: int) -> float:
     """
     This integrates the **scalar** expression `expr` over the physical region `physreg`. The integration is exact up to the order of
@@ -9341,8 +9381,15 @@ def allintegrate(physreg: int, expr: expressionlike, integrationorder: int) -> f
     --------
     allinterpolate, allprobe, allaverage
     """
-    ...
 
+@overload
+def allintegrate(
+    physreg: int,
+    expr: expressionlike,
+    meshdeform: expressionlike,
+    integrationorder: int,
+) -> float: ...
+def allintegrate(*args, **kwargs) -> Any: ...
 def allinterpolate(
     physreg: int, expr: expressionlike, xyzcoords: Sequence[float]
 ) -> list[float]:
@@ -9936,6 +9983,24 @@ def asin(input: expressionlike) -> expression:
     """
     return expression()
 
+def asinh(input: expressionlike) -> expression:
+    """
+    This returns an expression that is the inverse hyperbolic sine $arsinh$ or $sinh^{-1}$ of input.
+
+    Example
+    -------
+    >>> expr = asinh(1)
+    >>> expr.print()
+    Expression size is 1x1
+     @ row 0, col 0 :
+    0.881374
+
+    See Also
+    --------
+    sinh, cosh, tanh, acosh, atanh
+    """
+    return expression()
+
 def atan(input: expressionlike) -> expression:
     """
     This returns an expression that is the $arctan$ or $tan^{-1}$ of input. The output expression is in `radians`.
@@ -9960,6 +10025,25 @@ def atan(input: expressionlike) -> expression:
     return expression()
 
 def atan2(y: expressionlike, x: expressionlike) -> expression:
+    return expression()
+
+def atanh(input: expressionlike) -> expression:
+    """
+    This returns an expression that is the inverse hyperbolic tangent $artanh$ or $tanh^{-1}$ of input. The input must be
+    strictly between -1 and 1.
+
+    Example
+    -------
+    >>> expr = atanh(0.5)
+    >>> expr.print()
+    Expression size is 1x1
+     @ row 0, col 0 :
+    0.549306
+
+    See Also
+    --------
+    sinh, cosh, tanh, asinh, acosh
+    """
     return expression()
 
 def barrier() -> None:
@@ -10274,6 +10358,7 @@ def continuitycondition(
     u2: field,
     errorifnotfound: bool = True,
     lagmultorder: int = 0,
+    discontinuouslagmult: bool = False,
 ) -> list[integration]:
     """
     This returns the formulation terms required to enforce field continuity.
@@ -10339,6 +10424,7 @@ def continuitycondition(
     angzmod: float,
     factor: float,
     lagmultorder: int = 0,
+    discontinuouslagmult: bool = False,
 ) -> list[integration]: ...
 def continuitycondition(*args, **kwargs) -> Any: ...
 def cos(input: expressionlike) -> expression:
@@ -10362,6 +10448,30 @@ def cos(input: expressionlike) -> expression:
     See Also
     --------
     sin, tan, asin, acos, atan
+    """
+    return expression()
+
+def cosh(input: expressionlike) -> expression:
+    """
+    This returns an expression that is the hyperbolic cosine $cosh$ of input.
+
+    Example
+    -------
+    >>> expr = cosh(0)
+    >>> expr.print()
+    Expression size is 1x1
+     @ row 0, col 0 :
+    1
+    >>>
+    >>> expr = cosh(1)
+    >>> expr.print()
+    Expression size is 1x1
+     @ row 0, col 0 :
+    1.54308
+
+    See Also
+    --------
+    sinh, tanh, asinh, acosh, atanh
     """
     return expression()
 
@@ -12044,6 +12154,7 @@ def periodicitycondition(
     dat2: Sequence[float],
     factor: float,
     lagmultorder: int = 0,
+    discontinuouslagmult: bool = False,
 ) -> list[integration]:
     """
     This returns the formulation terms required to enforce on field $u$ a rotation or translation periodic condition between
@@ -13028,6 +13139,38 @@ def predefinedhyperelasticity(
     """
     return expression()
 
+def predefinedincompressiblekwsst(
+    v: expressionlike,
+    p: expressionlike,
+    rho: expressionlike,
+    mu: expressionlike,
+    mut: expressionlike,
+) -> expression:
+    return expression()
+
+def predefinedincompressiblekwsstnewton(
+    fluid: int,
+    v: expressionlike,
+    p: expressionlike,
+    k: field,
+    psi: field,
+    rho: expressionlike,
+    mu: expressionlike,
+    walldist: expressionlike,
+) -> expression:
+    return expression()
+
+def predefinedincompressiblekwssttransport(
+    fluid: int,
+    v: expressionlike,
+    k: field,
+    psi: field,
+    rho: expressionlike,
+    mu: expressionlike,
+    walldist: expressionlike,
+) -> expression:
+    return expression()
+
 @overload
 def predefinedlinearpoissonwalldistance(
     physreg: int,
@@ -13967,7 +14110,6 @@ def printonrank(rank: int, toprint: str) -> None:
     """
     ...
 
-def printphysicalram() -> None: ...
 def printsparameters(Sparams: Sequence[Sequence[float]]) -> None:
     """
     Prints the magnitudes (unit: dB) and angles (unit: degrees) of the S-parameters returned by allcomputesparameters.
@@ -14826,6 +14968,30 @@ def sin(input: expressionlike) -> expression:
     """
     return expression()
 
+def sinh(input: expressionlike) -> expression:
+    """
+    This returns an expression that is the hyperbolic sine $sinh$ of input.
+
+    Example
+    -------
+    >>> expr = sinh(0)
+    >>> expr.print()
+    Expression size is 1x1
+     @ row 0, col 0 :
+    0
+    >>>
+    >>> expr = sinh(1)
+    >>> expr.print()
+    Expression size is 1x1
+     @ row 0, col 0 :
+    1.1752
+
+    See Also
+    --------
+    cosh, tanh, asinh, acosh, atanh
+    """
+    return expression()
+
 def skindepth(sigma: expressionlike, mu: expressionlike) -> expression:
     return expression()
 
@@ -15025,44 +15191,44 @@ def sum(data: Sequence[int]) -> None:
 def sum(data: Sequence[float]) -> None: ...
 def sum(*args, **kwargs) -> Any: ...
 def symmetrycondition(
-    bndphysreg: int, u: field, lagmultorder: int = 0
+    bndphysreg: int, u: field, lagmultorder: int = 0, discontinuouslagmult: bool = False
 ) -> list[integration]:
     """
-    This defines a weak formulation of symmetry condition on the boundary region `bndphysreg`. Depending on, if the `u` field 
-    passed is a vector or scalar, the appropriate symmetry condition is formulated. For a vector and scalar field, the symmetry 
-    condition is respectively,
-    $$
-    \\boldsymbol{u} \\cdot \\boldsymbol{n} = 0\\\\
-    \\nabla{u} \\cdot \\boldsymbol{n} = 0
-    $$
+    This defines a weak formulation of symmetry condition on the boundary region `bndphysreg`.
 
-    This function uses a scalar Lagrange multiplier to enforce the symmetry boundary condition. The `lagmultorder` argument sets 
-    the interpolation order of the Lagrange multiplier. 
-    $$ 
-    \\int_{\\Gamma} \\left( \\ \\lambda (\\boldsymbol{u}^{\\prime} \\cdot \\boldsymbol{n}) + {\\lambda}^{\\prime} (\\boldsymbol{u} \\cdot \\boldsymbol{n}) \\ \\right) d \\Gamma = 0 \\qquad, \\text{where $\\boldsymbol{u}$ is a vector field}
+    For a vector field the symmetry condition is
     $$
-
-    $$ 
-    \\int_{\\Gamma} \\left( \\ \\lambda (\\boldsymbol{\\nabla} {u}^{\\prime} \\cdot \\boldsymbol{n}) + {\\lambda}^{\\prime} (\\boldsymbol{\\nabla} {u} \\cdot \\boldsymbol{n}) \\ \\right) d \\Gamma = 0 \\qquad, \\text{where $u$ is a scalar field}
+    \\boldsymbol{u} \\cdot \\boldsymbol{n} = 0,
     $$
+    where $\\boldsymbol{n}$ is the unit normal vector. It is enforced with a scalar Lagrange multiplier. The `lagmultorder` argument sets
+    the interpolation order of the Lagrange multiplier.
+    $$
+    \\int_{\\Gamma} \\left( \\ \\lambda (\\boldsymbol{u}^{\\prime} \\cdot \\boldsymbol{n}) + {\\lambda}^{\\prime} (\\boldsymbol{u} \\cdot \\boldsymbol{n}) \\ \\right) d \\Gamma = 0
+    $$
+    In fluid dynamics, the symmetry condition is equivalent to the slip-condition which states
+    that there is no outflow through the boundary. This is equivalent to velocity vector normal to the boundary being zero. Here, the `u` field
+    passed as the argument is the velocity vector.
 
-    where $\\boldsymbol{n}$ is the unit normal vector. In fluid dynamics, the symmetry condition is equivalent to the slip-condition which states 
-    that there is no outflow through the boundary. This is equivalent to velocity vector normal to the boundary being zero. Here, the `u` field 
-    passed as the argument is the velocity vector. 
+    For a scalar field the symmetry condition is the homogeneous Neumann condition
+    $$
+    \\nabla{u} \\cdot \\boldsymbol{n} = 0.
+    $$
+    This is the natural condition satisfied when no other condition is set, so the function call is redundant;
+    an empty list of integration objects is returned to achieve the correct behaviour regardless.
 
     Examples
     --------
-    >>> mymesh = mesh("quarterdisk.msh")    
+    >>> mymesh = mesh("quarterdisk.msh")
     >>> vol = 1; sur = 2; top = 3; sym=4
     >>>
     >>> u = field("h1xyz")
     >>> u.setorder(vol, 2)
-    >>> 
-    >>> u.setconstraint(sur)  
-    >>> 
+    >>>
+    >>> u.setconstraint(sur)
+    >>>
     >>> E=parameter(); nu=parameter()
     >>> E.setvalue(vol,150e9); nu.setvalue(vol,0.3)
-    >>>  
+    >>>
     >>> elasticity = qs.formulation()
     >>>
     >>> elasticity += integral(vol, predefinedelasticity(dof(u), tf(u), E, nu))
@@ -15070,7 +15236,7 @@ def symmetrycondition(
     >>>
     >>> # symmetry boundary condition
     >>> elasticity += symmetrycondition(sym, u)
-    >>> 
+    >>>
     >>> elasticity.solve()
 
     Note that the symmetry condition also works on fields with harmonics and multiharmonic fields.
@@ -15080,13 +15246,14 @@ def symmetrycondition(
     >>> ...
     >>> elasticity += symmetrycondition(sym, u)
 
-    The `lagrangemultorder` also determines the type of shape function used by the Lagrange multiplier. If the order is set to zero, 
-    shape function of type "one1" (in 2D) or "one2" (in 3D) is used. For order greater than 0, shape function of type "h1" is used.
+    `lagmultorder` states the interpolation order used for the Lagrange multiplier. If the order is set to zero,
+    shape function of type "one1" (in 2D) or "one2" (in 3D) is used. For order greater than 0, continuous shape function of type h1 is used by default;
+    discontinuous "h1d1" (in 2D) or "h1d2" (in 3D) is used if `discontinuous` is true.
     >>> ...
     >>> u = field("h1xyz")
     >>>
     >>> elasticity += symmetrycondition(sym, u)     # uses "one2" shape function for Lagrange multiplier.
-    >>> elasticity += symmetrycondition(sym, u, 1)  # uses "h1" shape function with interpolation order 1 for Lagrange multiplier.
+    >>> elasticity += symmetrycondition(sym, u, 1, true)  # uses "h1d2" shape function with interpolation order 1 for Lagrange multiplier.
     >>> elasticity += symmetrycondition(sym, u, 2)  # uses "h1" shape function with interpolation order 2 for Lagrange multiplier.
 
     See Also
@@ -15145,6 +15312,30 @@ def tangent() -> expression:
     >>> mymesh = mesh("disk.msh")
     >>> top=3
     >>> tangent().write(top, "tangent.vtk", 1)
+    """
+    return expression()
+
+def tanh(input: expressionlike) -> expression:
+    """
+    This returns an expression that is the hyperbolic tangent $tanh$ of input.
+
+    Example
+    -------
+    >>> expr = tanh(0)
+    >>> expr.print()
+    Expression size is 1x1
+     @ row 0, col 0 :
+    0
+    >>>
+    >>> expr = tanh(1)
+    >>> expr.print()
+    Expression size is 1x1
+     @ row 0, col 0 :
+    0.761594
+
+    See Also
+    --------
+    sinh, cosh, asinh, acosh, atanh
     """
     return expression()
 

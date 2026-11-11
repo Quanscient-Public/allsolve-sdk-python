@@ -54,29 +54,33 @@ def _coerce_expression_bounding_box(
 
 class RegionOperation(Enum):
     """
-    Boolean / set operation used to combine geometry volumes into a region.
+    Set operation used to combine source regions into a computed region.
 
-    Regions are defined by applying these operations to selected geometry
-    entities via region rules.
+    A source region of higher dimension than the target is first replaced by
+    all of its entities of the target dimension. For example, INTERSECTION of
+    two volume regions with a surface target gives their shared faces.
     """
 
     UNION = rawapi.RegionRuleOperation.UNION
-    """Combine all selected volumes."""
+    """Entities in any source region."""
 
     INTERSECTION = rawapi.RegionRuleOperation.INTERSECTION
-    """Keep only the overlapping volume."""
+    """Entities in all source regions."""
 
     DIFFERENCE = rawapi.RegionRuleOperation.DIFFERENCE
-    """Subtract the second volume from the first."""
+    """Entities of the first source region that are in none of the others."""
 
     SYMMETRIC_DIFFERENCE = rawapi.RegionRuleOperation.SYMMETRIC_DIFFERENCE
-    """Keep volumes that belong to exactly one operand."""
+    """Entities that are in an odd number of source regions."""
 
     BOUNDARY = rawapi.RegionRuleOperation.BOUNDARY
-    """Select the boundary surfaces of the operand volumes."""
+    """
+    Outer boundary of the source regions, one dimension lower. Faces shared by
+    two source entities are left out, also across source regions.
+    """
 
     COMPLEMENT = rawapi.RegionRuleOperation.COMPLEMENT
-    """Select everything outside the operand volumes."""
+    """All entities of the target dimension that are in no source region."""
 
 
 class Region:
@@ -308,7 +312,7 @@ class ComputedRegion(Region):
         cls,
         name: str,
         entity_type: rawapi.EntityType,
-        operation: rawapi.RegionRuleOperation,
+        operation: "RegionOperation | rawapi.RegionRuleOperation",
         source_regions: "Sequence[Region | str]",
         project_id: str | None = None,
         *,
@@ -320,13 +324,16 @@ class ComputedRegion(Region):
         Parameters:
             name: The name of the region.
             entity_type: The type of the entity.
-            operation: The operation to perform on the source regions.
+            operation: The operation to perform on the source regions, as a
+                RegionOperation or a rawapi.RegionRuleOperation.
             source_regions: The source regions (Region objects or ID strings).
             project_id: The ID of the project. Can be omitted if project API key is used.
 
         Returns:
             The created computed region.
         """
+        if isinstance(operation, RegionOperation):
+            operation = operation.value
         source_region_ids = [r if isinstance(r, str) else r.id for r in source_regions]
         return super().create(
             name=name,

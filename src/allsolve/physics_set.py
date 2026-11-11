@@ -177,12 +177,13 @@ class PhysicsSet:
         """
         Add a physics definition to this physics set.
 
-        Example::
-
-            physics_set = project.create_physics_set(name="alt_physics")
-            solid = physics_set.add_physics(
-                allsolve.Physics.SolidMechanics(target=beam_region)
-            )
+        Example:
+        ```python
+        physics_set = project.create_physics_set(name="alt_physics")
+        solid = physics_set.add_physics(
+            allsolve.Physics.SolidMechanics(target=beam_region)
+        )
+        ```
         """
         if not isinstance(physic, Physic):
             raise ValueError("physic must be a Physic instance")
@@ -265,13 +266,12 @@ class PhysicsSet:
                 physics_set_update=physics_set_update,
             )
 
-            self._uncommitted_update = None
-
             self._physics_set = api.get_physics_set(
                 authorization=get_auth(),
                 project_id=project_id,
                 physics_set_id=self.id,
             )
+            self._uncommitted_update = None
 
     @prevent_deleted
     def _current_uncommitted_update(self) -> rawapi.PhysicsSetUpdate:

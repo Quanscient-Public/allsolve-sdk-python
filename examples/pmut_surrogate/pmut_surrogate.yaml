@@ -1,0 +1,512 @@
+name: PMUT Pareto demo
+description: 'Circular single cell PMUT | infinite symmetry | water load '
+dimension: 3
+pmlSettings:
+  numLayers: 2
+variables:
+- name: piezo_thick
+  expression: 1e-6
+- name: elastic_thick
+  expression: 2e-6
+- name: oxide_thk
+  expression: 2e-6
+- name: freq
+  expression: 13e6
+- name: bot_elec_thick
+  expression: 150e-9
+- name: pitch
+  expression: 60e-6
+- name: mesh_size
+  expression: 6e-6
+- name: qdamp
+  expression: '100'
+- name: nfreqs
+  expression: '51'
+- name: top_elec_thk
+  expression: 200e-9
+- name: ppc
+  expression: '25'
+- name: ncycles
+  expression: '10'
+- name: npad
+  expression: '40'
+- name: fmax
+  expression: 26e6
+- name: cavity_frac
+  expression: '0.83'
+- name: bot_elec_frac
+  expression: '0.5'
+- name: stack_thick
+  expression: oxide_thk+piezo_thick+elastic_thick
+- name: load_thick
+  expression: 1480/freq
+- name: cavity_rad
+  expression: pitch*cavity_frac/2
+- name: bot_elec_rad
+  expression: cavity_rad*bot_elec_frac
+geometries:
+- name: SiO2
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: oxide_thk/2
+  size:
+    x: pitch
+    y: pitch
+    z: oxide_thk
+  rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  alignment: center
+- name: AlN
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: oxide_thk+piezo_thick/2
+  size:
+    x: pitch
+    y: pitch
+    z: piezo_thick
+  rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  alignment: center
+- name: Si
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: oxide_thk+piezo_thick+top_elec_thk+elastic_thick/2
+  size:
+    x: pitch
+    y: pitch
+    z: elastic_thick
+  rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  alignment: center
+- name: Load
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: oxide_thk+piezo_thick+top_elec_thk+elastic_thick+load_thick/2
+  size:
+    x: pitch
+    y: pitch
+    z: load_thick
+  rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  alignment: center
+- name: Cavity
+  type: cylinder
+  position:
+    x: 0.0
+    y: 0.0
+    z: oxide_thk/2
+  axis:
+    x: 0.0
+    y: 0.0
+    z: oxide_thk
+  radius: cavity_rad
+  rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  alignment: center
+- name: Difference
+  type: difference
+  cadPaths1:
+  - - SiO2
+  cadPaths2:
+  - - Cavity
+  deleteTool: true
+- name: Bottom electrode
+  type: cylinder
+  position:
+    x: 0.0
+    y: 0.0
+    z: oxide_thk-bot_elec_thick/2
+  axis:
+    x: 0.0
+    y: 0.0
+    z: bot_elec_thick
+  radius: bot_elec_rad
+  rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  alignment: center
+- name: Top electrode
+  type: box
+  position:
+    x: 0.0
+    y: 0.0
+    z: oxide_thk+piezo_thick+top_elec_thk/2
+  size:
+    x: pitch
+    y: pitch
+    z: top_elec_thk
+  rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  alignment: center
+- name: xcut
+  type: box
+  position:
+    x: -0.5
+    y: 0.0
+    z: 0.0
+  size:
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  alignment: center
+- name: ycut
+  type: box
+  position:
+    x: 0.0
+    y: -0.5
+    z: 0.0
+  size:
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  rotation:
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  alignment: center
+- name: Difference 2
+  type: difference
+  cadPaths1:
+  - - SiO2
+  - - AlN
+  - - Si
+  - - Load
+  - - Bottom electrode
+  - - Top electrode
+  cadPaths2:
+  - - xcut
+  - - ycut
+  deleteTool: true
+regions:
+- name: Silicon dioxide target
+  entityType: volume
+  type: basic
+  entityTags:
+  - 1
+- name: Polycrystalline Silicon target
+  entityType: volume
+  type: basic
+  entityTags:
+  - 55
+- name: Molybdenum target
+  entityType: volume
+  type: basic
+  entityTags:
+  - 118
+  - 127
+- name: AlN target
+  entityType: volume
+  type: basic
+  entityTags:
+  - 28
+- name: x symm
+  entityType: surface
+  type: basic
+  entityTags:
+  - 273
+  - 267
+  - 271
+  - 269
+  - 11
+  - 38
+  - 137
+  - 65
+  - 263
+- name: y symm
+  entityType: surface
+  type: basic
+  entityTags:
+  - 278
+  - 277
+  - 275
+  - 274
+  - 279
+  - 23
+  - 50
+  - 149
+  - 77
+- name: Clamp target
+  entityType: surface
+  type: basic
+  entityTags:
+  - 26
+- name: Elastic waves
+  entityType: volume
+  type: basic
+  entityTags:
+  - 1
+  - 28
+  - 55
+  - 118
+  - 127
+- name: front face
+  entityType: surface
+  type: basic
+  entityTags:
+  - 81
+- name: Water target
+  entityType: volume
+  type: basic
+  entityTags:
+  - 82
+- name: ground target
+  entityType: surface
+  type: basic
+  entityTags:
+  - 54
+- name: drive target
+  entityType: surface
+  type: basic
+  entityTags:
+  - 125
+- name: PML target
+  entityType: surface
+  type: basic
+  entityTags:
+  - 108
+materials:
+- name: Silicon dioxide
+  description: Amorphous SiO2
+  color: '#F1FCFF'
+  abbreviation: SiO₂
+  target: Silicon dioxide target
+  density: '2200'
+  heatCapacity: '733'
+  coefficientOfThermalExpansion: '7.64e-6'
+  electricPermittivity: 3.9*epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '9.50'
+  elasticityMatrix:
+    youngsModulus: 70e9
+    poissonsRatio: '0.17'
+- name: Polycrystalline Silicon
+  description: 'Appendix G: Semiconducting Materials, Table G.1'
+  color: '#87CEEB'
+  abbreviation: Poly-Si
+  target: Polycrystalline Silicon target
+  density: '2320'
+  heatCapacity: '678'
+  coefficientOfThermalExpansion: '2.5e-6'
+  electricConductivity: 7.69e4
+  electricPermittivity: 4.2*epsilon0
+  magneticPermeability: (1 - 39e-7)*mu0
+  thermalConductivity: '34'
+  elasticityMatrix:
+    youngsModulus: 161e9
+    poissonsRatio: '0.22'
+- name: Molybdenum
+  description: A new material without any existing properties
+  color: '#535050'
+  target: Molybdenum target
+  density: '10223'
+  elasticityMatrix:
+    youngsModulus: 329e9
+    poissonsRatio: '0.31'
+- name: AlN
+  description: 'Aluminum Nitride '
+  color: '#F7EDD3'
+  target: AlN target
+  density: '3260'
+  electricPermittivity:
+  - - 9.0 * epsilon0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 9.0 * epsilon0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 9.5 * epsilon0
+  elasticityMatrix:
+  - - 402500000000.0
+    - 135600000000.0
+    - 101000000000.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 135600000000.0
+    - 402500000000.0
+    - 101000000000.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 101000000000.0
+    - 101000000000.0
+    - 387600000000.0
+    - 0.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 122900000000.0
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 122900000000.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 133450000000.0
+  piezoelectricCoupling:
+  - - 0.0
+    - 0.0
+    - -0.6
+  - - 0.0
+    - 0.0
+    - -0.6
+  - - 0.0
+    - 0.0
+    - 1.34
+  - - 0.0
+    - -0.32
+    - 0.0
+  - - -0.32
+    - 0.0
+    - 0.0
+  - - 0.0
+    - 0.0
+    - 0.0
+- name: Water
+  description: Deionized water, 20 C, 100kPa
+  color: '#59AAF3'
+  abbreviation: H₂O
+  target: Water target
+  density: '998'
+  heatCapacity: '4182'
+  speedOfSound: '1480'
+  dynamicViscosity: '8.9e-4'
+  electricConductivity: 5e-6
+  electricPermittivity: 81*epsilon0
+  magneticPermeability: mu0
+  thermalConductivity: '0.55'
+physicsSets:
+- name: Physics 1
+  physics:
+  - type: elasticWaves
+    target: Elastic waves
+    interactions:
+    - type: elasticWavesPiezoelectricity
+      name: Piezoelectricity
+      target: AlN target
+    - type: elasticWavesClamp
+      name: Clamp
+      target: Clamp target
+    - type: elasticWavesProportionalDamping
+      name: Proportional damping
+      target: Elastic waves
+      elasticWavesProportionalDampingAlpha: qtoalpha(freq, qdamp)
+      elasticWavesProportionalDampingBeta: qtobeta(freq, qdamp)
+    - type: elasticWavesConstraint
+      name: x symm
+      target: x symm
+      elasticWavesConstraint: '[1, 0; 0, 0; 0, 0]'
+    - type: elasticWavesConstraint
+      name: y symm
+      target: y symm
+      elasticWavesConstraint: '[0, 0; 1, 0; 0, 0]'
+  - type: electrostatics
+    target: AlN target
+    interactions:
+    - type: electrostaticsConstraint
+      name: ground
+      target: ground target
+      electrostaticsConstraint: '0'
+    - type: electrostaticsLump
+      name: drive
+      namespace: lump
+      target: drive target
+      electrostaticsLumpVoltage: wavelet(freq, 1.2)
+  - type: acousticWaves
+    target: Water target
+    interactions:
+    - type: acousticStructureForElasticWaves
+      name: Acoustic structure
+    - type: acousticWavesPml
+      name: Perfectly matched layer
+      target: PML target
+      acousticWavesPmlType: acousticWavesPmlTypeBox
+meshes:
+- name: Mesh extruded
+  density: userDefined
+  useMeshRefiner: false
+  scaleFactor: '1'
+  curvatureEnhancement: '6'
+  maxRunTimeMinutes: 15
+  meshSizeMax: mesh_size
+  simpleExtrusion:
+    subLayerCounts:
+    - '1'
+    - '1'
+    - '1'
+    - '1'
+    - '1'
+    - '6'
+    volumeIds:
+    - 1
+    - 28
+    - 55
+    - 82
+    - 118
+    - 127
+simulations:
+- name: template
+  description: ''
+  maxRunTimeMinutes: 60
+  solverMode: direct
+  analysisType: transient
+  mesh: Mesh extruded
+  physicsSet: Physics 1
+  transientStartTime: '0'
+  transientEndTime: ncycles/freq
+  transientTimestepSize: 1/freq/ppc
+  timestepAlgorithm: genAlpha
+  eigenmodePortAnalysis: false
+  targetFrequency: freq
+  numericalJacobian: false
+  disabledScriptSections:
+  - solve
+  outputs:
+  - type: discreteOutput
+    name: V
+    expression: lump.V
+  - type: discreteOutput
+    name: Q
+    expression: lump.Q
+  - type: discreteOutput
+    name: Pav
+    expression: average(reg.front_face, p, 2)
+  - type: discreteOutput
+    name: Vav
+    expression: average(reg.front_face, dt(compz(u)), 2)

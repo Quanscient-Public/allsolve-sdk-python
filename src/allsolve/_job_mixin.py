@@ -50,8 +50,14 @@ class JobMixin:
         """
         Check if the processing of the job is running.
 
+        Without ``refresh_delay_s`` this returns the last known status and does
+        not ask the server. To poll in a loop, pass ``refresh_delay_s``, for
+        example ``while sim.is_running(refresh_delay_s=5): ...``. To poll many
+        items with one request, use :func:`~allsolve.job.refresh_statuses`.
+
         Parameters:
-            refresh_delay_s: Optional delay in seconds between checking the status of the job.
+            refresh_delay_s: Wait this many seconds, then refresh the status
+                from the server before checking it.
 
         Returns:
             True if the processing is running, False otherwise.
@@ -94,13 +100,16 @@ class JobMixin:
 
         return job.get_logs(limit=limit)
 
-    def print_new_loglines(self, file: TextIO = sys.stdout, limit: int = 100) -> None:
+    def print_new_loglines(
+        self, file: TextIO = sys.stdout, limit: int | None = None
+    ) -> None:
         """
         Print the new log lines of the processing of the job.
 
         Parameters:
             file: Optional file to print the logs to.
-            limit: Optional maximum number of logs to print.
+            limit: Optional maximum number of new log lines to print.
+                If None, print all new log lines.
         """
         job = self._get_job()
         if job is None:

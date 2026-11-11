@@ -533,6 +533,7 @@ materials:
 #         name: interaction_name # optional for every interaction, interaction type is used as name if not provided
 #         enabled: "1" # optional. Can be a string expression like "my_variable == 1"
 #       - type: electromagneticWavesBoundaryAdmittance # target: some_surface_region; electromagneticWavesBoundaryAdmittanceType: electromagneticWavesBoundaryAdmittanceTypeAdmittance; electromagneticWavesBoundaryAdmittanceYr: 1; electromagneticWavesBoundaryAdmittanceYi: 0
+#       - type: electromagneticWavesBoundaryCurrentDensity # target: some_surface_region; electromagneticWavesBoundaryCurrentDensity: "[0; 0; 1]"
 #       - type: electromagneticWavesConstraint # target: some_surface_region; electromagneticWavesConstraint: "[0; 0; 0]"
 #       - type: electromagneticWavesDielectricLoss # target: some_surface_region; electromagneticWavesDielectricLossLossTangent: 0.01
 #       - type: electromagneticWavesEigenmodePort # port_target: port_region, mode_pec: pec_region; electromagneticWavesEigenmodePortNumEigenmodes: 5; electromagneticWavesEigenmodePortDrive: 1
@@ -693,10 +694,10 @@ meshes:
     refinements:
       - region: cubes
         maxSize: 1000 / pres
-    # simpleExtrusion:
-    #   regions:
-    #     - drive
-    #   subLayerCounts: [ floor(pres / 5000) ] # list of Allsolve expressions or raw values
+    # simpleExtrusions:  # a single extrusion can also be given as simpleExtrusion: {...}
+    #   - regions:
+    #       - drive
+    #     subLayerCounts: [ floor(pres / 5000) ] # list of Allsolve expressions or raw values
     # pathExtrusions:
     #   - volumes: [cubes]
     #     fromSurfaces: [drive]
@@ -715,9 +716,11 @@ meshes:
     #     useQuadrangles: false  # optional, default false
     # flattenAndRebuildExtrusions:
     #   - volumes: [cubes]
-    #     layers:
-    #       - relativeHeight: 0.5
-    #         subLayerCount: 2
+    #     layers:  # list of layer groups; a flat list of layers is read as one group
+    #       - - relativeHeight: 0.5
+    #           subLayerCount: 2
+    #       - - relativeHeight: 0.5
+    #           subLayerCount: 3
     #     directionVector: {x: 0, y: 0, z: 1}
     #     useQuadrangles: false  # optional, default false
     saveMesh: true # save the mesh locally for inspection, defaults to false
@@ -743,6 +746,7 @@ simulations:
     description: Test simulation description
     maxRunTimeMinutes: 10 # optional, defaults to 10
     solverMode: direct # optional, "direct" or "iterative", defaults to "direct"
+    # solverPrecision: double  # optional: double, quadruple, double_int32
     # analysisType: static  # optional: static, harmonic, multiharmonic, transient, eigenmode
     mesh: test_mesh # optional, name of mesh to use
     variableOverride: pres_sweep # optional, name of variable override to use
@@ -772,6 +776,7 @@ simulations:
       # Available node types: CORES_1_16GB, CORES_2_32GB, CORES_3_10GB_FAST_START,
       # CORES_4_64GB, CORES_8_128GB, CORES_16_256GB, CORES_32_512GB
       nodeCount: 1 # optional, defaults to 1
+      # mainNodeType: CORES_8_128GB # optional, main (coordinator) node; defaults to nodeType
     scripts: # optional
       - filepath: sim/simulation.py # resolved relative to YAML file location
         isMain: true # optional, defaults to false

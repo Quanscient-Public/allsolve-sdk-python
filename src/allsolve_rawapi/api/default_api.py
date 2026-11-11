@@ -363,7 +363,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -378,7 +378,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if body is not None:
@@ -386,7 +386,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -395,7 +395,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -405,7 +405,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -691,7 +691,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -706,7 +706,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if body is not None:
@@ -714,7 +714,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -723,7 +723,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -733,7 +733,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -825,6 +825,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "Mesh",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -907,6 +908,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "Mesh",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -989,6 +991,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "Mesh",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -1019,7 +1022,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -1034,7 +1037,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if copy_request is not None:
@@ -1042,7 +1045,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -1051,7 +1054,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -1061,7 +1064,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -1153,6 +1156,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "PhysicsSet",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -1235,6 +1239,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "PhysicsSet",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -1317,6 +1322,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "PhysicsSet",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -1347,7 +1353,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -1362,7 +1368,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if copy_request is not None:
@@ -1370,7 +1376,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -1379,7 +1385,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -1389,7 +1395,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -1678,7 +1684,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -1695,7 +1701,7 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if copy_request is not None:
@@ -1703,7 +1709,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -1712,7 +1718,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -1722,7 +1728,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -2011,7 +2017,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -2028,7 +2034,7 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_file_upload is not None:
@@ -2036,7 +2042,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -2045,7 +2051,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -2055,7 +2061,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -2331,7 +2337,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -2344,7 +2350,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_geometry_element is not None:
@@ -2352,7 +2358,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -2361,7 +2367,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -2371,7 +2377,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -2647,7 +2653,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -2660,7 +2666,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if create_geometry_element_batch_request is not None:
@@ -2668,7 +2674,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -2677,7 +2683,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -2687,7 +2693,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -2989,7 +2995,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -3010,7 +3016,7 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_interaction is not None:
@@ -3018,7 +3024,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -3027,7 +3033,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -3037,7 +3043,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -3313,7 +3319,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -3326,7 +3332,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_material is not None:
@@ -3334,7 +3340,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -3343,7 +3349,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -3353,7 +3359,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -3629,7 +3635,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -3642,7 +3648,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if body is not None:
@@ -3650,7 +3656,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -3659,7 +3665,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -3669,7 +3675,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -3757,6 +3763,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "OverrideSet",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -3835,6 +3842,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "OverrideSet",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -3913,6 +3921,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "OverrideSet",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -3942,7 +3951,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -3955,7 +3964,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_override_set is not None:
@@ -3963,7 +3972,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -3972,7 +3981,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -3982,7 +3991,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -4261,7 +4270,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -4274,7 +4283,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_physics is not None:
@@ -4282,7 +4291,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -4291,7 +4300,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -4301,7 +4310,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -4389,6 +4398,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "PhysicsSet",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -4467,6 +4477,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "PhysicsSet",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -4545,6 +4556,7 @@ class DefaultApi:
 
         _response_types_map: Dict[str, Optional[str]] = {
             '200': "PhysicsSet",
+            '400': "ErrorResponse",
             '401': "ErrorResponse",
             '403': "ErrorResponse",
             '404': "ErrorResponse",
@@ -4574,7 +4586,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -4587,7 +4599,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_physics_set is not None:
@@ -4595,7 +4607,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -4604,7 +4616,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -4614,7 +4626,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -4874,7 +4886,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -4885,7 +4897,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_project is not None:
@@ -4893,7 +4905,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -4902,7 +4914,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -4912,7 +4924,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -5188,7 +5200,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -5201,7 +5213,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_region is not None:
@@ -5209,7 +5221,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -5218,7 +5230,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -5228,7 +5240,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -5273,7 +5285,7 @@ class DefaultApi:
     ) -> ResourceReservation:
         """Create a compute resource reservation
 
-        Reserve compute resources ahead of starting mesh or simulation jobs. Poll the reservation with GET until status is `reserved`. While the reservation is active, quota hours and concurrent cores are consumed even when no job is running. Renew the lease periodically with POST .../renew-lease (recommended interval is at most every 60 seconds). Each reservation has a fixed 120 second lease; renew resets the lease to 120 seconds from the renewal time. Create and renew are rejected with quota_exceeded when remaining CPU-time quota is less than the vCPU-seconds consumed during a full 120 second lease. If quota is already exhausted, renew releases the reservation and returns quota_exceeded. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is used automatically. 
+        Reserve compute resources ahead of starting mesh or simulation jobs. Poll the reservation with GET until status is `reserved`. While the reservation is active, credits and concurrent cores are consumed even when no job is running. Renew the lease periodically with POST .../renew-lease (recommended interval is at most every 60 seconds). Each reservation has a fixed 120 second lease; renew resets the lease to 120 seconds from the renewal time. Create and renew are rejected with quota_exceeded when remaining credits are less than the credits consumed during a full 120 second lease. If quota is already exhausted, renew releases the reservation and returns quota_exceeded. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is used automatically. 
 
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
@@ -5347,7 +5359,7 @@ class DefaultApi:
     ) -> ApiResponse[ResourceReservation]:
         """Create a compute resource reservation
 
-        Reserve compute resources ahead of starting mesh or simulation jobs. Poll the reservation with GET until status is `reserved`. While the reservation is active, quota hours and concurrent cores are consumed even when no job is running. Renew the lease periodically with POST .../renew-lease (recommended interval is at most every 60 seconds). Each reservation has a fixed 120 second lease; renew resets the lease to 120 seconds from the renewal time. Create and renew are rejected with quota_exceeded when remaining CPU-time quota is less than the vCPU-seconds consumed during a full 120 second lease. If quota is already exhausted, renew releases the reservation and returns quota_exceeded. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is used automatically. 
+        Reserve compute resources ahead of starting mesh or simulation jobs. Poll the reservation with GET until status is `reserved`. While the reservation is active, credits and concurrent cores are consumed even when no job is running. Renew the lease periodically with POST .../renew-lease (recommended interval is at most every 60 seconds). Each reservation has a fixed 120 second lease; renew resets the lease to 120 seconds from the renewal time. Create and renew are rejected with quota_exceeded when remaining credits are less than the credits consumed during a full 120 second lease. If quota is already exhausted, renew releases the reservation and returns quota_exceeded. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is used automatically. 
 
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
@@ -5421,7 +5433,7 @@ class DefaultApi:
     ) -> RESTResponseType:
         """Create a compute resource reservation
 
-        Reserve compute resources ahead of starting mesh or simulation jobs. Poll the reservation with GET until status is `reserved`. While the reservation is active, quota hours and concurrent cores are consumed even when no job is running. Renew the lease periodically with POST .../renew-lease (recommended interval is at most every 60 seconds). Each reservation has a fixed 120 second lease; renew resets the lease to 120 seconds from the renewal time. Create and renew are rejected with quota_exceeded when remaining CPU-time quota is less than the vCPU-seconds consumed during a full 120 second lease. If quota is already exhausted, renew releases the reservation and returns quota_exceeded. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is used automatically. 
+        Reserve compute resources ahead of starting mesh or simulation jobs. Poll the reservation with GET until status is `reserved`. While the reservation is active, credits and concurrent cores are consumed even when no job is running. Renew the lease periodically with POST .../renew-lease (recommended interval is at most every 60 seconds). Each reservation has a fixed 120 second lease; renew resets the lease to 120 seconds from the renewal time. Create and renew are rejected with quota_exceeded when remaining credits are less than the credits consumed during a full 120 second lease. If quota is already exhausted, renew releases the reservation and returns quota_exceeded. When team credits enforcement is active, `teamId` is required if the API user belongs to more than one team with active team credits. When omitted and the user belongs to exactly one such team, that team is used automatically. 
 
         :param authorization: The bearer token acquired using the /token endpoint. (required)
         :type authorization: str
@@ -5488,7 +5500,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -5499,7 +5511,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if resource_reservation_request is not None:
@@ -5507,7 +5519,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -5516,7 +5528,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -5526,7 +5538,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -5802,7 +5814,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -5815,7 +5827,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if shared_expression_update is not None:
@@ -5823,7 +5835,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -5832,7 +5844,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -5842,7 +5854,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -6131,7 +6143,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -6148,7 +6160,7 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_simulation is not None:
@@ -6156,7 +6168,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -6165,7 +6177,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -6175,7 +6187,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -6448,7 +6460,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -6463,13 +6475,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -6748,7 +6760,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -6765,13 +6777,13 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -7079,7 +7091,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -7102,13 +7114,13 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -7387,7 +7399,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -7402,13 +7414,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -7690,7 +7702,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -7705,13 +7717,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -7990,7 +8002,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -8005,13 +8017,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -8293,7 +8305,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -8308,13 +8320,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -8593,7 +8605,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -8608,13 +8620,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -8883,7 +8895,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -8896,13 +8908,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -9181,7 +9193,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -9196,13 +9208,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -9484,7 +9496,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -9499,13 +9511,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -9787,7 +9799,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -9802,13 +9814,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -10087,7 +10099,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -10102,13 +10114,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -10387,7 +10399,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -10404,13 +10416,13 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -10689,7 +10701,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -10704,13 +10716,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -10976,7 +10988,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -10989,13 +11001,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -11277,7 +11289,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -11292,13 +11304,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -11526,7 +11538,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -11541,7 +11553,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -11809,7 +11821,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -11822,13 +11834,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -12146,7 +12158,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -12173,13 +12185,13 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -12458,7 +12470,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -12473,13 +12485,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -12758,7 +12770,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -12771,7 +12783,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if get_job_statuses_request is not None:
@@ -12779,7 +12791,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -12788,7 +12800,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -12798,7 +12810,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -13039,7 +13051,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -13050,13 +13062,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -13329,7 +13341,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -13344,13 +13356,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -13610,7 +13622,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -13623,13 +13635,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -13908,7 +13920,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -13923,13 +13935,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -14211,7 +14223,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -14226,13 +14238,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -14530,7 +14542,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -14545,15 +14557,15 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         if if_none_match is not None:
-            _header_params['If-None-Match'] = if_none_match
+            self.api_client._set_header(_header_params, 'If-None-Match', if_none_match)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -14819,7 +14831,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -14832,13 +14844,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -15088,7 +15100,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -15099,13 +15111,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -15387,7 +15399,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -15402,13 +15414,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -15677,7 +15689,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -15690,13 +15702,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -15956,7 +15968,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -15969,13 +15981,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -16257,7 +16269,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -16272,13 +16284,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -16547,7 +16559,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -16560,13 +16572,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -16832,7 +16844,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -16845,13 +16857,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -17153,7 +17165,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -17180,13 +17192,13 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -17455,7 +17467,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -17468,13 +17480,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -17740,7 +17752,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -17753,13 +17765,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -18041,7 +18053,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -18056,13 +18068,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -18331,7 +18343,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -18344,13 +18356,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -18597,7 +18609,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -18608,13 +18620,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -18893,7 +18905,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -18908,13 +18920,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -19193,7 +19205,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -19208,13 +19220,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -19480,7 +19492,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -19493,13 +19505,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -19817,7 +19829,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -19844,13 +19856,13 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -20155,7 +20167,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -20174,15 +20186,15 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         if if_none_match is not None:
-            _header_params['If-None-Match'] = if_none_match
+            self.api_client._set_header(_header_params, 'If-None-Match', if_none_match)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/octet-stream', 
@@ -20492,7 +20504,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -20511,7 +20523,7 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if request_body is not None:
@@ -20519,7 +20531,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -20528,7 +20540,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -20538,7 +20550,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -20811,7 +20823,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -20826,13 +20838,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -21079,7 +21091,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -21090,13 +21102,13 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -21388,7 +21400,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -21403,7 +21415,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if file_upload_completion is not None:
@@ -21411,7 +21423,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -21420,7 +21432,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -21430,7 +21442,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -21703,7 +21715,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -21716,7 +21728,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if mark_file_batch_uploaded_request is not None:
@@ -21724,7 +21736,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -21733,7 +21745,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -21743,7 +21755,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -22016,7 +22028,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -22029,7 +22041,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if body is not None:
@@ -22037,7 +22049,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -22046,7 +22058,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -22056,7 +22068,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -22102,7 +22114,7 @@ class DefaultApi:
     ) -> object:
         """Renew resource reservation lease
 
-        Extends the reservation lease. Must be called before the lease expires or compute instances are reclaimed. Each successful renewal sets the lease expiry to 120 seconds from the renewal time. Returns quota_exceeded when remaining CPU-time quota is insufficient for another 120 second lease at the reserved vCPU count; the reservation stays active. If quota is already exhausted, the reservation is released and this endpoint returns quota_exceeded. 
+        Extends the reservation lease. Must be called before the lease expires or compute instances are reclaimed. Each successful renewal sets the lease expiry to 120 seconds from the renewal time. Returns quota_exceeded when remaining credits are insufficient for another 120 second lease at the reserved vCPU count; the reservation stays active. If quota is already exhausted, the reservation is released and this endpoint returns quota_exceeded. 
 
         :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
         :type reservation_id: str
@@ -22181,7 +22193,7 @@ class DefaultApi:
     ) -> ApiResponse[object]:
         """Renew resource reservation lease
 
-        Extends the reservation lease. Must be called before the lease expires or compute instances are reclaimed. Each successful renewal sets the lease expiry to 120 seconds from the renewal time. Returns quota_exceeded when remaining CPU-time quota is insufficient for another 120 second lease at the reserved vCPU count; the reservation stays active. If quota is already exhausted, the reservation is released and this endpoint returns quota_exceeded. 
+        Extends the reservation lease. Must be called before the lease expires or compute instances are reclaimed. Each successful renewal sets the lease expiry to 120 seconds from the renewal time. Returns quota_exceeded when remaining credits are insufficient for another 120 second lease at the reserved vCPU count; the reservation stays active. If quota is already exhausted, the reservation is released and this endpoint returns quota_exceeded. 
 
         :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
         :type reservation_id: str
@@ -22260,7 +22272,7 @@ class DefaultApi:
     ) -> RESTResponseType:
         """Renew resource reservation lease
 
-        Extends the reservation lease. Must be called before the lease expires or compute instances are reclaimed. Each successful renewal sets the lease expiry to 120 seconds from the renewal time. Returns quota_exceeded when remaining CPU-time quota is insufficient for another 120 second lease at the reserved vCPU count; the reservation stays active. If quota is already exhausted, the reservation is released and this endpoint returns quota_exceeded. 
+        Extends the reservation lease. Must be called before the lease expires or compute instances are reclaimed. Each successful renewal sets the lease expiry to 120 seconds from the renewal time. Returns quota_exceeded when remaining credits are insufficient for another 120 second lease at the reserved vCPU count; the reservation stays active. If quota is already exhausted, the reservation is released and this endpoint returns quota_exceeded. 
 
         :param reservation_id: Resource reservation identifier returned by CreateResourceReservation (required)
         :type reservation_id: str
@@ -22332,7 +22344,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -22345,7 +22357,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if body is not None:
@@ -22353,7 +22365,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -22362,7 +22374,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -22372,7 +22384,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -22626,7 +22638,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -22645,7 +22657,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -22654,7 +22666,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -22664,7 +22676,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -22968,7 +22980,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -22985,7 +22997,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if start_job_request is not None:
@@ -22993,7 +23005,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -23002,7 +23014,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -23012,7 +23024,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -23301,7 +23313,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -23318,7 +23330,7 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if start_job_request is not None:
@@ -23326,7 +23338,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -23335,7 +23347,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -23345,7 +23357,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -23634,7 +23646,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -23649,7 +23661,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if start_job_request is not None:
@@ -23657,7 +23669,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -23666,7 +23678,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -23676,7 +23688,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -23952,7 +23964,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -23965,7 +23977,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if geometry_element is not None:
@@ -23973,7 +23985,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -23982,7 +23994,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -23992,7 +24004,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -24307,7 +24319,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -24330,7 +24342,7 @@ class DefaultApi:
             
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if interaction_update is not None:
@@ -24338,7 +24350,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -24347,7 +24359,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -24357,7 +24369,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -24646,7 +24658,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -24661,7 +24673,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if material_update is not None:
@@ -24669,7 +24681,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -24678,7 +24690,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -24688,7 +24700,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -24977,7 +24989,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -24992,7 +25004,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if mesh_update is not None:
@@ -25000,7 +25012,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -25009,7 +25021,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -25019,7 +25031,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -25305,7 +25317,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -25320,7 +25332,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if override_set_update is not None:
@@ -25328,7 +25340,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -25337,7 +25349,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -25347,7 +25359,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -25636,7 +25648,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -25651,7 +25663,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if physics_update is not None:
@@ -25659,7 +25671,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -25668,7 +25680,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -25678,7 +25690,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -25964,7 +25976,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -25979,7 +25991,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if physics_set_update is not None:
@@ -25987,7 +25999,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -25996,7 +26008,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -26006,7 +26018,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -26282,7 +26294,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -26295,7 +26307,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if new_project is not None:
@@ -26303,7 +26315,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -26312,7 +26324,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -26322,7 +26334,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -26611,7 +26623,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -26626,7 +26638,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if region_update is not None:
@@ -26634,7 +26646,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -26643,7 +26655,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -26653,7 +26665,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -26942,7 +26954,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -26957,7 +26969,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if shared_expression_update is not None:
@@ -26965,7 +26977,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -26974,7 +26986,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -26984,7 +26996,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -27273,7 +27285,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -27288,7 +27300,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if simulation_update is not None:
@@ -27296,7 +27308,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -27305,7 +27317,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -27315,7 +27327,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -27605,7 +27617,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -27620,7 +27632,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if field_initialization_update is not None:
@@ -27628,7 +27640,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -27637,7 +27649,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -27647,7 +27659,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -27934,7 +27946,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -27949,7 +27961,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if simulation_input_file is not None:
@@ -27957,7 +27969,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -27966,7 +27978,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -27976,7 +27988,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [
@@ -28266,7 +28278,7 @@ class DefaultApi:
 
         _path_params: Dict[str, str] = {}
         _query_params: List[Tuple[str, str]] = []
-        _header_params: Dict[str, Optional[str]] = _headers or {}
+        _header_params: Dict[str, Any] = self.api_client._merge_headers(_headers)
         _form_params: List[Tuple[str, str]] = []
         _files: Dict[
             str, Union[str, bytes, List[str], List[bytes], List[Tuple[str, bytes]]]
@@ -28281,7 +28293,7 @@ class DefaultApi:
         # process the query parameters
         # process the header parameters
         if authorization is not None:
-            _header_params['Authorization'] = authorization
+            self.api_client._set_header(_header_params, 'Authorization', authorization)
         # process the form parameters
         # process the body parameter
         if simulation_script_update is not None:
@@ -28289,7 +28301,7 @@ class DefaultApi:
 
 
         # set the HTTP header `Accept`
-        if 'Accept' not in _header_params:
+        if not any(key.lower() == 'accept' for key in _header_params):
             _header_params['Accept'] = self.api_client.select_header_accept(
                 [
                     'application/json'
@@ -28298,7 +28310,7 @@ class DefaultApi:
 
         # set the HTTP header `Content-Type`
         if _content_type:
-            _header_params['Content-Type'] = _content_type
+            self.api_client._set_header(_header_params, 'Content-Type', _content_type)
         else:
             _default_content_type = (
                 self.api_client.select_header_content_type(
@@ -28308,7 +28320,7 @@ class DefaultApi:
                 )
             )
             if _default_content_type is not None:
-                _header_params['Content-Type'] = _default_content_type
+                self.api_client._set_header(_header_params, 'Content-Type', _default_content_type)
 
         # authentication setting
         _auth_settings: List[str] = [

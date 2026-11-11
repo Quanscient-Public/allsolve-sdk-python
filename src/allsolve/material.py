@@ -1,6 +1,7 @@
 # Copyright 2026 Quanscient Oy
 # SPDX-License-Identifier: Apache-2.0
 
+import copy
 from typing import List, Tuple
 from typing_extensions import Self
 from allsolve.region import Region
@@ -161,10 +162,15 @@ class MaterialProperty:
     class ElasticityMatrix(PhysicalProperty):
         def __init__(self, value: List[List[float | str]]) -> None:
             if len(value) != 6:
-                raise ValueError("Elasticity matrix must be a list of 6 floats")
+                raise ValueError(
+                    "Elasticity matrix must be a 6x6 matrix: expected 6 rows"
+                )
             for row in value:
                 if len(row) != 6:
-                    raise ValueError("Elasticity matrix must be a list of 6 floats")
+                    raise ValueError(
+                        "Elasticity matrix must be a 6x6 matrix: "
+                        "each row must have 6 values"
+                    )
 
             # Format 6x6 matrix to
             # "[11, 12, ..., 16; 21, 22, ..., 26; ...; 61, 62, ..., 66]"
@@ -500,7 +506,7 @@ class Material:
 
         Parameters:
             name: The name of the material.
-            color: The color of the material. Format: "#RRGGBB"
+            color: The color of the material. Hex string in the format `"#RRGGBB"`.
             description: Optional description of the material.
             properties: List of PhysicalProperty objects of the material.
             target_region: The target Region of the material.
@@ -823,11 +829,16 @@ class Material:
 
     @target.setter
     @prevent_deleted
-    def target(self, target: str) -> None:
+    def target(self, target: str | Region) -> None:
         """
         Set the target of the material.
         Use save() to commit the change.
+
+        Parameters:
+            target: The target region, as a Region or a region ID string.
         """
+        if isinstance(target, Region):
+            target = target.id
         self._current_uncommitted_update().target = target
 
     @property
@@ -938,13 +949,12 @@ class Material:
                 material_update=material_update,
             )
 
-            self._uncommitted_update = None
-
             self.material = api.get_material(
                 authorization=get_auth(),
                 project_id=self._project_id,
                 material_id=self.id,
             )
+            self._uncommitted_update = None
 
     @prevent_deleted
     def _current_uncommitted_update(self) -> rawapi.MaterialUpdate:
@@ -954,9 +964,10 @@ class Material:
         if self._uncommitted_update is None:
             self._uncommitted_update = rawapi.MaterialUpdate(
                 name=self.material.name,
+                abbreviation=self.material.abbreviation,
                 description=self.material.description,
                 color=self.material.color,
-                properties=self.material.properties,
+                properties=copy.deepcopy(self.material.properties),
                 target=self.material.target,
                 orientation=(
                     self.material.orientation if self.material.orientation else None

@@ -7,7 +7,7 @@ import allsolve_rawapi as rawapi
 
 from allsolve.api import check_for_project_api_key, get_api, get_auth
 from allsolve.util import NotInitializedError, prevent_deleted
-from .interaction import Interaction
+from .interaction import Interaction as PhysicsInteraction
 
 if TYPE_CHECKING:
     from allsolve.region import Region
@@ -35,12 +35,13 @@ class Fields:
     """
     Named container for physics fields.
 
-    Supports attribute access, dict-style access, indexing, and iteration::
-
-        physics.fields.displacement        # by definition name
-        physics.fields["displacement"]     # dict-style
-        physics.fields[0]                  # by index
-        for field in physics.fields: ...   # iteration
+    Supports attribute access, dict-style access, indexing, and iteration:
+    ```python
+    physics.fields.displacement        # by definition name
+    physics.fields["displacement"]     # dict-style
+    physics.fields[0]                  # by index
+    for field in physics.fields: ...   # iteration
+    ```
     """
 
     def __init__(self, fields: List[Field]):
@@ -220,8 +221,6 @@ class Physic:
         """
         if self._physics is None:
             return self._target_region_id
-        if self._uncommitted_update is not None:
-            return self._uncommitted_update.target
         physics = self._ensure_bound()
         return physics.target
 
@@ -243,10 +242,6 @@ class Physic:
         """Get the physics set ID of the physic."""
         if self._physics is None:
             raise NotInitializedError("Physic is not initialized")
-        if self._uncommitted_update is not None:
-            update_set_id = self._uncommitted_update.physics_set_id
-            if update_set_id is not None:
-                return update_set_id
         physics = self._ensure_bound()
         return physics.physics_set_id
 
@@ -262,16 +257,26 @@ class Physic:
 
     @property
     @prevent_deleted
-    def interactions(self) -> List[Interaction]:
+    def interactions(self) -> List[PhysicsInteraction]:
         """
         Get the interactions of the physic.
+
+        Returns:
+            A list of ``PhysicsInteraction`` objects. Each item is an instance of
+            the generated interaction class for its definition, for example
+            ``Interaction.SolidMechanicsLoad``.
         """
         return self.get_interactions()
 
     @prevent_deleted
-    def get_interactions(self) -> List[Interaction]:
+    def get_interactions(self) -> List[PhysicsInteraction]:
         """
         Get the interactions of the physic.
+
+        Returns:
+            A list of ``PhysicsInteraction`` objects. Each item is an instance of
+            the generated interaction class for its definition, for example
+            ``Interaction.SolidMechanicsLoad``.
         """
         self._ensure_bound()
         self._refresh()
@@ -281,11 +286,11 @@ class Physic:
             return []
         from .generated.registries import get_interaction_class
 
-        interactions: List[Interaction] = []
+        interactions: List[PhysicsInteraction] = []
         for interaction in physics.interactions:
             subclass = get_interaction_class(self.definition, interaction.definition)
             if subclass is None:
-                subclass = Interaction
+                subclass = PhysicsInteraction
             interactions.append(
                 subclass._from_rawapi(
                     project_id=self._project_id,
@@ -296,16 +301,25 @@ class Physic:
         return interactions
 
     @prevent_deleted
-    def add_interactions(self, interactions: List[Interaction]) -> List[Interaction]:
+    def add_interactions(
+        self, interactions: List[PhysicsInteraction]
+    ) -> List[PhysicsInteraction]:
         """
         Add interactions to this physic.
+
+        Parameters:
+            interactions: ``PhysicsInteraction`` objects to add, for example
+                ``Interaction.SolidMechanicsLoad(...)`` instances.
+
+        Returns:
+            The created ``PhysicsInteraction`` objects.
         """
         self._ensure_bound()
         if not isinstance(interactions, list):
             raise ValueError("interactions must be a list of Interaction instances")
-        created: List[Interaction] = []
+        created: List[PhysicsInteraction] = []
         for interaction in interactions:
-            if not isinstance(interaction, Interaction):
+            if not isinstance(interaction, PhysicsInteraction):
                 raise ValueError(
                     "All items in interactions must be Interaction instances"
                 )
@@ -324,9 +338,12 @@ class Physic:
         return created
 
     @prevent_deleted
-    def interaction(self, definition: str) -> Interaction | None:
+    def interaction(self, definition: str) -> PhysicsInteraction | None:
         """
         Get the interaction of the physic by interaction definition.
+
+        Returns:
+            The matching ``PhysicsInteraction``, or ``None`` if there is none.
         """
         interactions = self.get_interactions()
         for interaction in interactions:
@@ -341,11 +358,12 @@ class Physic:
         Get the fields of the physic.
 
         Returns a :class:`Fields` container that supports attribute access,
-        dict-style access, indexing, and iteration::
-
-            physics.fields.displacement        # by definition name
-            physics.fields["displacement"]     # dict-style
-            physics.fields[0]                  # by index
+        dict-style access, indexing, and iteration:
+        ```python
+        physics.fields.displacement        # by definition name
+        physics.fields["displacement"]     # dict-style
+        physics.fields[0]                  # by index
+        ```
         """
         physics = self._ensure_bound()
         field_list: List[Field] = []
@@ -376,14 +394,7 @@ class Physic:
         Raises:
             ValueError: If the physic has no fields or the field_id is not found.
         """
-        physics = self._ensure_bound()
-        # Check uncommitted update first
-        fields = (
-            self._uncommitted_update.fields
-            if self._uncommitted_update is not None
-            and self._uncommitted_update.fields is not None
-            else physics.fields
-        )
+        fields = self._ensure_bound().fields
 
         if not fields:
             raise ValueError("Physic has no fields")
@@ -433,20 +444,9 @@ class Physic:
         if isinstance(interpolation_order, int):
             interpolation_order = str(interpolation_order)
 
-        # Build updated fields list
-        updated_fields = [
-            rawapi.PhysicsField(
-                fieldId=field.field_id,
-                interpolationOrder=(
-                    interpolation_order
-                    if field.field_id == target_field_id
-                    else field.interpolation_order
-                ),
-            )
-            for field in physics.fields
-        ]
-
-        self._current_uncommitted_update().fields = updated_fields
+        for field in self._current_uncommitted_update().fields:
+            if field.field_id == target_field_id:
+                field.interpolation_order = interpolation_order
 
     @prevent_deleted
     def save(self) -> None:
@@ -509,6 +509,7 @@ class Physic:
                 fields=[
                     rawapi.PhysicsField(
                         fieldId=field.field_id,
+                        definition=field.definition,
                         interpolationOrder=field.interpolation_order,
                     )
                     for field in physics.fields
@@ -533,6 +534,9 @@ class Physic:
         self._deleted = True
 
     def __str__(self) -> str:
+        if self._deleted:
+            physics = self._ensure_bound()
+            return f"Physic(id={physics.id}, definition={physics.definition}, deleted=True)"
         if self._physics is None:
             return f"Physic(definition={self.definition})"
         return f"Physic(id={self.id}, definition={self.definition})"

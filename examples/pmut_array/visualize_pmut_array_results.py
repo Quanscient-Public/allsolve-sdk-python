@@ -33,7 +33,7 @@ import imageio.v3 as iio
 PROJECT_NAME = "PMUT array demo"
 FIELD_COSINE = "p harmonic 2"
 FIELD_SINE = "p harmonic 3"
-RESULT_FILE_EXTENSIONS = (".vtu", ".hdf")
+RESULT_FILE_EXTENSION = ".hdf"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "output")
@@ -51,10 +51,8 @@ SWEEP_STEP: int | None = None
 
 
 def _list_result_files(results_dir: str) -> list[str]:
-    """Return field output files (.vtu or .hdf) in *results_dir*."""
-    files: list[str] = []
-    for ext in RESULT_FILE_EXTENSIONS:
-        files.extend(glob.glob(os.path.join(results_dir, f"*{ext}")))
+    """Return field output files (.hdf) in *results_dir*."""
+    files = glob.glob(os.path.join(results_dir, f"*{RESULT_FILE_EXTENSION}"))
     return sorted(files)
 
 
@@ -237,7 +235,7 @@ def _download_field_if_needed(
     result_files = _list_result_files(output_dir)
     if not result_files:
         raise RuntimeError(
-            f"No VTU or HDF file found after downloading '{field_name}' "
+            f"No HDF file found after downloading '{field_name}' "
             f"(sweep step {sweep_step}) to {output_dir}"
         )
     return result_files[0]

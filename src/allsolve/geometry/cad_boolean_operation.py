@@ -61,7 +61,11 @@ class _CadBooleanOperationOptions(abc.ABC):
     @boolean_tolerance.setter
     @prevent_deleted
     def boolean_tolerance(self, boolean_tolerance: float | str | None) -> None:
-        """Set the additional tolerance for the Boolean operation algorithm."""
+        """
+        Set the additional tolerance for the Boolean operation algorithm.
+
+        Use save() to commit the change.
+        """
         self._boolean_tolerance = boolean_tolerance
         self._apply_boolean_tolerance_to_rawapi(self._require_boolean_op())
 
@@ -221,7 +225,7 @@ class _CadBinaryBooleanOperation(
     @entity_tags_1.setter
     @prevent_deleted
     def entity_tags_1(self, entity_tags_1: list[int] | None) -> None:
-        """Set the entity tags of the first set."""
+        """Set the entity tags of the first set. Use save() to commit the change."""
         operation_name = self._get_operation_name()
         validate_entity_set(
             entity_tags_1,
@@ -242,7 +246,8 @@ class _CadBinaryBooleanOperation(
     @cad_names_1.setter
     @prevent_deleted
     def cad_names_1(self, cad_names_1: list[str] | None) -> None:
-        """Set the CAD names of the first set."""
+        """Set the CAD names of the first set. Use save() to commit the change."""
+        cad_names_1 = to_str_list(cad_names_1)
         operation_name = self._get_operation_name()
         validate_entity_set(
             self._entity_tags_1,
@@ -263,7 +268,7 @@ class _CadBinaryBooleanOperation(
     @cad_paths_1.setter
     @prevent_deleted
     def cad_paths_1(self, cad_paths_1: list[CadPath] | None) -> None:
-        """Set the CAD paths of the first set."""
+        """Set the CAD paths of the first set. Use save() to commit the change."""
         operation_name = self._get_operation_name()
         validate_entity_set(
             self._entity_tags_1,
@@ -284,7 +289,7 @@ class _CadBinaryBooleanOperation(
     @entity_tags_2.setter
     @prevent_deleted
     def entity_tags_2(self, entity_tags_2: list[int] | None) -> None:
-        """Set the entity tags of the second set."""
+        """Set the entity tags of the second set. Use save() to commit the change."""
         operation_name = self._get_operation_name()
         validate_entity_set(
             entity_tags_2,
@@ -305,7 +310,8 @@ class _CadBinaryBooleanOperation(
     @cad_names_2.setter
     @prevent_deleted
     def cad_names_2(self, cad_names_2: list[str] | None) -> None:
-        """Set the CAD names of the second set."""
+        """Set the CAD names of the second set. Use save() to commit the change."""
+        cad_names_2 = to_str_list(cad_names_2)
         operation_name = self._get_operation_name()
         validate_entity_set(
             self._entity_tags_2,
@@ -326,7 +332,7 @@ class _CadBinaryBooleanOperation(
     @cad_paths_2.setter
     @prevent_deleted
     def cad_paths_2(self, cad_paths_2: list[CadPath] | None) -> None:
-        """Set the CAD paths of the second set."""
+        """Set the CAD paths of the second set. Use save() to commit the change."""
         operation_name = self._get_operation_name()
         validate_entity_set(
             self._entity_tags_2,
@@ -347,7 +353,7 @@ class _CadBinaryBooleanOperation(
     @delete_tool.setter
     @prevent_deleted
     def delete_tool(self, delete_tool: bool) -> None:
-        """Set the delete tool flag."""
+        """Set the delete tool flag. Use save() to commit the change."""
         self._delete_tool = delete_tool
         self._update_rawapi_boolean_operation()
 
@@ -376,8 +382,7 @@ class _CadBinaryBooleanOperation(
             tool = rawapi.CadBooleanElements(
                 elements=tool_elements if tool_elements else [],
             )
-            if self._delete_tool:
-                tool.delete = self._delete_tool
+            tool.delete = self._delete_tool
         boolean_op.tool = tool
         self._apply_boolean_tolerance_to_rawapi(boolean_op)
 
@@ -507,7 +512,7 @@ class CadUnion(_CadBooleanOperationOptions, CadGeometryElement):
     @entity_tags.setter
     @prevent_deleted
     def entity_tags(self, entity_tags: list[int] | None) -> None:
-        """Set the entity tags of the union."""
+        """Set the entity tags of the union. Use save() to commit the change."""
         validate_entity_set(
             entity_tags, self._cad_names, self._cad_paths, "Set 1", "Union"
         )
@@ -523,7 +528,8 @@ class CadUnion(_CadBooleanOperationOptions, CadGeometryElement):
     @cad_names.setter
     @prevent_deleted
     def cad_names(self, cad_names: list[str] | None) -> None:
-        """Set the CAD names of the union."""
+        """Set the CAD names of the union. Use save() to commit the change."""
+        cad_names = to_str_list(cad_names)
         validate_entity_set(
             self._entity_tags, cad_names, self._cad_paths, "Set 1", "Union"
         )
@@ -539,7 +545,7 @@ class CadUnion(_CadBooleanOperationOptions, CadGeometryElement):
     @cad_paths.setter
     @prevent_deleted
     def cad_paths(self, cad_paths: list[CadPath] | None) -> None:
-        """Set the CAD paths of the union."""
+        """Set the CAD paths of the union. Use save() to commit the change."""
         validate_entity_set(
             self._entity_tags, self._cad_names, cad_paths, "Set 1", "Union"
         )

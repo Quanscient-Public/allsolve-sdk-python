@@ -43,11 +43,12 @@ class SolidMechanicsLoad(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a load interaction.
+        """
+        Create a load interaction.
 
         Parameters:
             name: Name of the interaction.
-            force: A force vector with the same dimensions as the project. For a 3D project you'd give a vector like [1.5; 10; 0].
+            force: Force on the target, per unit volume, area or length of it. One value per direction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -78,11 +79,12 @@ class SolidMechanicsConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            solid_mechanics_constraint: A 3x2 matrix for a 3D project, 2x2 for 2D etc. The first column is a 0 or 1 indicating which dimensions have a value. The second column holds the actual values. For example [0, 0; 1, 42; 0, 0] means Y dimension has a constraint 42 and other dimensions don't have a constraint.
+            solid_mechanics_constraint: Displacement the target is held at. Enable only the components you want to constrain; the rest stay free.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -115,7 +117,8 @@ class SolidMechanicsClamp(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a clamp interaction.
+        """
+        Create a clamp interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -152,17 +155,18 @@ class SolidMechanicsLump(Interaction):
         solid_mechanics_lump_force: MatrixValue | None = None,
         solid_mechanics_lump_circuit_coupling: MatrixValue | None = None,
     ) -> None:
-        """Create a lump u/f interaction.
+        """
+        Create a lump u/f interaction.
 
         Parameters:
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            solid_mechanics_lump_actuation_mode: solid mechanics lump actuation mode
-            solid_mechanics_lump_displacement: The primal displacement port
-            solid_mechanics_lump_force: The dual force port
-            solid_mechanics_lump_circuit_coupling: Circuit coupling
+            solid_mechanics_lump_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            solid_mechanics_lump_displacement: Displacement the whole boundary is moved by. Enable only the components you want to prescribe; the rest stay free.
+            solid_mechanics_lump_force: Total force applied through the boundary. Enable only the components you want to prescribe; the rest stay free.
+            solid_mechanics_lump_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
         """
         _ebo_ctrl_0 = (
             solid_mechanics_lump_actuation_mode.value
@@ -250,13 +254,14 @@ class SolidMechanicsThermalExpansion(Interaction):
         enabled: BooleanValue | None = None,
         thermal_expansion_reference_temperature: ScalarValue = "273",
     ) -> None:
-        """Create a thermal expansion interaction.
+        """
+        Create a thermal expansion interaction.
 
         Parameters:
             name: Name of the interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            thermal_expansion_reference_temperature: thermal expansion reference temperature
+            thermal_expansion_reference_temperature: Temperature at which the material is unstrained. The expansion is driven by the difference from it.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -287,7 +292,8 @@ class SolidMechanicsPiezoelectricity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a piezoelectricity interaction.
+        """
+        Create a piezoelectricity interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -315,7 +321,8 @@ class SolidMechanicsElectricForce(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a electric force interaction.
+        """
+        Create a electric force interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -341,7 +348,8 @@ class SolidMechanicsMagneticForce(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a magnetic force interaction.
+        """
+        Create a magnetic force interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -367,7 +375,8 @@ class SolidMechanicsLargeDisplacement(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a large displacement interaction.
+        """
+        Create a large displacement interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -396,11 +405,12 @@ class SolidMechanicsPressure(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a pressure interaction.
+        """
+        Create a pressure interaction.
 
         Parameters:
             name: Name of the interaction.
-            solid_mechanics_pressure: solid mechanics pressure
+            solid_mechanics_pressure: Pressure acting normal to the target boundary. Positive values push into the solid, negative ones pull outward.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -433,11 +443,12 @@ class SolidMechanicsPrestress(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a prestress interaction.
+        """
+        Create a prestress interaction.
 
         Parameters:
             name: Name of the interaction.
-            solid_mechanics_prestress: solid mechanics prestress
+            solid_mechanics_prestress: Stress already present in the region before the analysis starts. Tension stiffens the structure, compression softens it.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -482,19 +493,20 @@ class SolidMechanicsPeriodicity(Interaction):
         solid_mechanics_periodicity_rotation_center: VectorValue | None = None,
         solid_mechanics_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            solid_mechanics_periodicity_anti_periodicity: solid mechanics periodicity anti periodicity
+            solid_mechanics_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            solid_mechanics_periodicity_type: solid mechanics periodicity type
-            solid_mechanics_periodicity_translation_direction: solid mechanics periodicity translation direction
-            solid_mechanics_periodicity_translation_distance: solid mechanics periodicity translation distance
-            solid_mechanics_periodicity_rotation_center: solid mechanics periodicity rotation center
-            solid_mechanics_periodicity_rotation_angle: solid mechanics periodicity rotation angle
+            solid_mechanics_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            solid_mechanics_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            solid_mechanics_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            solid_mechanics_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            solid_mechanics_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             solid_mechanics_periodicity_type.value
@@ -605,7 +617,8 @@ class SolidMechanicsSymmetry(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a symmetry interaction.
+        """
+        Create a symmetry interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -637,12 +650,13 @@ class SolidMechanicsProportionalDamping(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a proportional damping interaction.
+        """
+        Create a proportional damping interaction.
 
         Parameters:
             name: Name of the interaction.
-            solid_mechanics_proportional_damping_alpha: solid mechanics proportional damping alpha
-            solid_mechanics_proportional_damping_beta: solid mechanics proportional damping beta
+            solid_mechanics_proportional_damping_alpha: Mass proportional Rayleigh damping coefficient. It mainly damps the low frequency modes.
+            solid_mechanics_proportional_damping_beta: Stiffness proportional Rayleigh damping coefficient. It mainly damps the high frequency modes.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -679,7 +693,8 @@ class SolidMechanicsGeometricNonlinearity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a geometric nonlinearity interaction.
+        """
+        Create a geometric nonlinearity interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -717,17 +732,18 @@ class SolidMechanicsContact(Interaction):
         enabled: BooleanValue | None = None,
         solid_mechanics_contact_stiction: ScalarValue = "0",
     ) -> None:
-        """Create a contact interaction.
+        """
+        Create a contact interaction.
 
         Parameters:
             name: Name of the interaction.
-            solid_mechanics_contact_spacing: solid mechanics contact spacing
+            solid_mechanics_contact_spacing: Gap tolerance of the contact: the surfaces count as touching once the gap falls to this distance.
             gamma_1: Target region for gamma_1.
             gamma_1_side: Target region for gamma_1_side.
             gamma_2: Target region for gamma_2.
             gamma_2_side: Target region for gamma_2_side.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            solid_mechanics_contact_stiction: solid mechanics contact stiction
+            solid_mechanics_contact_stiction: Force needed to pull the touching surfaces apart before they can slide.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -769,7 +785,8 @@ class SolidMechanicsViscohyperelasticity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a viscohyperelasticity interaction.
+        """
+        Create a viscohyperelasticity interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -800,11 +817,12 @@ class SolidMechanicsInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            solid_mechanics_initial_value: solid mechanics initial value
+            solid_mechanics_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -838,11 +856,12 @@ class CurrentFlowConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            current_flow_constraint: Constraint value in volts.
+            current_flow_constraint: Electric potential the target region is held at.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -875,11 +894,12 @@ class CurrentFlowCurrentDensity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a current density source interaction.
+        """
+        Create a current density source interaction.
 
         Parameters:
             name: Name of the interaction.
-            current_density: A current density vector with the same dimensions as the project. For a 3D project you'd give a vector like [1.5; 10; 0].
+            current_density: Current density driven through the target, one value per direction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -918,17 +938,18 @@ class CurrentFlowLump(Interaction):
         current_flow_lump_current: ScalarValue | None = None,
         current_flow_lump_circuit_coupling: ScalarValue | None = None,
     ) -> None:
-        """Create a lump v/i interaction.
+        """
+        Create a lump v/i interaction.
 
         Parameters:
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            current_flow_lump_actuation_mode: current flow lump actuation mode
-            current_flow_lump_voltage: The primal voltage port
-            current_flow_lump_current: The dual current port
-            current_flow_lump_circuit_coupling: Circuit coupling
+            current_flow_lump_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            current_flow_lump_voltage: Voltage prescribed across the port.
+            current_flow_lump_current: Current driven through the port.
+            current_flow_lump_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
         """
         _ebo_ctrl_0 = (
             current_flow_lump_actuation_mode.value
@@ -1028,7 +1049,8 @@ class CurrentFlowLumpVICut(Interaction):
         current_flow_lump_v_i_cut_current: ScalarValue | None = None,
         current_flow_lump_v_i_cut_circuit_coupling: ScalarValue | None = None,
     ) -> None:
-        """Create a lump v/i cut interaction.
+        """
+        Create a lump v/i cut interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -1036,10 +1058,10 @@ class CurrentFlowLumpVICut(Interaction):
             circulation_loop: Target region for circulation_loop.
             orientation_point: Target region for orientation_point.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            current_flow_lump_v_i_cut_actuation_mode: current flow lump v i cut actuation mode
-            current_flow_lump_v_i_cut_voltage: The primal voltage port
-            current_flow_lump_v_i_cut_current: The dual current port
-            current_flow_lump_v_i_cut_circuit_coupling: Circuit coupling
+            current_flow_lump_v_i_cut_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            current_flow_lump_v_i_cut_voltage: Voltage prescribed across the port.
+            current_flow_lump_v_i_cut_current: Current driven through the port.
+            current_flow_lump_v_i_cut_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
         """
         _ebo_ctrl_0 = (
             current_flow_lump_v_i_cut_actuation_mode.value
@@ -1141,19 +1163,20 @@ class CurrentFlowPeriodicity(Interaction):
         current_flow_periodicity_rotation_center: VectorValue | None = None,
         current_flow_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            current_flow_periodicity_anti_periodicity: current flow periodicity anti periodicity
+            current_flow_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            current_flow_periodicity_type: current flow periodicity type
-            current_flow_periodicity_translation_direction: current flow periodicity translation direction
-            current_flow_periodicity_translation_distance: current flow periodicity translation distance
-            current_flow_periodicity_rotation_center: current flow periodicity rotation center
-            current_flow_periodicity_rotation_angle: current flow periodicity rotation angle
+            current_flow_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            current_flow_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            current_flow_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            current_flow_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            current_flow_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             current_flow_periodicity_type.value
@@ -1263,11 +1286,12 @@ class CurrentFlowInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            current_flow_initial_value: current flow initial value
+            current_flow_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -1301,13 +1325,14 @@ class AcousticWavesPml(Interaction):
         enabled: BooleanValue | None = None,
         acoustic_waves_pml_type: AcousticWavesPmlType | str = AcousticWavesPmlType.AML,
     ) -> None:
-        """Create a perfectly matched layer interaction.
+        """
+        Create a perfectly matched layer interaction.
 
         Parameters:
             name: Name of the interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            acoustic_waves_pml_type: acoustic waves pml type
+            acoustic_waves_pml_type: Shape of the absorbing layer. AML suits smooth boundaries, box PML suits rectangular or cornered ones.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -1343,11 +1368,12 @@ class AcousticWavesConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            acoustic_waves_constraint: Pressure value in pascals
+            acoustic_waves_constraint: Acoustic pressure the target region is held at.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -1378,7 +1404,8 @@ class AcousticWavesAcousticStructure(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a acoustic structure interaction.
+        """
+        Create a acoustic structure interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -1404,7 +1431,8 @@ class AcousticWavesAcousticStructureForElasticWaves(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a acoustic structure interaction.
+        """
+        Create a acoustic structure interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -1432,7 +1460,8 @@ class AcousticWavesAbsorbingBoundary(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a absorbing boundary interaction.
+        """
+        Create a absorbing boundary interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -1474,19 +1503,20 @@ class AcousticWavesPeriodicity(Interaction):
         acoustic_waves_periodicity_rotation_center: VectorValue | None = None,
         acoustic_waves_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            acoustic_waves_periodicity_anti_periodicity: acoustic waves periodicity anti periodicity
+            acoustic_waves_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            acoustic_waves_periodicity_type: acoustic waves periodicity type
-            acoustic_waves_periodicity_translation_direction: acoustic waves periodicity translation direction
-            acoustic_waves_periodicity_translation_distance: acoustic waves periodicity translation distance
-            acoustic_waves_periodicity_rotation_center: acoustic waves periodicity rotation center
-            acoustic_waves_periodicity_rotation_angle: acoustic waves periodicity rotation angle
+            acoustic_waves_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            acoustic_waves_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            acoustic_waves_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            acoustic_waves_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            acoustic_waves_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             acoustic_waves_periodicity_type.value
@@ -1598,11 +1628,12 @@ class AcousticWavesAcousticDamping(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a acoustic damping interaction.
+        """
+        Create a acoustic damping interaction.
 
         Parameters:
             name: Name of the interaction.
-            acoustic_waves_acoustic_damping_damping_value: acoustic waves acoustic damping damping value
+            acoustic_waves_acoustic_damping_damping_value: Coefficient of the damping term on the target. It acts on the rate of change of the pressure and dissipates acoustic energy.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -1636,11 +1667,12 @@ class AcousticWavesNormalAcceleration(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a normal acceleration interaction.
+        """
+        Create a normal acceleration interaction.
 
         Parameters:
             name: Name of the interaction.
-            acoustic_waves_normal_acceleration: acoustic waves normal acceleration
+            acoustic_waves_normal_acceleration: Acceleration of the boundary along its normal, which radiates sound into the domain.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -1677,7 +1709,8 @@ class AcousticWavesContinuity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a continuity interaction.
+        """
+        Create a continuity interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -1712,11 +1745,12 @@ class AcousticWavesInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            acoustic_waves_initial_value: acoustic waves initial value
+            acoustic_waves_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -1750,11 +1784,12 @@ class ElectromagneticWavesConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            electromagnetic_waves_constraint: A 3x1 vector for a 3D project, 2x1 for 2D etc.
+            electromagnetic_waves_constraint: Electric field the target region is held at, one value per direction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -1790,13 +1825,14 @@ class ElectromagneticWavesPml(Interaction):
             ElectromagneticWavesPmlType | str
         ) = ElectromagneticWavesPmlType.AML,
     ) -> None:
-        """Create a perfectly matched layer interaction.
+        """
+        Create a perfectly matched layer interaction.
 
         Parameters:
             name: Name of the interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            electromagnetic_waves_pml_type: electromagnetic waves pml type
+            electromagnetic_waves_pml_type: Shape of the absorbing layer. AML suits smooth boundaries, box PML suits rectangular or cornered ones.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -1838,17 +1874,18 @@ class ElectromagneticWavesRectangularPort(Interaction):
         ) = ElectromagneticWavesRectangularPortModeType.T_E,
         electromagnetic_waves_rectangular_port_drive: BooleanValue = True,
     ) -> None:
-        """Create a rectangular port interaction.
+        """
+        Create a rectangular port interaction.
 
         Parameters:
             name: Name of the interaction.
-            electromagnetic_waves_rectangular_port_x_mode_number: X mode number
-            electromagnetic_waves_rectangular_port_y_mode_number: Y mode number
-            electromagnetic_waves_rectangular_port_driving_signal: Driving signal
+            electromagnetic_waves_rectangular_port_x_mode_number: Mode index along the port's local x axis, the first of the two indices of a TE or TM mode.
+            electromagnetic_waves_rectangular_port_y_mode_number: Mode index along the port's local y axis, the second of the two indices of a TE or TM mode.
+            electromagnetic_waves_rectangular_port_driving_signal: Time signal fed into the port, given as a sine or cosine of the driving frequency, optionally with a phase shift.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            electromagnetic_waves_rectangular_port_mode_type: Mode type
-            electromagnetic_waves_rectangular_port_drive: electromagnetic waves rectangular port drive
+            electromagnetic_waves_rectangular_port_mode_type: Whether the mode fed into the waveguide is transverse electric or transverse magnetic.
+            electromagnetic_waves_rectangular_port_drive: Excites the model through this port. Leave it off for a port that only absorbs and measures.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -1909,7 +1946,8 @@ class ElectromagneticWavesPerfectConductor(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a perfect conductor interaction.
+        """
+        Create a perfect conductor interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -1957,20 +1995,21 @@ class ElectromagneticWavesEigenmodePort(Interaction):
         ) = None,
         electromagnetic_waves_eigenmode_port_drive: BooleanValue = True,
     ) -> None:
-        """Create a eigenmode port interaction.
+        """
+        Create a eigenmode port interaction.
 
         Parameters:
             name: Name of the interaction.
-            electromagnetic_waves_eigenmode_port_driving_signal: Driving signal
+            electromagnetic_waves_eigenmode_port_driving_signal: Time signal fed into the port, given as a sine or cosine of the driving frequency, optionally with a phase shift.
             port_target: Target region for port_target.
             mode_pec: Target region for mode_pec.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            electromagnetic_waves_eigenmode_port_num_eigenmodes: Number of eigenmodes to find
-            electromagnetic_waves_eigenmode_port_eigenmode_index: Selected eigenmode index
-            electromagnetic_waves_eigenmode_port_target_eigenvalue_type: Target eigenvalue type
-            electromagnetic_waves_eigenmode_port_propagation_constant: Propagation constant
-            electromagnetic_waves_eigenmode_port_effective_refractive_index: Effective refractive index
-            electromagnetic_waves_eigenmode_port_drive: Drive
+            electromagnetic_waves_eigenmode_port_num_eigenmodes: How many modes the port solver searches for around the target eigenvalue.
+            electromagnetic_waves_eigenmode_port_eigenmode_index: Which of the modes that were found the port uses, counted from zero.
+            electromagnetic_waves_eigenmode_port_target_eigenvalue_type: Whether the mode search is aimed at a propagation constant or at an effective refractive index.
+            electromagnetic_waves_eigenmode_port_propagation_constant: The mode search looks for modes near this propagation constant.
+            electromagnetic_waves_eigenmode_port_effective_refractive_index: The mode search looks for modes near this effective refractive index.
+            electromagnetic_waves_eigenmode_port_drive: Excites the model through this port. Leave it off for a port that only absorbs and measures.
         """
         _ebo_ctrl_0 = (
             electromagnetic_waves_eigenmode_port_target_eigenvalue_type.value
@@ -2081,11 +2120,12 @@ class ElectromagneticWavesDielectricLoss(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a dielectric loss interaction.
+        """
+        Create a dielectric loss interaction.
 
         Parameters:
             name: Name of the interaction.
-            electromagnetic_waves_dielectric_loss_loss_tangent: Ratio ε''/ε'
+            electromagnetic_waves_dielectric_loss_loss_tangent: Ratio of the imaginary to the real part of the permittivity. It sets how much energy the dielectric absorbs.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -2138,7 +2178,8 @@ class ElectromagneticWavesLumpVI(Interaction):
         electromagnetic_waves_lump_v_i_voltage_drive: BooleanValue | None = None,
         electromagnetic_waves_lump_v_i_current_drive: BooleanValue | None = None,
     ) -> None:
-        """Create a lump v/i interaction.
+        """
+        Create a lump v/i interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -2147,17 +2188,17 @@ class ElectromagneticWavesLumpVI(Interaction):
             one_volt_electrode: Target region for one_volt_electrode.
             ground_electrode: Target region for ground_electrode.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            electromagnetic_waves_lump_v_i_actuation_mode: electromagnetic waves lump v i actuation mode
-            electromagnetic_waves_lump_v_i_voltage: The primal voltage port
-            electromagnetic_waves_lump_v_i_current: The dual current port
-            electromagnetic_waves_lump_v_i_circuit_coupling: Circuit coupling
-            electromagnetic_waves_lump_v_i_resistance: Resistance
-            electromagnetic_waves_lump_v_i_inductance: Inductance
-            electromagnetic_waves_lump_v_i_capacitance: Capacitance
-            electromagnetic_waves_lump_v_i_series_resistance: electromagnetic waves lump v i series resistance
-            electromagnetic_waves_lump_v_i_parallel_resistance: electromagnetic waves lump v i parallel resistance
-            electromagnetic_waves_lump_v_i_voltage_drive: electromagnetic waves lump v i voltage drive
-            electromagnetic_waves_lump_v_i_current_drive: electromagnetic waves lump v i current drive
+            electromagnetic_waves_lump_v_i_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            electromagnetic_waves_lump_v_i_voltage: Voltage prescribed across the port.
+            electromagnetic_waves_lump_v_i_current: Current driven through the port.
+            electromagnetic_waves_lump_v_i_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
+            electromagnetic_waves_lump_v_i_resistance: Resistance of the resistor connected across the port.
+            electromagnetic_waves_lump_v_i_inductance: Inductance of the inductor connected across the port.
+            electromagnetic_waves_lump_v_i_capacitance: Capacitance of the capacitor connected across the port.
+            electromagnetic_waves_lump_v_i_series_resistance: Resistance placed in series with the prescribed voltage source.
+            electromagnetic_waves_lump_v_i_parallel_resistance: Resistance placed in parallel with the prescribed current source.
+            electromagnetic_waves_lump_v_i_voltage_drive: Excites the model through this port. Leave it off for a port that only absorbs and measures.
+            electromagnetic_waves_lump_v_i_current_drive: Excites the model through this port. Leave it off for a port that only absorbs and measures.
         """
         _ebo_ctrl_0 = (
             electromagnetic_waves_lump_v_i_actuation_mode.value
@@ -2383,19 +2424,20 @@ class ElectromagneticWavesPeriodicity(Interaction):
         electromagnetic_waves_periodicity_rotation_center: VectorValue | None = None,
         electromagnetic_waves_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            electromagnetic_waves_periodicity_anti_periodicity: electromagnetic waves periodicity anti periodicity
+            electromagnetic_waves_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            electromagnetic_waves_periodicity_type: electromagnetic waves periodicity type
-            electromagnetic_waves_periodicity_translation_direction: electromagnetic waves periodicity translation direction
-            electromagnetic_waves_periodicity_translation_distance: electromagnetic waves periodicity translation distance
-            electromagnetic_waves_periodicity_rotation_center: electromagnetic waves periodicity rotation center
-            electromagnetic_waves_periodicity_rotation_angle: electromagnetic waves periodicity rotation angle
+            electromagnetic_waves_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            electromagnetic_waves_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            electromagnetic_waves_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            electromagnetic_waves_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            electromagnetic_waves_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             electromagnetic_waves_periodicity_type.value
@@ -2512,7 +2554,8 @@ class ElectromagneticWavesAbsorbingBoundary(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a absorbing boundary interaction.
+        """
+        Create a absorbing boundary interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -2553,17 +2596,18 @@ class ElectromagneticWavesBoundaryAdmittance(Interaction):
             ScalarValue | None
         ) = None,
     ) -> None:
-        """Create a boundary admittance interaction.
+        """
+        Create a boundary admittance interaction.
 
         Parameters:
             name: Name of the interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            electromagnetic_waves_boundary_admittance_type: electromagnetic waves boundary admittance type
-            electromagnetic_waves_boundary_admittance_yr: electromagnetic waves boundary admittance yr
-            electromagnetic_waves_boundary_admittance_yi: electromagnetic waves boundary admittance yi
-            electromagnetic_waves_boundary_admittance_conductivity: electromagnetic waves boundary admittance conductivity
-            electromagnetic_waves_boundary_admittance_magnetic_permeability: electromagnetic waves boundary admittance magnetic permeability
+            electromagnetic_waves_boundary_admittance_type: Whether the surface admittance is given directly or computed from the conductivity and permeability of the conductor.
+            electromagnetic_waves_boundary_admittance_yr: Real part of the surface admittance of the boundary.
+            electromagnetic_waves_boundary_admittance_yi: Imaginary part of the surface admittance of the boundary.
+            electromagnetic_waves_boundary_admittance_conductivity: Conductivity of the boundary material, from which the surface admittance is computed.
+            electromagnetic_waves_boundary_admittance_magnetic_permeability: Permeability of the boundary material, from which the surface admittance is computed.
         """
         _ebo_ctrl_0 = (
             electromagnetic_waves_boundary_admittance_type.value
@@ -2669,11 +2713,12 @@ class ElectromagneticWavesInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            electromagnetic_waves_initial_value: electromagnetic waves initial value
+            electromagnetic_waves_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -2682,6 +2727,47 @@ class ElectromagneticWavesInitialValue(Interaction):
             InteractionParameter(
                 definition="electromagneticWavesInitialValue",
                 value=vector_to_str(electromagnetic_waves_initial_value),
+            )
+        )
+        super().__init__(
+            name=name,
+            targets={"target": target},
+            enabled=enabled,
+            parameters=parameters,
+        )
+
+
+class ElectromagneticWavesBoundaryCurrentDensity(Interaction):
+    """Boundary current density interaction."""
+
+    definition_id = "electromagneticWavesBoundaryCurrentDensity"
+    physics_definition_id = "electromagneticWaves"
+    target_definition_ids = {
+        "target": "electromagneticWavesBoundaryCurrentDensityTarget"
+    }
+
+    def __init__(
+        self,
+        name: str,
+        electromagnetic_waves_boundary_current_density: VectorValue,
+        target: "Region | str",
+        *,
+        enabled: BooleanValue | None = None,
+    ) -> None:
+        """
+        Create a boundary current density interaction.
+
+        Parameters:
+            name: Name of the interaction.
+            electromagnetic_waves_boundary_current_density: Time derivative dJb/dt of the tangential surface current density on the boundary, one value per direction. Enter the time derivative of J, not J itself.
+            target: Target region.
+            enabled: Enabled state (bool or expression string). Defaults to enabled.
+        """
+        parameters: List[InteractionParameter] = []
+        parameters.append(
+            InteractionParameter(
+                definition="electromagneticWavesBoundaryCurrentDensity",
+                value=vector_to_str(electromagnetic_waves_boundary_current_density),
             )
         )
         super().__init__(
@@ -2707,11 +2793,12 @@ class ElectrostaticsConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            electrostatics_constraint: Constraint value in volts.
+            electrostatics_constraint: Electric potential the target region is held at.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -2744,7 +2831,8 @@ class ElectrostaticsPiezoelectricity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a piezoelectricity interaction.
+        """
+        Create a piezoelectricity interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -2781,17 +2869,18 @@ class ElectrostaticsLump(Interaction):
         electrostatics_lump_charge: ScalarValue | None = None,
         electrostatics_lump_circuit_coupling: ScalarValue | None = None,
     ) -> None:
-        """Create a lump v/q interaction.
+        """
+        Create a lump v/q interaction.
 
         Parameters:
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            electrostatics_lump_actuation_mode: electrostatics lump actuation mode
-            electrostatics_lump_voltage: The primal voltage port
-            electrostatics_lump_charge: The dual charge port
-            electrostatics_lump_circuit_coupling: Circuit coupling
+            electrostatics_lump_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            electrostatics_lump_voltage: Voltage prescribed across the port.
+            electrostatics_lump_charge: Electric charge prescribed at the port.
+            electrostatics_lump_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
         """
         _ebo_ctrl_0 = (
             electrostatics_lump_actuation_mode.value
@@ -2876,7 +2965,8 @@ class ElectrostaticsLargeDisplacement(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a large displacement interaction.
+        """
+        Create a large displacement interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -2904,7 +2994,8 @@ class ElectrostaticsElasticWavesPiezoelectricity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a piezoelectricity interaction.
+        """
+        Create a piezoelectricity interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -2946,19 +3037,20 @@ class ElectrostaticsPeriodicity(Interaction):
         electrostatics_periodicity_rotation_center: VectorValue | None = None,
         electrostatics_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            electrostatics_periodicity_anti_periodicity: electrostatics periodicity anti periodicity
+            electrostatics_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            electrostatics_periodicity_type: electrostatics periodicity type
-            electrostatics_periodicity_translation_direction: electrostatics periodicity translation direction
-            electrostatics_periodicity_translation_distance: electrostatics periodicity translation distance
-            electrostatics_periodicity_rotation_center: electrostatics periodicity rotation center
-            electrostatics_periodicity_rotation_angle: electrostatics periodicity rotation angle
+            electrostatics_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            electrostatics_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            electrostatics_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            electrostatics_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            electrostatics_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             electrostatics_periodicity_type.value
@@ -3070,11 +3162,12 @@ class ElectrostaticsInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            electrostatics_initial_value: electrostatics initial value
+            electrostatics_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -3107,7 +3200,8 @@ class MagnetismAMagneticWall(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a magnetic wall interaction.
+        """
+        Create a magnetic wall interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -3135,7 +3229,8 @@ class MagnetismAElectromagneticCoupling(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a a-v coupling interaction.
+        """
+        Create a a-v coupling interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -3164,11 +3259,12 @@ class MagnetismABackgroundField(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a remanence interaction.
+        """
+        Create a remanence interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_a_background_field: magnetism a background field
+            magnetism_a_background_field: Remanent flux density of the permanent magnet, one value per direction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -3213,19 +3309,20 @@ class MagnetismAPeriodicity(Interaction):
         magnetism_a_periodicity_rotation_center: VectorValue | None = None,
         magnetism_a_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_a_periodicity_anti_periodicity: magnetism a periodicity anti periodicity
+            magnetism_a_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            magnetism_a_periodicity_type: magnetism a periodicity type
-            magnetism_a_periodicity_translation_direction: magnetism a periodicity translation direction
-            magnetism_a_periodicity_translation_distance: magnetism a periodicity translation distance
-            magnetism_a_periodicity_rotation_center: magnetism a periodicity rotation center
-            magnetism_a_periodicity_rotation_angle: magnetism a periodicity rotation angle
+            magnetism_a_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            magnetism_a_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            magnetism_a_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            magnetism_a_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            magnetism_a_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             magnetism_a_periodicity_type.value
@@ -3335,11 +3432,12 @@ class MagnetismAInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_a_initial_value: magnetism a initial value
+            magnetism_a_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -3373,11 +3471,12 @@ class MagnetismPhiConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_phi_constraint: Constraint value in Amperes.
+            magnetism_phi_constraint: Magnetic scalar potential the target region is held at. Often used as a gauge that makes the solution unique.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -3410,11 +3509,12 @@ class MagnetismPhiBackgroundField(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a remanence interaction.
+        """
+        Create a remanence interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_phi_background_field: magnetism phi background field
+            magnetism_phi_background_field: Remanent flux density of the permanent magnet, one value per direction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -3456,17 +3556,18 @@ class MagnetismPhiLumpPhiPhiB(Interaction):
         magnetism_phi_lump_phi_phi_b_magnetic_flux_b: ScalarValue | None = None,
         magnetism_phi_lump_phi_phi_b_circuit_coupling: ScalarValue | None = None,
     ) -> None:
-        """Create a magnetism phi lump phi phi b interaction.
+        """
+        Create a magnetism phi lump phi phi b interaction.
 
         Parameters:
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            magnetism_phi_lump_phi_phi_b_actuation_mode: magnetism phi lump phi phi b actuation mode
-            magnetism_phi_lump_phi_phi_b_magnetic_scalar_potential: The primal magnetic scalar potential port
-            magnetism_phi_lump_phi_phi_b_magnetic_flux_b: The dual magnetic flux port
-            magnetism_phi_lump_phi_phi_b_circuit_coupling: Circuit coupling
+            magnetism_phi_lump_phi_phi_b_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            magnetism_phi_lump_phi_phi_b_magnetic_scalar_potential: Magnetic scalar potential prescribed at the port.
+            magnetism_phi_lump_phi_phi_b_magnetic_flux_b: Magnetic flux driven through the port.
+            magnetism_phi_lump_phi_phi_b_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
         """
         _ebo_ctrl_0 = (
             magnetism_phi_lump_phi_phi_b_actuation_mode.value
@@ -3566,7 +3667,8 @@ class MagnetismPhiLumpIV(Interaction):
         magnetism_phi_lump_i_v_voltage: ScalarValue | None = None,
         magnetism_phi_lump_i_v_circuit_coupling: ScalarValue | None = None,
     ) -> None:
-        """Create a lump i/v cut interaction.
+        """
+        Create a lump i/v cut interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -3574,10 +3676,10 @@ class MagnetismPhiLumpIV(Interaction):
             circulation_loop: Target region for circulation_loop.
             orientation_point: Target region for orientation_point.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            magnetism_phi_lump_i_v_actuation_mode: magnetism phi lump i v actuation mode
-            magnetism_phi_lump_i_v_current: The primal current port port
-            magnetism_phi_lump_i_v_voltage: The dual voltage port
-            magnetism_phi_lump_i_v_circuit_coupling: Circuit coupling
+            magnetism_phi_lump_i_v_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            magnetism_phi_lump_i_v_current: Current driven through the port.
+            magnetism_phi_lump_i_v_voltage: Voltage prescribed across the port.
+            magnetism_phi_lump_i_v_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
         """
         _ebo_ctrl_0 = (
             magnetism_phi_lump_i_v_actuation_mode.value
@@ -3668,11 +3770,12 @@ class MagnetismPhiExternalField(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a external field interaction.
+        """
+        Create a external field interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_phi_external_field: magnetism phi external field
+            magnetism_phi_external_field: External magnetic flux density imposed on the boundary. Its normal component drives flux into the model.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -3717,19 +3820,20 @@ class MagnetismPhiPeriodicity(Interaction):
         magnetism_phi_periodicity_rotation_center: VectorValue | None = None,
         magnetism_phi_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_phi_periodicity_anti_periodicity: magnetism phi periodicity anti periodicity
+            magnetism_phi_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             periodicity_target_1: Target region for periodicity_target_1.
             periodicity_target_2: Target region for periodicity_target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            magnetism_phi_periodicity_type: magnetism phi periodicity type
-            magnetism_phi_periodicity_translation_direction: magnetism phi periodicity translation direction
-            magnetism_phi_periodicity_translation_distance: magnetism phi periodicity translation distance
-            magnetism_phi_periodicity_rotation_center: magnetism phi periodicity rotation center
-            magnetism_phi_periodicity_rotation_angle: magnetism phi periodicity rotation angle
+            magnetism_phi_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            magnetism_phi_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            magnetism_phi_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            magnetism_phi_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            magnetism_phi_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             magnetism_phi_periodicity_type.value
@@ -3847,7 +3951,8 @@ class MagnetismPhiContinuity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a continuity interaction.
+        """
+        Create a continuity interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -3882,11 +3987,12 @@ class MagnetismPhiInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_phi_initial_value: magnetism phi initial value
+            magnetism_phi_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -3920,11 +4026,12 @@ class MagnetismHConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_h_constraint: Constraint value in Amperes per meter.
+            magnetism_h_constraint: Magnetic field the target region is held at, one value per direction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -3955,7 +4062,8 @@ class MagnetismHHPhiCoupling(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a h phi coupling interaction.
+        """
+        Create a h phi coupling interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -3983,7 +4091,8 @@ class MagnetismHElectricalInsulator(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a electrical insulator interaction.
+        """
+        Create a electrical insulator interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -4025,19 +4134,20 @@ class MagnetismHPeriodicity(Interaction):
         magnetism_h_periodicity_rotation_center: VectorValue | None = None,
         magnetism_h_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_h_periodicity_anti_periodicity: magnetism h periodicity anti periodicity
+            magnetism_h_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            magnetism_h_periodicity_type: magnetism h periodicity type
-            magnetism_h_periodicity_translation_direction: magnetism h periodicity translation direction
-            magnetism_h_periodicity_translation_distance: magnetism h periodicity translation distance
-            magnetism_h_periodicity_rotation_center: magnetism h periodicity rotation center
-            magnetism_h_periodicity_rotation_angle: magnetism h periodicity rotation angle
+            magnetism_h_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            magnetism_h_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            magnetism_h_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            magnetism_h_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            magnetism_h_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             magnetism_h_periodicity_type.value
@@ -4147,11 +4257,12 @@ class MagnetismHInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            magnetism_h_initial_value: magnetism h initial value
+            magnetism_h_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -4185,11 +4296,12 @@ class LaminarFlowVelocityConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a velocity constraint interaction.
+        """
+        Create a velocity constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            laminar_flow_velocity_constraint: A 3x2 matrix for a 3D project, 2x2 for 2D etc. The first column is a 0 or 1 indicating which dimensions have a value. The second column holds the actual values. For example [0, 0; 1, 42; 0, 0] means Y dimension has a constraint 42 and other dimensions don't have a constraint.
+            laminar_flow_velocity_constraint: Flow velocity the target is held at. Enable only the components you want to constrain; the rest stay free.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -4223,11 +4335,12 @@ class LaminarFlowPressureConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a pressure constraint interaction.
+        """
+        Create a pressure constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            laminar_flow_pressure_constraint: laminar flow pressure constraint
+            laminar_flow_pressure_constraint: Pressure the target region is held at.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -4258,7 +4371,8 @@ class LaminarFlowThermalFluid(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a thermal fluid interaction.
+        """
+        Create a thermal fluid interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -4287,11 +4401,12 @@ class LaminarFlowForce(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a force interaction.
+        """
+        Create a force interaction.
 
         Parameters:
             name: Name of the interaction.
-            laminar_flow_force: laminar flow force
+            laminar_flow_force: Body force acting on the fluid, one value per direction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -4339,19 +4454,20 @@ class LaminarFlowVelocityPeriodicity(Interaction):
         laminar_flow_velocity_periodicity_rotation_center: VectorValue | None = None,
         laminar_flow_velocity_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a velocity periodicity interaction.
+        """
+        Create a velocity periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            laminar_flow_velocity_periodicity_anti_periodicity: laminar flow velocity periodicity anti periodicity
+            laminar_flow_velocity_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            laminar_flow_velocity_periodicity_type: laminar flow velocity periodicity type
-            laminar_flow_velocity_periodicity_translation_direction: laminar flow velocity periodicity translation direction
-            laminar_flow_velocity_periodicity_translation_distance: laminar flow velocity periodicity translation distance
-            laminar_flow_velocity_periodicity_rotation_center: laminar flow velocity periodicity rotation center
-            laminar_flow_velocity_periodicity_rotation_angle: laminar flow velocity periodicity rotation angle
+            laminar_flow_velocity_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            laminar_flow_velocity_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            laminar_flow_velocity_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            laminar_flow_velocity_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            laminar_flow_velocity_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             laminar_flow_velocity_periodicity_type.value
@@ -4484,19 +4600,20 @@ class LaminarFlowPressurePeriodicity(Interaction):
         laminar_flow_pressure_periodicity_rotation_center: VectorValue | None = None,
         laminar_flow_pressure_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a pressure periodicity interaction.
+        """
+        Create a pressure periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            laminar_flow_pressure_periodicity_anti_periodicity: laminar flow pressure periodicity anti periodicity
+            laminar_flow_pressure_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            laminar_flow_pressure_periodicity_type: laminar flow pressure periodicity type
-            laminar_flow_pressure_periodicity_translation_direction: laminar flow pressure periodicity translation direction
-            laminar_flow_pressure_periodicity_translation_distance: laminar flow pressure periodicity translation distance
-            laminar_flow_pressure_periodicity_rotation_center: laminar flow pressure periodicity rotation center
-            laminar_flow_pressure_periodicity_rotation_angle: laminar flow pressure periodicity rotation angle
+            laminar_flow_pressure_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            laminar_flow_pressure_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            laminar_flow_pressure_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            laminar_flow_pressure_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            laminar_flow_pressure_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             laminar_flow_pressure_periodicity_type.value
@@ -4611,7 +4728,8 @@ class LaminarFlowLargeDisplacement(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a large displacement interaction.
+        """
+        Create a large displacement interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -4639,7 +4757,8 @@ class LaminarFlowFluidStructure(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a fluid structure interaction.
+        """
+        Create a fluid structure interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -4669,7 +4788,8 @@ class LaminarFlowVelocitySymmetry(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a velocity symmetry interaction.
+        """
+        Create a velocity symmetry interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -4699,7 +4819,8 @@ class LaminarFlowPressureSymmetry(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a pressure symmetry interaction.
+        """
+        Create a pressure symmetry interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -4736,17 +4857,18 @@ class LaminarFlowLumpPM(Interaction):
         laminar_flow_lump_p_m_mass_flow_rate: ScalarValue | None = None,
         laminar_flow_lump_p_m_circuit_coupling: ScalarValue | None = None,
     ) -> None:
-        """Create a lump p/m interaction.
+        """
+        Create a lump p/m interaction.
 
         Parameters:
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            laminar_flow_lump_p_m_actuation_mode: laminar flow lump p m actuation mode
-            laminar_flow_lump_p_m_pressure: The primal pressure port
-            laminar_flow_lump_p_m_mass_flow_rate: The dual mass flow rate port
-            laminar_flow_lump_p_m_circuit_coupling: Circuit coupling
+            laminar_flow_lump_p_m_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            laminar_flow_lump_p_m_pressure: Pressure prescribed at the port.
+            laminar_flow_lump_p_m_mass_flow_rate: Mass flow rate driven through the port.
+            laminar_flow_lump_p_m_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
         """
         _ebo_ctrl_0 = (
             laminar_flow_lump_p_m_actuation_mode.value
@@ -4840,17 +4962,18 @@ class LaminarFlowLumpVFv(Interaction):
         laminar_flow_lump_v_fv_viscous_force: MatrixValue | None = None,
         laminar_flow_lump_v_fv_circuit_coupling: MatrixValue | None = None,
     ) -> None:
-        """Create a lump v/fv interaction.
+        """
+        Create a lump v/fv interaction.
 
         Parameters:
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            laminar_flow_lump_v_fv_actuation_mode: laminar flow lump v fv actuation mode
-            laminar_flow_lump_v_fv_velocity: The primal velocity port
-            laminar_flow_lump_v_fv_viscous_force: The dual viscous force port
-            laminar_flow_lump_v_fv_circuit_coupling: Circuit coupling
+            laminar_flow_lump_v_fv_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            laminar_flow_lump_v_fv_velocity: Flow velocity prescribed at the port. Enable only the components you want to prescribe; the rest stay free.
+            laminar_flow_lump_v_fv_viscous_force: Viscous force prescribed at the port. Enable only the components you want to prescribe; the rest stay free.
+            laminar_flow_lump_v_fv_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
         """
         _ebo_ctrl_0 = (
             laminar_flow_lump_v_fv_actuation_mode.value
@@ -4938,11 +5061,12 @@ class LaminarFlowLinear(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a linear interaction.
+        """
+        Create a linear interaction.
 
         Parameters:
             name: Name of the interaction.
-            laminar_flow_linear_compressible: laminar flow linear compressible
+            laminar_flow_linear_compressible: Lets the density vary with pressure through the material's speed of sound. Off, the flow is incompressible.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -4976,11 +5100,12 @@ class LaminarFlowVelocityInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial velocity interaction.
+        """
+        Create a initial velocity interaction.
 
         Parameters:
             name: Name of the interaction.
-            laminar_flow_velocity_initial_value: laminar flow velocity initial value
+            laminar_flow_velocity_initial_value: Flow velocity the fluid starts from at the beginning of the simulation, one value per direction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5014,11 +5139,12 @@ class LaminarFlowPressureInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial pressure interaction.
+        """
+        Create a initial pressure interaction.
 
         Parameters:
             name: Name of the interaction.
-            laminar_flow_pressure_initial_value: laminar flow pressure initial value
+            laminar_flow_pressure_initial_value: Pressure the fluid starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5052,11 +5178,12 @@ class HeatTransferTemperatureConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            temperature_constraint: Temperature value in kelvins.
+            temperature_constraint: Temperature the target region is held at.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5089,11 +5216,12 @@ class HeatTransferHeatSource(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a heat source interaction.
+        """
+        Create a heat source interaction.
 
         Parameters:
             name: Name of the interaction.
-            heat_source_power_density: Heat source power density
+            heat_source_power_density: Heat generated inside the target, per unit volume, area or length of it.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5126,7 +5254,8 @@ class HeatTransferJouleHeating(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a joule heating interaction.
+        """
+        Create a joule heating interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -5168,19 +5297,20 @@ class HeatTransferPeriodicity(Interaction):
         heat_transfer_periodicity_rotation_center: VectorValue | None = None,
         heat_transfer_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            heat_transfer_periodicity_anti_periodicity: heat transfer periodicity anti periodicity
+            heat_transfer_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            heat_transfer_periodicity_type: heat transfer periodicity type
-            heat_transfer_periodicity_translation_direction: heat transfer periodicity translation direction
-            heat_transfer_periodicity_translation_distance: heat transfer periodicity translation distance
-            heat_transfer_periodicity_rotation_center: heat transfer periodicity rotation center
-            heat_transfer_periodicity_rotation_angle: heat transfer periodicity rotation angle
+            heat_transfer_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            heat_transfer_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            heat_transfer_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            heat_transfer_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            heat_transfer_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             heat_transfer_periodicity_type.value
@@ -5293,12 +5423,13 @@ class HeatTransferConvection(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a convection interaction.
+        """
+        Create a convection interaction.
 
         Parameters:
             name: Name of the interaction.
-            heat_transfer_convection_heat_transfer_coefficient: heat transfer convection heat transfer coefficient
-            heat_transfer_convection_fluid_temperature: heat transfer convection fluid temperature
+            heat_transfer_convection_heat_transfer_coefficient: Convective heat transfer coefficient of the surface, the h of q = h (T - T∞).
+            heat_transfer_convection_fluid_temperature: Ambient temperature of the fluid the surface exchanges heat with.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5344,17 +5475,18 @@ class HeatTransferLumpTPhi(Interaction):
         heat_transfer_lump_t_phi_heat_power: ScalarValue | None = None,
         heat_transfer_lump_t_phi_circuit_coupling: ScalarValue | None = None,
     ) -> None:
-        """Create a heat transfer lump t phi interaction.
+        """
+        Create a heat transfer lump t phi interaction.
 
         Parameters:
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            heat_transfer_lump_t_phi_actuation_mode: heat transfer lump t phi actuation mode
-            heat_transfer_lump_t_phi_temperature: The primal temperature port
-            heat_transfer_lump_t_phi_heat_power: The dual heat power port
-            heat_transfer_lump_t_phi_circuit_coupling: Circuit coupling
+            heat_transfer_lump_t_phi_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            heat_transfer_lump_t_phi_temperature: Temperature prescribed at the port.
+            heat_transfer_lump_t_phi_heat_power: Heat power fed through the port.
+            heat_transfer_lump_t_phi_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
         """
         _ebo_ctrl_0 = (
             heat_transfer_lump_t_phi_actuation_mode.value
@@ -5442,11 +5574,12 @@ class HeatTransferInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            heat_transfer_initial_value: heat transfer initial value
+            heat_transfer_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5480,11 +5613,12 @@ class HeatFluidConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            heat_fluid_constraint: Temperature value in kelvins
+            heat_fluid_constraint: Temperature the target region is held at.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5517,11 +5651,12 @@ class HeatFluidHeatSource(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a heat source interaction.
+        """
+        Create a heat source interaction.
 
         Parameters:
             name: Name of the interaction.
-            heat_fluid_heat_source_power_density: Heat source power density
+            heat_fluid_heat_source_power_density: Heat generated inside the target, per unit volume, area or length of it.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5566,19 +5701,20 @@ class HeatFluidPeriodicity(Interaction):
         heat_fluid_periodicity_rotation_center: VectorValue | None = None,
         heat_fluid_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            heat_fluid_periodicity_anti_periodicity: heat fluid periodicity anti periodicity
+            heat_fluid_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            heat_fluid_periodicity_type: heat fluid periodicity type
-            heat_fluid_periodicity_translation_direction: heat fluid periodicity translation direction
-            heat_fluid_periodicity_translation_distance: heat fluid periodicity translation distance
-            heat_fluid_periodicity_rotation_center: heat fluid periodicity rotation center
-            heat_fluid_periodicity_rotation_angle: heat fluid periodicity rotation angle
+            heat_fluid_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            heat_fluid_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            heat_fluid_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            heat_fluid_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            heat_fluid_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             heat_fluid_periodicity_type.value
@@ -5688,11 +5824,12 @@ class HeatFluidInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            heat_fluid_initial_value: heat fluid initial value
+            heat_fluid_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5725,11 +5862,12 @@ class ElasticWavesLoad(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a load interaction.
+        """
+        Create a load interaction.
 
         Parameters:
             name: Name of the interaction.
-            elastic_waves_force: A force vector with the same dimensions as the project. For a 3D project you'd give a vector like [1.5; 10; 0].
+            elastic_waves_force: Force on the target, per unit volume, area or length of it. One value per direction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5762,11 +5900,12 @@ class ElasticWavesConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            elastic_waves_constraint: A 3x2 matrix for a 3D project, 2x2 for 2D etc. The first column is a 0 or 1 indicating which dimensions have a value. The second column holds the actual values. For example [0, 0; 1, 42; 0, 0] means Y dimension has a constraint 42 and other dimensions don't have a constraint.
+            elastic_waves_constraint: Displacement the target is held at. Enable only the components you want to constrain; the rest stay free.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -5799,7 +5938,8 @@ class ElasticWavesClamp(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a clamp interaction.
+        """
+        Create a clamp interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -5836,17 +5976,18 @@ class ElasticWavesLump(Interaction):
         elastic_waves_lump_force: MatrixValue | None = None,
         elastic_waves_lump_circuit_coupling: MatrixValue | None = None,
     ) -> None:
-        """Create a lump u/f interaction.
+        """
+        Create a lump u/f interaction.
 
         Parameters:
             name: Name of the interaction.
             namespace: Namespace for the lump interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            elastic_waves_lump_actuation_mode: elastic waves lump actuation mode
-            elastic_waves_lump_displacement: The primal displacement port
-            elastic_waves_lump_force: The dual force port
-            elastic_waves_lump_circuit_coupling: Circuit coupling
+            elastic_waves_lump_actuation_mode: Selects which of the port's two quantities you prescribe; the other one is solved for. Circuit coupling ties them with your own equation.
+            elastic_waves_lump_displacement: Displacement the whole boundary is moved by. Enable only the components you want to prescribe; the rest stay free.
+            elastic_waves_lump_force: Total force applied through the boundary. Enable only the components you want to prescribe; the rest stay free.
+            elastic_waves_lump_circuit_coupling: Your own equation relating the port's two quantities, for example to attach an external circuit element. It must evaluate to zero.
         """
         _ebo_ctrl_0 = (
             elastic_waves_lump_actuation_mode.value
@@ -5933,7 +6074,8 @@ class ElasticWavesPiezoelectricity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a piezoelectricity interaction.
+        """
+        Create a piezoelectricity interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -5964,13 +6106,14 @@ class ElasticWavesPml(Interaction):
         enabled: BooleanValue | None = None,
         elastic_waves_pml_type: ElasticWavesPmlType | str = ElasticWavesPmlType.AML,
     ) -> None:
-        """Create a perfectly matched layer interaction.
+        """
+        Create a perfectly matched layer interaction.
 
         Parameters:
             name: Name of the interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            elastic_waves_pml_type: elastic waves pml type
+            elastic_waves_pml_type: Shape of the absorbing layer. AML suits smooth boundaries, box PML suits rectangular or cornered ones.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -6006,13 +6149,14 @@ class ElasticWavesThermalExpansion(Interaction):
         enabled: BooleanValue | None = None,
         elastic_waves_thermal_expansion_reference_temperature: ScalarValue = "273",
     ) -> None:
-        """Create a thermal expansion interaction.
+        """
+        Create a thermal expansion interaction.
 
         Parameters:
             name: Name of the interaction.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            elastic_waves_thermal_expansion_reference_temperature: elastic waves thermal expansion reference temperature
+            elastic_waves_thermal_expansion_reference_temperature: Temperature at which the material is unstrained. The expansion is driven by the difference from it.
         """
         parameters: List[InteractionParameter] = []
         parameters.append(
@@ -6043,7 +6187,8 @@ class ElasticWavesViscoelasticity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a viscoelasticity interaction.
+        """
+        Create a viscoelasticity interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -6074,11 +6219,12 @@ class ElasticWavesPressure(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a pressure interaction.
+        """
+        Create a pressure interaction.
 
         Parameters:
             name: Name of the interaction.
-            elastic_waves_pressure: elastic waves pressure
+            elastic_waves_pressure: Pressure acting normal to the target boundary. Positive values push into the solid, negative ones pull outward.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -6122,19 +6268,20 @@ class ElasticWavesPeriodicity(Interaction):
         elastic_waves_periodicity_rotation_center: VectorValue | None = None,
         elastic_waves_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            elastic_waves_periodicity_anti_periodicity: elastic waves periodicity anti periodicity
+            elastic_waves_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            elastic_waves_periodicity_type: elastic waves periodicity type
-            elastic_waves_periodicity_translation_direction: elastic waves periodicity translation direction
-            elastic_waves_periodicity_translation_distance: elastic waves periodicity translation distance
-            elastic_waves_periodicity_rotation_center: elastic waves periodicity rotation center
-            elastic_waves_periodicity_rotation_angle: elastic waves periodicity rotation angle
+            elastic_waves_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            elastic_waves_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            elastic_waves_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            elastic_waves_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            elastic_waves_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             elastic_waves_periodicity_type.value
@@ -6245,7 +6392,8 @@ class ElasticWavesAbsorbingBoundary(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a absorbing boundary interaction.
+        """
+        Create a absorbing boundary interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -6275,7 +6423,8 @@ class ElasticWavesSymmetry(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a symmetry interaction.
+        """
+        Create a symmetry interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -6303,7 +6452,8 @@ class ElasticWavesElectricForce(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a electric force interaction.
+        """
+        Create a electric force interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -6333,12 +6483,13 @@ class ElasticWavesProportionalDamping(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a proportional damping interaction.
+        """
+        Create a proportional damping interaction.
 
         Parameters:
             name: Name of the interaction.
-            elastic_waves_proportional_damping_alpha: elastic waves proportional damping alpha
-            elastic_waves_proportional_damping_beta: elastic waves proportional damping beta
+            elastic_waves_proportional_damping_alpha: Mass proportional Rayleigh damping coefficient. It mainly damps the low frequency modes.
+            elastic_waves_proportional_damping_beta: Stiffness proportional Rayleigh damping coefficient. It mainly damps the high frequency modes.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -6381,7 +6532,8 @@ class ElasticWavesContinuity(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a continuity interaction.
+        """
+        Create a continuity interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -6417,12 +6569,13 @@ class ElasticWavesViscousDamping(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a viscous damping interaction.
+        """
+        Create a viscous damping interaction.
 
         Parameters:
             name: Name of the interaction.
-            elastic_waves_viscous_damping_bulk_viscosity: elastic waves viscous damping bulk viscosity
-            elastic_waves_viscous_damping_shear_viscosity: elastic waves viscous damping shear viscosity
+            elastic_waves_viscous_damping_bulk_viscosity: Viscosity that damps the compression part of the motion.
+            elastic_waves_viscous_damping_shear_viscosity: Viscosity that damps the shearing part of the motion.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -6462,11 +6615,12 @@ class ElasticWavesInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            elastic_waves_initial_value: elastic waves initial value
+            elastic_waves_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -6500,11 +6654,12 @@ class MeshDeformationConstraint(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a constraint interaction.
+        """
+        Create a constraint interaction.
 
         Parameters:
             name: Name of the interaction.
-            mesh_deformation_constraint: A 3x2 matrix for a 3D project, 2x2 for 2D etc. The first column is a 0 or 1 indicating which dimensions have a value. The second column holds the actual values. For example [0, 0; 1, 42; 0, 0] means Y dimension has a constraint 42 and other dimensions don't have a constraint.
+            mesh_deformation_constraint: Mesh displacement the target is held at. Enable only the components you want to constrain; the rest stay free.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """
@@ -6537,7 +6692,8 @@ class MeshDeformationClamp(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a clamp interaction.
+        """
+        Create a clamp interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -6579,19 +6735,20 @@ class MeshDeformationPeriodicity(Interaction):
         mesh_deformation_periodicity_rotation_center: VectorValue | None = None,
         mesh_deformation_periodicity_rotation_angle: VectorValue | None = None,
     ) -> None:
-        """Create a periodicity interaction.
+        """
+        Create a periodicity interaction.
 
         Parameters:
             name: Name of the interaction.
-            mesh_deformation_periodicity_anti_periodicity: mesh deformation periodicity anti periodicity
+            mesh_deformation_periodicity_anti_periodicity: Scales the field on target 2 by -1, so that the two boundaries are opposite instead of equal.
             target_1: Target region for target_1.
             target_2: Target region for target_2.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
-            mesh_deformation_periodicity_type: mesh deformation periodicity type
-            mesh_deformation_periodicity_translation_direction: mesh deformation periodicity translation direction
-            mesh_deformation_periodicity_translation_distance: mesh deformation periodicity translation distance
-            mesh_deformation_periodicity_rotation_center: mesh deformation periodicity rotation center
-            mesh_deformation_periodicity_rotation_angle: mesh deformation periodicity rotation angle
+            mesh_deformation_periodicity_type: Whether target 2 is target 1 translated or target 1 rotated.
+            mesh_deformation_periodicity_translation_direction: Direction target 1 is translated in to reach target 2. Only the direction matters, not the length.
+            mesh_deformation_periodicity_translation_distance: Distance between target 1 and target 2 along the translation direction.
+            mesh_deformation_periodicity_rotation_center: Point that the rotation from target 1 to target 2 turns around.
+            mesh_deformation_periodicity_rotation_angle: Angle target 1 is rotated by around the center to reach target 2. In 3D one angle per axis, applied x then y then z.
         """
         _ebo_ctrl_0 = (
             mesh_deformation_periodicity_type.value
@@ -6702,7 +6859,8 @@ class MeshDeformationSymmetry(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a symmetry interaction.
+        """
+        Create a symmetry interaction.
 
         Parameters:
             name: Name of the interaction.
@@ -6733,11 +6891,12 @@ class MeshDeformationInitialValue(Interaction):
         *,
         enabled: BooleanValue | None = None,
     ) -> None:
-        """Create a initial value interaction.
+        """
+        Create a initial value interaction.
 
         Parameters:
             name: Name of the interaction.
-            mesh_deformation_initial_value: mesh deformation initial value
+            mesh_deformation_initial_value: Value the field starts from at the beginning of the simulation.
             target: Target region.
             enabled: Enabled state (bool or expression string). Defaults to enabled.
         """

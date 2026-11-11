@@ -14,9 +14,29 @@ from .conversions import (
     enabled_from_expr,
     enabled_to_expr,
 )
+from .generated.select_parameters import SELECT_PARAMETER_IDS
 
 if TYPE_CHECKING:
     from allsolve.region import Region
+
+
+def _encode_ascii(text: str) -> str:
+    return f"[{', '.join(str(ord(char)) for char in text)}]"
+
+
+def _decode_ascii(value: str) -> str | None:
+    if not (value.startswith("[") and value.endswith("]")):
+        return None
+    inner = value[1:-1].strip()
+    if not inner:
+        return None
+    try:
+        codes = [int(part) for part in inner.split(",")]
+    except ValueError:
+        return None
+    if not all(32 <= code < 127 for code in codes):
+        return None
+    return "".join(chr(code) for code in codes)
 
 
 class InteractionParameter:
@@ -50,28 +70,42 @@ class InteractionParameter:
             raise ValueError("Cannot provide both value and ascii_value")
 
         self._definition = definition
+        self._value: str = ""
         if ascii_value is not None:
-            # Convert string to ASCII char array format: "[102, 105, 101, ...]"
-            ascii_codes = [str(ord(char)) for char in ascii_value]
-            self._value: str = f"[{', '.join(ascii_codes)}]"
+            self._value = _encode_ascii(ascii_value)
         else:
             # At this point, value is guaranteed to be not None due to the check above
             assert value is not None, "value must be provided if ascii_value is None"
-            self._value = value
+            self.value = value
 
     @property
     def value(self) -> str:
         """
         Get the value of the parameter.
+
+        The API stores the value of a select parameter (for example an actuation
+        mode) as a list of character codes. For these parameters, the decoded
+        option ID is returned, for example ``"currentFlowLumpActuationModeVoltage"``.
         """
+        if self._definition in SELECT_PARAMETER_IDS:
+            decoded = _decode_ascii(self._value)
+            if decoded is not None:
+                return decoded
         return self._value
 
     @value.setter
     def value(self, value: str) -> None:
         """
         Set the value of the parameter.
+
+        For a select parameter, give the option ID. It is sent as a list of
+        character codes. A value that already is a list of character codes is
+        sent as it is.
         """
-        self._value = value
+        if self._definition in SELECT_PARAMETER_IDS and _decode_ascii(value) is None:
+            self._value = _encode_ascii(value)
+        else:
+            self._value = value
 
     @property
     def definition(self) -> str:
@@ -87,9 +121,7 @@ class InteractionParameter:
         )
 
     def __str__(self) -> str:
-        return (
-            f"InteractionParameter(definition={self.definition}, value={self._value})"
-        )
+        return f"InteractionParameter(definition={self.definition}, value={self.value})"
 
 
 class InteractionBase:
@@ -181,10 +213,19 @@ class InteractionBase:
             self._validate()
 
     def __str__(self) -> str:
+        if self._deleted:
+            return self._deleted_str("Interaction")
         if self._interaction is None:
             return f"Interaction(definition={self.definition})"
         return (
             f"Interaction(id={self.id}, name={self.name}, definition={self.definition})"
+        )
+
+    def _deleted_str(self, class_name: str) -> str:
+        interaction = self._ensure_bound()
+        return (
+            f"{class_name}(id={interaction.id}, name={interaction.name}, "
+            f"definition={interaction.definition}, deleted=True)"
         )
 
     @property
@@ -206,6 +247,8 @@ class InteractionBase:
         """
         Get the name of the interaction.
         """
+        if self._interaction is None and self._spec_name is not None:
+            return self._spec_name
         interaction = self._ensure_bound()
         return interaction.name
 
@@ -216,6 +259,9 @@ class InteractionBase:
         Set the name of the shared expression.
         Use save() to commit the change.
         """
+        if self._interaction is None:
+            self._spec_name = name
+            return
         self._current_uncommitted_update().name = name
 
     @property
@@ -277,6 +323,9 @@ class InteractionBase:
         Set the namespace of the interaction.
         Use save() to commit the change.
         """
+        if self._interaction is None:
+            self._spec_namespace = namespace
+            return
         self._current_uncommitted_update().namespace = namespace
 
     @property
@@ -285,6 +334,8 @@ class InteractionBase:
         """
         Get the parameters of the interaction.
         """
+        if self._interaction is None:
+            return list(self._spec_parameters)
         interaction = self._ensure_bound()
         if interaction.parameters is None:
             return []
@@ -300,6 +351,9 @@ class InteractionBase:
         Set the parameters of the interaction.
         Use save() to commit the change.
         """
+        if self._interaction is None:
+            self._spec_parameters = list(parameters)
+            return
         interaction = self._ensure_bound()
         existing_params = interaction.parameters or []
 
@@ -388,7 +442,11 @@ class InteractionBase:
             name=interaction_update.name,
             namespace=interaction_update.namespace,
             definition=interaction.definition,
-            enabled=interaction.enabled,
+            enabled=(
+                interaction.enabled
+                if interaction_update.enabled_expr is None
+                else interaction_update.enabled_expr != "0"
+            ),
             enabledExpr=interaction_update.enabled_expr,
             targets=interaction_update.targets,
             parameters=interaction_update.parameters,
@@ -449,10 +507,54 @@ class InteractionBase:
 
         return self._uncommitted_update
 
+    def _to_new_interaction(self) -> rawapi.NewInteraction:
+        class_name = type(self).__name__
+        if self._interaction is not None:
+            raise ValueError(f"{class_name} is already initialized")
+        if self._spec_name is None:
+            raise ValueError(f"{class_name} name must be provided")
+        interaction_targets = [
+            (defn_id, self._spec_target_region_ids[param_name])
+            for param_name, defn_id in self.target_definition_ids.items()
+            if param_name in self._spec_target_region_ids
+        ]
+        return _new_interaction(
+            name=self._spec_name,
+            definition=self.definition,
+            enabled=self._spec_enabled,
+            parameters=self._spec_parameters,
+            interaction_targets=interaction_targets,
+            namespace=self._spec_namespace,
+        )
+
+
+def _new_interaction(
+    name: str,
+    definition: str,
+    enabled: BooleanValue | None,
+    parameters: List[InteractionParameter] | None,
+    interaction_targets: List[Tuple[str, str]] | None,
+    namespace: str | None = None,
+) -> rawapi.NewInteraction:
+    return rawapi.NewInteraction(
+        name=name,
+        namespace=namespace,
+        definition=definition,
+        enabledExpr=enabled_to_expr(enabled),
+        targets=[
+            rawapi.InteractionTarget(definition=defn, region=region)
+            for defn, region in (interaction_targets or [])
+        ],
+        parameters=[parameter._to_rawapi() for parameter in parameters or []],
+    )
+
 
 class Interaction(InteractionBase):
     """
     Interaction is a class for managing interactions in a project.
+
+    Exported as ``allsolve.PhysicsInteraction``. It is the base class of all
+    physics interactions, for example ``Interaction.SolidMechanicsLoad``.
     """
 
     @classmethod
@@ -493,27 +595,18 @@ class Interaction(InteractionBase):
         """
         project_id = check_for_project_api_key(project_id)
 
-        raw_targets: List[rawapi.InteractionTarget] = [
-            rawapi.InteractionTarget(definition=defn, region=region)
-            for defn, region in (interaction_targets or [])
-        ]
-
         with get_api() as api:
             interaction = api.create_interaction(
                 authorization=get_auth(),
                 project_id=project_id,
                 physics_id=physics_id,
-                new_interaction=rawapi.NewInteraction(
+                new_interaction=_new_interaction(
                     name=name,
-                    namespace=namespace,
                     definition=definition,
-                    enabledExpr=enabled_to_expr(enabled),
-                    targets=raw_targets,
-                    parameters=(
-                        [parameter._to_rawapi() for parameter in parameters or []]
-                        if parameters
-                        else []
-                    ),
+                    enabled=enabled,
+                    parameters=parameters,
+                    interaction_targets=interaction_targets,
+                    namespace=namespace,
                 ),
             )
         return cls._from_rawapi(
@@ -599,26 +692,17 @@ class OutputInteraction(InteractionBase):
         """
         project_id = check_for_project_api_key(project_id)
 
-        raw_targets: List[rawapi.InteractionTarget] = [
-            rawapi.InteractionTarget(definition=defn, region=region)
-            for defn, region in (interaction_targets or [])
-        ]
-
         with get_api() as api:
             interaction = api.create_interaction(
                 authorization=get_auth(),
                 project_id=project_id,
                 simulation_id=simulation_id,
-                new_interaction=rawapi.NewInteraction(
+                new_interaction=_new_interaction(
                     name=name,
                     definition=definition,
-                    enabledExpr=enabled_to_expr(enabled),
-                    targets=raw_targets,
-                    parameters=(
-                        [parameter._to_rawapi() for parameter in parameters or []]
-                        if parameters
-                        else []
-                    ),
+                    enabled=enabled,
+                    parameters=parameters,
+                    interaction_targets=interaction_targets,
                 ),
             )
         return cls._from_rawapi(
@@ -675,8 +759,9 @@ class OutputInteraction(InteractionBase):
         if self._simulation_id is None:
             raise ValueError("OutputInteraction is not associated with a simulation")
 
-    @prevent_deleted
     def __str__(self) -> str:
+        if self._deleted:
+            return self._deleted_str("OutputInteraction")
         if self._interaction is None:
             return f"OutputInteraction(definition={self.definition})"
         return f"OutputInteraction(id={self.id}, name={self.name}, definition={self.definition})"

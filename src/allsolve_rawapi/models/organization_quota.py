@@ -28,8 +28,8 @@ class OrganizationQuota(BaseModel):
     """
     OrganizationQuota
     """ # noqa: E501
-    total_credits: StrictInt = Field(description="How many credits are available for usage. ", alias="totalCredits")
-    used_credits: Union[StrictFloat, StrictInt] = Field(description="How many credits have been used. ", alias="usedCredits")
+    total_credits: StrictInt = Field(description="All credits the organization has received, including the credits reserved for teams. Truncated to whole credits. ", alias="totalCredits")
+    used_credits: Union[StrictFloat, StrictInt] = Field(description="Credits used by projects without a team, by compute jobs and by their share of the organization's object storage usage above its threshold. Usage of teams, also usage of archived teams and usage beyond a team's reservation, is excluded, so `totalCredits - usedCredits` is not the credits available for starting jobs when the organization has teams. ", alias="usedCredits")
     total_running_cores: StrictInt = Field(alias="totalRunningCores")
     total_reserved_cores: StrictInt = Field(alias="totalReservedCores")
     max_concurrent_cores: StrictInt = Field(alias="maxConcurrentCores")

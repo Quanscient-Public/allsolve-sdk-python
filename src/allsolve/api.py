@@ -5,13 +5,12 @@ from __future__ import annotations
 
 import contextvars
 import logging
-import os
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Generator
 
 import allsolve_rawapi as rawapi
 import requests
-from .token import AccessToken
+from ._token import AccessToken
 from .util import NotInitializedError
 
 if TYPE_CHECKING:
@@ -125,7 +124,7 @@ def setup(
     api_key: str | None = None,
     api_secret: str | None = None,
     host: str | None = None,
-    cache_base_dir: str = os.getcwd(),
+    cache_base_dir: str | None = None,
     *,
     dotenv_file: str | None = ".env",
     allow_insecure_http: bool = False,

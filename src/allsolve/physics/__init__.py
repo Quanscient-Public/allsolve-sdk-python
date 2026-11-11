@@ -9,6 +9,7 @@ __all__ = [
     "Fields",
     "InteractionParameter",
     "OutputInteraction",
+    "PhysicsInteraction",
     "Expression",
     "ScalarValue",
     "VectorValue",
@@ -65,6 +66,7 @@ __all__ = [
 
 from .physic import Physic, Field, Fields
 from .interaction import InteractionParameter, OutputInteraction
+from .interaction import Interaction as PhysicsInteraction
 from .conversions import (
     Expression,
     ScalarValue,

@@ -25,8 +25,13 @@ script below.
 After the simulation has finished, install this example's dependencies and visualize the results:
 
 ```
-(venv) $ pip install -r requirements.txt
-(venv) $ python visualize_heat_sink.py
+(venv) $ pip install -r pin_fin_heat_sink/requirements.txt
+(venv) $ python pin_fin_heat_sink/visualize_heat_sink.py
 ```
 
+The script saves a PNG image of each timestep to `pin_fin_heat_sink/output/images`.
 Use `--interactive` for an interactive pyvista window.
+
+**Note:** On the first run, the script downloads the temperature field of all
+10 timesteps (about 360 MB) to `pin_fin_heat_sink/output/results`. Later runs
+use these files. Delete the `output` folder to free the disk space.
